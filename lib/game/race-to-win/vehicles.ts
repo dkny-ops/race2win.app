@@ -120,18 +120,18 @@ export function createVehicleAssets(): VehicleAssets {
     rimGeometry,
     lightGeometry,
     playerBody: track(new THREE.MeshPhysicalMaterial({
-      color: "#0874d9",
-      metalness: 0.92,
-      roughness: 0.19,
+      color: "#b50918",
+      metalness: 0.95,
+      roughness: 0.14,
       clearcoat: 1,
-      clearcoatRoughness: 0.12,
+      clearcoatRoughness: 0.07,
     })),
     playerAccent: track(new THREE.MeshPhysicalMaterial({
-      color: "#b8e8ff",
-      metalness: 0.84,
-      roughness: 0.22,
-      clearcoat: 0.85,
-      clearcoatRoughness: 0.14,
+      color: "#f02a35",
+      metalness: 0.9,
+      roughness: 0.17,
+      clearcoat: 1,
+      clearcoatRoughness: 0.09,
     })),
     trafficBodies: TRAFFIC_COLOURS.map((colour) => track(new THREE.MeshStandardMaterial({
       color: colour,
@@ -175,7 +175,7 @@ export function createVehicleAssets(): VehicleAssets {
   return assets;
 }
 
-/** A local, procedural blue sports car used while no owned GLB model is available. */
+/** A local, procedural metallic-red sports car used while no owned GLB model is available. */
 export function createPlayerVehicle(assets: VehicleAssets): VehicleVisual {
   const root = new THREE.Group();
   root.name = "race-to-win-player-car";
