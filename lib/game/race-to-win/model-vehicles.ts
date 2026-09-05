@@ -79,12 +79,12 @@ function improveMaterial(mesh: THREE.Mesh, source: THREE.Material, player: boole
     material.emissiveIntensity = isRear ? 2.6 : 2.1;
     material.roughness = 0.18;
   } else if (player && !isWheel) {
-    material.color.set("#087ce6");
-    material.metalness = 0.9;
-    material.roughness = 0.18;
+    material.color.set("#b50918");
+    material.metalness = 0.95;
+    material.roughness = 0.14;
     if (material instanceof THREE.MeshPhysicalMaterial) {
       material.clearcoat = 1;
-      material.clearcoatRoughness = 0.1;
+      material.clearcoatRoughness = 0.07;
     }
   }
 
