@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.npm-cache/
+.npm-cache-race2win/
+.tmp-race2win-chrome/
+.tmp-race2win-simulation/
+.tmp-racetowinwebsite-assets/
+*.tsbuildinfo
+.env*.local
