@@ -8,6 +8,7 @@ import {
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
 } from "./environment";
+import { RaceToWinCity } from "./city";
 import {
   createModelVehicleVisual,
   disposeModelVehicleVisual,
@@ -56,6 +57,7 @@ export class RaceToWinWorld {
   private readonly roadAssets = createRoadAssets();
   private readonly vehicleAssets = createVehicleAssets();
   private readonly roadSegments: THREE.Group[] = [];
+  private readonly city: RaceToWinCity;
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
   private readonly speedStreaks: SpeedStreakSystem;
@@ -76,15 +78,15 @@ export class RaceToWinWorld {
       powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.quality.pixelRatioCap));
-    this.renderer.setClearColor("#071326", 1);
+    this.renderer.setClearColor("#090f1b", 1);
     this.renderer.shadowMap.enabled = this.quality.shadows;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.38;
+    this.renderer.toneMappingExposure = 1.48;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.scene.background = new THREE.Color("#071326");
-    this.scene.fog = new THREE.FogExp2("#122842", this.quality.mobile ? 0.012 : 0.01);
+    this.scene.background = new THREE.Color("#090f1b");
+    this.scene.fog = new THREE.FogExp2("#1b2635", this.quality.mobile ? 0.007 : 0.0055);
 
     this.camera.position.set(0, 7.25, 14.1);
     this.camera.lookAt(0, 1.05, -21);
@@ -95,6 +97,8 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
+    this.city = new RaceToWinCity(this.quality);
+    this.scene.add(this.city.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
@@ -145,6 +149,7 @@ export class RaceToWinWorld {
     this.speedStreaks.dispose();
     this.roadHaze.dispose();
     this.collisionSparks.dispose();
+    this.city.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
     this.renderer.dispose();
@@ -152,10 +157,10 @@ export class RaceToWinWorld {
   }
 
   private addLights(): void {
-    const hemisphere = new THREE.HemisphereLight("#9ddaff", "#091320", 2.35);
+    const hemisphere = new THREE.HemisphereLight("#d7e6ff", "#111821", 2.05);
     this.scene.add(hemisphere);
 
-    const moon = new THREE.DirectionalLight("#bce7ff", 4.15);
+    const moon = new THREE.DirectionalLight("#dce8ff", 3.65);
     moon.position.set(-14, 25, 8);
     moon.castShadow = this.quality.shadows;
     if (this.quality.shadows) {
@@ -168,10 +173,10 @@ export class RaceToWinWorld {
     }
     this.scene.add(moon);
 
-    const horizon = new THREE.PointLight("#177eec", 58, 155, 2);
+    const horizon = new THREE.PointLight("#4c8dd2", 38, 155, 2);
     horizon.position.set(0, 12, -80);
     this.scene.add(horizon);
-    const warmRim = new THREE.PointLight("#ff7135", 25, 38, 2);
+    const warmRim = new THREE.PointLight("#ffd0a0", 30, 42, 2);
     warmRim.position.set(-9, 5, 9);
     this.scene.add(warmRim);
   }
@@ -182,6 +187,7 @@ export class RaceToWinWorld {
       const logicalIndex = index - 1;
       this.roadSegments[index]!.position.z = scroll - logicalIndex * ROAD_SEGMENT_LENGTH;
     }
+    this.city.update(distanceMeters);
   }
 
   private updatePlayer(snapshot: RaceToWinSnapshot, deltaSeconds: number): void {

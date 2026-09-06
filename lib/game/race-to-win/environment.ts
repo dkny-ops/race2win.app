@@ -19,7 +19,6 @@ export interface RoadAssets {
   readonly railGeometry: THREE.BoxGeometry;
   readonly postGeometry: THREE.BoxGeometry;
   readonly lampGeometry: THREE.BoxGeometry;
-  readonly skylineGeometry: THREE.BoxGeometry;
   readonly roadMaterial: THREE.MeshStandardMaterial;
   readonly shoulderMaterial: THREE.MeshStandardMaterial;
   readonly markingMaterial: THREE.MeshStandardMaterial;
@@ -27,7 +26,6 @@ export interface RoadAssets {
   readonly postMaterial: THREE.MeshStandardMaterial;
   readonly blueLampMaterial: THREE.MeshStandardMaterial;
   readonly orangeLampMaterial: THREE.MeshStandardMaterial;
-  readonly skylineMaterial: THREE.MeshStandardMaterial;
   dispose(): void;
 }
 
@@ -68,9 +66,8 @@ export function createRoadAssets(): RoadAssets {
     railGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
     postGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
     lampGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
-    skylineGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
-    roadMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#111b28", roughness: 0.68, metalness: 0.42 })),
-    shoulderMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#1a2a39", roughness: 0.62, metalness: 0.5 })),
+    roadMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#182330", roughness: 0.7, metalness: 0.44 })),
+    shoulderMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#26323c", roughness: 0.63, metalness: 0.52 })),
     markingMaterial: collectMaterial(new THREE.MeshStandardMaterial({
       color: "#c7eeff",
       emissive: "#075ad8",
@@ -80,9 +77,8 @@ export function createRoadAssets(): RoadAssets {
     })),
     railMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#354757", roughness: 0.42, metalness: 0.83 })),
     postMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#152433", roughness: 0.59, metalness: 0.7 })),
-    blueLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#bcf3ff", emissive: "#1a9cff", emissiveIntensity: 5.2 })),
-    orangeLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#ffd29c", emissive: "#f36a20", emissiveIntensity: 4.1 })),
-    skylineMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#112436", roughness: 0.9, metalness: 0.1 })),
+    blueLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#d8efff", emissive: "#438fd7", emissiveIntensity: 3.1 })),
+    orangeLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#fff0d3", emissive: "#ffad5c", emissiveIntensity: 3.5 })),
     dispose() {
       for (const item of geometry) item.dispose();
       for (const item of materials) item.dispose();
@@ -111,23 +107,16 @@ export function createRoadSegment(assets: RoadAssets, segmentIndex: number): THR
   }
 
   for (let z = -40; z <= 40; z += 20) {
-    const lampMaterial = (Math.round((z + 40) / 20) + segmentIndex) % 3 === 0
-      ? assets.orangeLampMaterial
-      : assets.blueLampMaterial;
+    // Fifth Avenue uses mostly warm-white street illumination. The occasional
+    // cool fixture keeps the existing electric-blue Race To Win identity.
+    const lampMaterial = (Math.round((z + 40) / 20) + segmentIndex) % 5 === 0
+      ? assets.blueLampMaterial
+      : assets.orangeLampMaterial;
     for (const side of [-1, 1]) {
       const x = side * 12.2;
       root.add(staticMesh(assets.postGeometry, assets.postMaterial, [x, 2.25, z], [0.14, 4.5, 0.14]));
       root.add(staticMesh(assets.lampGeometry, lampMaterial, [x - side * 0.6, 4.5, z], [1.35, 0.12, 0.23]));
     }
-  }
-
-  for (let index = 0; index < 7; index += 1) {
-    const seed = segmentIndex * 13 + index;
-    const side = pseudoRandom(seed + 5) > 0.5 ? 1 : -1;
-    const height = 5 + pseudoRandom(seed) * 16;
-    const width = 3 + pseudoRandom(seed + 3) * 5;
-    const z = -44 + index * 14 + pseudoRandom(seed + 4) * 5;
-    root.add(staticMesh(assets.skylineGeometry, assets.skylineMaterial, [side * (23 + pseudoRandom(seed + 2) * 9), height / 2 - 0.1, z], [width, height, 3 + pseudoRandom(seed + 1) * 5]));
   }
 
   return root;
