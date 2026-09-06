@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v5";
+export const GAMEPLAY_VERSION = "rtw-v6";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
@@ -19,6 +19,9 @@ export interface RaceToWinConfig {
   readonly initialSpeedMps: number;
   readonly maxSpeedMps: number;
   readonly speedRampSeconds: number;
+  readonly speedIncreaseIntervalSeconds: number;
+  readonly speedIncreaseMultiplier: number;
+  readonly maxSpeedIncreaseSteps: number;
   readonly trafficDifficultyRampSeconds: number;
   readonly collisionLongitudinalMeters: number;
   readonly collisionLateralMeters: number;
@@ -59,10 +62,15 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   // whenever the reachability planner accepts a changing safe corridor.
   reactionBufferSeconds: 0.42,
   initialSpeedMps: 34,
-  // The opening is immediately active: 322 km/h at one minute, 391 km/h at
-  // 90 seconds, 440 km/h at two minutes, then 480 km/h at three minutes.
+  // The base curve is immediately active; the versioned 10% pace steps below
+  // bring the run to its 480 km/h cap shortly after the 70-second mark.
   maxSpeedMps: 480 / 3.6,
   speedRampSeconds: 180,
+  // Preserves the old game's escalation cadence in the current deterministic
+  // metres/second model: 10% faster every 20 seconds, capped at ten steps.
+  speedIncreaseIntervalSeconds: 20,
+  speedIncreaseMultiplier: 1.1,
+  maxSpeedIncreaseSteps: 10,
   // Spawn cadence reaches its full pressure at one minute, so 60–90 seconds
   // already demand continuous lane reading rather than a warm-up cruise.
   trafficDifficultyRampSeconds: 60,
@@ -70,7 +78,7 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   collisionLateralMeters: 2.1,
   despawnBehindMeters: 18,
   initialSpawnDelaySeconds: 0.3,
-  // At the v4 cap these produce roughly 0.7–2.4 seconds of approach time,
+  // At the v6 cap these produce roughly 0.7–2.4 seconds of approach time,
   // depending on traffic speed. The planner rejects any chain that is not
   // physically reachable from the current lane.
   spawnAheadMinMeters: 70,

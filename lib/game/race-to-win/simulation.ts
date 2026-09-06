@@ -253,10 +253,19 @@ export class RaceToWinSimulation {
 
   private speedForElapsedTime(): number {
     const progress = clamp(this.elapsedSeconds / this.config.speedRampSeconds, 0, 1);
-    // Ease-in keeps the first minute welcoming and avoids an abrupt difficulty wall.
+    // The base curve stays continuous; the fixed, versioned 10% steps mirror
+    // the previous game's pace increase without trusting client-reported speed.
     const easedProgress = 1 - (1 - progress) ** 2;
-    return this.config.initialSpeedMps +
+    const baseSpeed = this.config.initialSpeedMps +
       (this.config.maxSpeedMps - this.config.initialSpeedMps) * easedProgress;
+    const increaseSteps = Math.min(
+      this.config.maxSpeedIncreaseSteps,
+      Math.floor(this.elapsedSeconds / this.config.speedIncreaseIntervalSeconds),
+    );
+    return Math.min(
+      this.config.maxSpeedMps,
+      baseSpeed * this.config.speedIncreaseMultiplier ** increaseSteps,
+    );
   }
 
   private processInputs(): void {
