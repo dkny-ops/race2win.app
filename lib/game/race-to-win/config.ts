@@ -45,16 +45,20 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   maxFrameDeltaMs: 100,
   laneChangeDurationMs: 190,
   initialSpeedMps: 27,
-  maxSpeedMps: 46,
-  speedRampSeconds: 150,
+  // 300 km/h is the hard cap. The longer ramp keeps the final pace demanding
+  // without turning the opening minutes into an abrupt difficulty wall.
+  maxSpeedMps: 300 / 3.6,
+  speedRampSeconds: 300,
   collisionLongitudinalMeters: 4.6,
   collisionLateralMeters: 2.1,
   despawnBehindMeters: 18,
   initialSpawnDelaySeconds: 0.55,
-  spawnAheadMinMeters: 58,
-  spawnAheadMaxMeters: 76,
+  // At 300 km/h, this preserves roughly 2.1–3.4 seconds to react depending
+  // on traffic speed: difficult, but still within a human response window.
+  spawnAheadMinMeters: 62,
+  spawnAheadMaxMeters: 128,
   spawnIntervalStartSeconds: 2.15,
-  spawnIntervalEndSeconds: 1.32,
+  spawnIntervalEndSeconds: 1.45,
   // Traffic travels in the same direction as the player. This gives every
   // wave a readable approach time instead of spawning static walls.
   trafficSpeedMinFactor: 0.28,

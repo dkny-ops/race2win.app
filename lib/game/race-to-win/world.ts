@@ -21,7 +21,7 @@ import { createPlayerVehicle, createTrafficVehicle, createVehicleAssets, type Ve
 import type { RaceToWinSnapshot, TrafficSnapshot } from "./types";
 
 const PLAYER_START_SPEED_KPH = 97;
-const PLAYER_MAX_SPEED_KPH = 166;
+const PLAYER_MAX_SPEED_KPH = 300;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
