@@ -4,7 +4,7 @@ create table public.game_sessions (
   id uuid primary key,
   user_id uuid not null references auth.users(id) on delete restrict,
   game_id text not null check (game_id = 'race-to-win'),
-  gameplay_version text not null check (gameplay_version = 'rtw-v3'),
+  gameplay_version text not null check (gameplay_version = 'rtw-v4'),
   seed bigint not null check (seed between 0 and 4294967295),
   status text not null default 'active' check (status in ('active', 'finalized', 'invalid', 'expired')),
   created_at timestamptz not null default now(),

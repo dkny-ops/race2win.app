@@ -88,6 +88,9 @@ export class RaceToWinSimulation {
   private nextSpawnAtSeconds = 0;
   private nextWaveId = 0;
   private nextPoolId = 0;
+  private activePressurePhase = -1;
+  private pressurePhaseWaveIndex = 0;
+  private pressureSafeLaneIndex = 0;
   private lastPressureSafeLane: LaneIndex | null = null;
   private activeTraffic: TrafficVehicle[] = [];
   private recycledTraffic: TrafficVehicle[] = [];
@@ -119,6 +122,9 @@ export class RaceToWinSimulation {
     this.nextInputSequence = 0;
     this.nextSpawnAtSeconds = this.config.initialSpawnDelaySeconds;
     this.nextWaveId = 0;
+    this.activePressurePhase = -1;
+    this.pressurePhaseWaveIndex = 0;
+    this.pressureSafeLaneIndex = 0;
     this.lastPressureSafeLane = null;
     this.collision = null;
     this.recycledTraffic.push(...this.activeTraffic);
@@ -344,13 +350,13 @@ export class RaceToWinSimulation {
     );
     const speedMps = this.currentSpeedMps * speedFactor;
     const worldDistance = this.playerDistanceMeters + aheadMeters;
-    const doubleProbability = this.lerp(
-      this.config.doubleObstacleStartProbability,
-      this.config.doubleObstacleEndProbability,
-      difficulty,
+    const pressureLayout = this.nextPressureLayout();
+    const laneIndices = this.pickSurvivableLanePattern(
+      worldDistance,
+      speedMps,
+      pressureLayout.wantsDouble,
+      pressureLayout.preferredSafeLane,
     );
-    const wantsDouble = this.prng.next() < doubleProbability;
-    const laneIndices = this.pickSurvivableLanePattern(worldDistance, speedMps, wantsDouble);
     // Dense traffic is desirable, but never at the expense of a physically
     // reachable lane. Skipping this deterministic spawn is safer than adding
     // a fallback obstacle that could close the only remaining route.
@@ -383,22 +389,15 @@ export class RaceToWinSimulation {
     worldDistance: number,
     speedMps: number,
     wantsDouble: boolean,
+    preferredSafeLane: LaneIndex | null,
   ): readonly LaneIndex[] | null {
     const candidates: LaneIndex[][] = wantsDouble
       ? [[0, 1], [0, 2], [1, 2]]
       : [[0], [1], [2]];
 
-    // Rotate candidates deterministically without consuming randomness
-    // differently on retry. For double blocks, prefer a new safe lane when
-    // reachability permits so the player cannot camp in one lane.
-    const firstOffset = this.prng.intInclusive(0, candidates.length - 1);
-    const rotatedCandidates = candidates.map((_, index) => candidates[(firstOffset + index) % candidates.length]!);
-    const orderedCandidates = wantsDouble && this.lastPressureSafeLane !== null
-      ? [
-          ...rotatedCandidates.filter((candidate) => !candidate.includes(this.lastPressureSafeLane!)),
-          ...rotatedCandidates.filter((candidate) => candidate.includes(this.lastPressureSafeLane!)),
-        ]
-      : rotatedCandidates;
+    const orderedCandidates = wantsDouble
+      ? this.orderDoubleCandidates(candidates, preferredSafeLane)
+      : this.rotateCandidates(candidates);
 
     for (const candidate of orderedCandidates) {
       if (!this.hasTrafficSeparation(candidate, worldDistance, speedMps)) continue;
@@ -413,6 +412,64 @@ export class RaceToWinSimulation {
     }
 
     return null;
+  }
+
+  /**
+   * Uses a versioned, fixed cycle rather than independent random double-wave
+   * rolls. Every successful double wave has a preferred safe corridor; the
+   * planner may only fall back when that exact corridor would be unfair.
+   */
+  private nextPressureLayout(): { readonly wantsDouble: boolean; readonly preferredSafeLane: LaneIndex | null } {
+    const phase = this.pressurePhaseIndex();
+    if (phase !== this.activePressurePhase) {
+      this.activePressurePhase = phase;
+      this.pressurePhaseWaveIndex = 0;
+    }
+
+    const cycleLength = this.config.pressureWaveCycleLengths[phase]!;
+    const doubleWaves = this.config.pressureDoubleWavesPerCycle[phase]!;
+    const wantsDouble = this.pressurePhaseWaveIndex % cycleLength < doubleWaves;
+    this.pressurePhaseWaveIndex += 1;
+
+    if (!wantsDouble) {
+      return { wantsDouble: false, preferredSafeLane: null };
+    }
+
+    const preferredSafeLane = this.config.pressureSafeLanePattern[
+      this.pressureSafeLaneIndex % this.config.pressureSafeLanePattern.length
+    ] as LaneIndex;
+    this.pressureSafeLaneIndex += 1;
+    return { wantsDouble: true, preferredSafeLane };
+  }
+
+  private pressurePhaseIndex(): number {
+    const phase = this.config.pressurePhaseEndSeconds.findIndex((endSeconds) => this.elapsedSeconds < endSeconds);
+    return phase === -1 ? this.config.pressureWaveCycleLengths.length - 1 : phase;
+  }
+
+  private orderDoubleCandidates(
+    candidates: readonly LaneIndex[][],
+    preferredSafeLane: LaneIndex | null,
+  ): readonly LaneIndex[][] {
+    const corridorOrder: LaneIndex[] = [];
+    const addCorridor = (lane: LaneIndex | null) => {
+      if (lane !== null && !corridorOrder.includes(lane)) corridorOrder.push(lane);
+    };
+
+    addCorridor(preferredSafeLane);
+    for (const lane of LANE_INDICES) {
+      if (lane !== this.lastPressureSafeLane) addCorridor(lane);
+    }
+    addCorridor(this.lastPressureSafeLane);
+
+    return corridorOrder.map((safeLane) =>
+      candidates.find((candidate) => !candidate.includes(safeLane))!,
+    );
+  }
+
+  private rotateCandidates(candidates: readonly LaneIndex[][]): readonly LaneIndex[][] {
+    const firstOffset = this.prng.intInclusive(0, candidates.length - 1);
+    return candidates.map((_, index) => candidates[(firstOffset + index) % candidates.length]!);
   }
 
   /**
