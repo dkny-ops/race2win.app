@@ -2,7 +2,9 @@
  * Rules that define a Race To Win run. Keep this object versioned: a future
  * server-side validator must use the exact same constants for replay.
  */
-export const GAMEPLAY_VERSION = "rtw-v1";
+// Increment whenever an authoritative simulation rule changes. A session is
+// replayed only by the exact version that created it.
+export const GAMEPLAY_VERSION = "rtw-v2";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;

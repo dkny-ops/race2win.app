@@ -9,7 +9,7 @@ export {
 export { RaceToWinPrng } from "./prng";
 export { RaceToWinAudio, type RaceToWinAudioCue, type RaceToWinAudioSources } from "./audio";
 export { RaceToWinSimulation, type RaceToWinSimulationOptions } from "./simulation";
-export { MAX_OFFICIAL_INPUTS, replayAuthoritativeRace } from "./authoritative-replay";
+export { MAX_OFFICIAL_INPUTS, isAuthoritativeGameplayVersion, replayAuthoritativeRace } from "./authoritative-replay";
 export type {
   CollisionSnapshot,
   DisplayMetrics,

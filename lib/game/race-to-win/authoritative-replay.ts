@@ -12,7 +12,12 @@ export interface AuthoritativeRaceResult {
 }
 
 /** Pure server-safe replay: no browser, Three.js, DOM, or client metrics. */
-export function replayAuthoritativeRace(seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceResult | null {
+export function isAuthoritativeGameplayVersion(value: unknown): value is typeof GAMEPLAY_VERSION {
+  return value === GAMEPLAY_VERSION;
+}
+
+export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceResult | null {
+  if (!isAuthoritativeGameplayVersion(gameplayVersion)) return null;
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff || !Number.isSafeInteger(elapsedCapMs) || elapsedCapMs < 0) return null;
   if (inputs.length > MAX_OFFICIAL_INPUTS) return null;
   const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6 });
@@ -34,8 +39,4 @@ export function replayAuthoritativeRace(seed: number, inputs: readonly LaneInput
     elapsedMs: snapshot.simulationTimeMs,
     collisionAtMs: snapshot.collision.atMs,
   };
-}
-
-export function isAuthoritativeGameplayVersion(value: unknown): value is typeof GAMEPLAY_VERSION {
-  return value === GAMEPLAY_VERSION;
 }
