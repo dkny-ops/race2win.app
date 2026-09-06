@@ -19,9 +19,6 @@ import type {
 } from "./types";
 
 const LANE_INDICES: readonly LaneIndex[] = [0, 1, 2];
-// Extra margin between approaching waves. The planner reserves enough time to
-// complete a lane change and settle before asking the player to evade again.
-const HUMAN_REACTION_BUFFER_SECONDS = 0.38;
 
 interface TrafficVehicle {
   id: number;
@@ -91,6 +88,7 @@ export class RaceToWinSimulation {
   private nextSpawnAtSeconds = 0;
   private nextWaveId = 0;
   private nextPoolId = 0;
+  private lastPressureSafeLane: LaneIndex | null = null;
   private activeTraffic: TrafficVehicle[] = [];
   private recycledTraffic: TrafficVehicle[] = [];
   private activeWaves: TrafficWave[] = [];
@@ -121,6 +119,7 @@ export class RaceToWinSimulation {
     this.nextInputSequence = 0;
     this.nextSpawnAtSeconds = this.config.initialSpawnDelaySeconds;
     this.nextWaveId = 0;
+    this.lastPressureSafeLane = null;
     this.collision = null;
     this.recycledTraffic.push(...this.activeTraffic);
     this.activeTraffic = [];
@@ -356,6 +355,9 @@ export class RaceToWinSimulation {
     // reachable lane. Skipping this deterministic spawn is safer than adding
     // a fallback obstacle that could close the only remaining route.
     if (!laneIndices) return;
+    if (laneIndices.length === 2) {
+      this.lastPressureSafeLane = LANE_INDICES.find((lane) => !laneIndices.includes(lane)) ?? null;
+    }
     const waveId = this.nextWaveId++;
 
     this.activeWaves.push({ id: waveId, laneIndices, worldDistance, speedMps });
@@ -386,10 +388,20 @@ export class RaceToWinSimulation {
       ? [[0, 1], [0, 2], [1, 2]]
       : [[0], [1], [2]];
 
-    // Shuffle deterministically without consuming randomness differently on retry.
+    // Rotate candidates deterministically without consuming randomness
+    // differently on retry. For double blocks, prefer a new safe lane when
+    // reachability permits so the player cannot camp in one lane.
     const firstOffset = this.prng.intInclusive(0, candidates.length - 1);
-    for (let attempt = 0; attempt < candidates.length; attempt += 1) {
-      const candidate = candidates[(firstOffset + attempt) % candidates.length]!;
+    const rotatedCandidates = candidates.map((_, index) => candidates[(firstOffset + index) % candidates.length]!);
+    const orderedCandidates = wantsDouble && this.lastPressureSafeLane !== null
+      ? [
+          ...rotatedCandidates.filter((candidate) => !candidate.includes(this.lastPressureSafeLane!)),
+          ...rotatedCandidates.filter((candidate) => candidate.includes(this.lastPressureSafeLane!)),
+        ]
+      : rotatedCandidates;
+
+    for (const candidate of orderedCandidates) {
+      if (!this.hasTrafficSeparation(candidate, worldDistance, speedMps)) continue;
       if (this.hasReachablePath([...this.activeWaves, {
         id: -1,
         laneIndices: candidate,
@@ -401,6 +413,28 @@ export class RaceToWinSimulation {
     }
 
     return null;
+  }
+
+  /**
+   * Prevent same-lane vehicle models from spawning into, or converging through,
+   * one another during the look-ahead used by the path planner.
+   */
+  private hasTrafficSeparation(
+    laneIndices: readonly LaneIndex[],
+    worldDistance: number,
+    speedMps: number,
+  ): boolean {
+    for (const vehicle of this.activeTraffic) {
+      if (!vehicle.active || !laneIndices.includes(vehicle.laneIndex)) continue;
+      const distanceAtSpawn = vehicle.worldDistance - worldDistance;
+      const relativeSpeed = vehicle.speedMps - speedMps;
+      const closestTime = Math.abs(relativeSpeed) < 0.0001
+        ? 0
+        : clamp(-distanceAtSpawn / relativeSpeed, 0, this.config.wavePlanningHorizonSeconds);
+      const separation = Math.abs(distanceAtSpawn + relativeSpeed * closestTime);
+      if (separation < this.config.minimumTrafficSeparationMeters) return false;
+    }
+    return true;
   }
 
   private hasReachablePath(waves: readonly TrafficWave[]): boolean {
@@ -417,7 +451,7 @@ export class RaceToWinSimulation {
     for (const wave of futureWaves) {
       const movementWindow = Math.max(
         0,
-        wave.arrivalSeconds - previousArrival - HUMAN_REACTION_BUFFER_SECONDS,
+        wave.arrivalSeconds - previousArrival - this.config.reactionBufferSeconds,
       );
       const possibleMoves = Math.floor(movementWindow / (this.config.laneChangeDurationMs / 1000));
       const freeLanes = LANE_INDICES.filter((lane) => !wave.laneIndices.includes(lane));
@@ -486,7 +520,7 @@ export class RaceToWinSimulation {
   }
 
   private difficulty(): number {
-    return clamp(this.elapsedSeconds / this.config.speedRampSeconds, 0, 1);
+    return clamp(this.elapsedSeconds / this.config.trafficDifficultyRampSeconds, 0, 1);
   }
 
   private playerSnapshot(): PlayerSnapshot {

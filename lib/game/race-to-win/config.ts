@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v2";
+export const GAMEPLAY_VERSION = "rtw-v3";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
@@ -15,9 +15,11 @@ export interface RaceToWinConfig {
   readonly fixedStepMs: number;
   readonly maxFrameDeltaMs: number;
   readonly laneChangeDurationMs: number;
+  readonly reactionBufferSeconds: number;
   readonly initialSpeedMps: number;
   readonly maxSpeedMps: number;
   readonly speedRampSeconds: number;
+  readonly trafficDifficultyRampSeconds: number;
   readonly collisionLongitudinalMeters: number;
   readonly collisionLateralMeters: number;
   readonly despawnBehindMeters: number;
@@ -31,6 +33,7 @@ export interface RaceToWinConfig {
   readonly doubleObstacleStartProbability: number;
   readonly doubleObstacleEndProbability: number;
   readonly wavePlanningHorizonSeconds: number;
+  readonly minimumTrafficSeparationMeters: number;
   readonly maxTrafficVehicles: number;
   readonly scorePerMeter: number;
 }
@@ -46,30 +49,37 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   // Avoid simulating a huge catch-up jump when a browser tab resumes.
   maxFrameDeltaMs: 100,
   laneChangeDurationMs: 190,
-  initialSpeedMps: 27,
-  // 360 km/h is the hard cap. The longer ramp keeps the final pace demanding
-  // without turning the opening minutes into an abrupt difficulty wall.
-  maxSpeedMps: 360 / 3.6,
+  // Reserves time to read an obstacle and clear a just-passed car before the
+  // next lane decision. This keeps dense waves demanding but physically fair.
+  reactionBufferSeconds: 0.55,
+  initialSpeedMps: 29,
+  // The car reaches 340 km/h at roughly two minutes, then keeps climbing
+  // gradually to its 420 km/h cap instead of jumping to it suddenly.
+  maxSpeedMps: 420 / 3.6,
   speedRampSeconds: 240,
+  // Traffic pressure reaches its full deterministic intensity at two minutes.
+  trafficDifficultyRampSeconds: 120,
   collisionLongitudinalMeters: 4.6,
   collisionLateralMeters: 2.1,
   despawnBehindMeters: 18,
-  initialSpawnDelaySeconds: 0.55,
-  // At 360 km/h, this preserves roughly 2.1–3.3 seconds to react depending
-  // on traffic speed: difficult, but still within a human response window.
+  initialSpawnDelaySeconds: 0.5,
+  // The farther high-difficulty spawns preserve a readable reaction window
+  // as the player approaches 420 km/h.
   spawnAheadMinMeters: 62,
   spawnAheadMaxMeters: 150,
-  // Two-thirds of the prior interval yields 50% more traffic waves. Early
-  // runs stay active instead of leaving long, empty stretches at low speed.
-  spawnIntervalStartSeconds: 1.43,
-  spawnIntervalEndSeconds: 0.97,
+  // Waves arrive immediately and tighten steadily through the first two
+  // minutes. The planner may deterministically skip an unsafe wave.
+  spawnIntervalStartSeconds: 0.95,
+  spawnIntervalEndSeconds: 0.58,
   // Traffic travels in the same direction as the player. This gives every
   // wave a readable approach time instead of spawning static walls.
   trafficSpeedMinFactor: 0.28,
   trafficSpeedMaxFactor: 0.55,
-  doubleObstacleStartProbability: 0.08,
-  doubleObstacleEndProbability: 0.25,
-  wavePlanningHorizonSeconds: 9,
+  doubleObstacleStartProbability: 0.18,
+  doubleObstacleEndProbability: 0.72,
+  wavePlanningHorizonSeconds: 10,
+  // Keeps same-lane traffic visually distinct throughout the planning window.
+  minimumTrafficSeparationMeters: 10.5,
   maxTrafficVehicles: 30,
   // Display-only score: one point per ten simulated metres. It deliberately
   // grows at a readable arcade-racing pace and is never an official result.
