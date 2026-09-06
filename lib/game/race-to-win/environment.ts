@@ -230,22 +230,22 @@ export class TireSmokeSystem {
     this.velocities = new Float32Array(count * 3);
     this.ages = new Float32Array(count).fill(Number.POSITIVE_INFINITY);
     geometry.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
-    this.object = new THREE.Points(geometry, new THREE.PointsMaterial({ color: "#bfd0dd", size: 1.65, transparent: true, opacity: 0, depthWrite: false, sizeAttenuation: true }));
+    this.object = new THREE.Points(geometry, new THREE.PointsMaterial({ color: "#bfd0dd", size: 0.72, transparent: true, opacity: 0, depthWrite: false, sizeAttenuation: true }));
     this.object.frustumCulled = false;
   }
 
   public trigger(laneX: number, laneChange: boolean): void {
-    const amount = laneChange ? 10 : 18;
+    const amount = laneChange ? 4 : 6;
     for (let index = 0; index < amount; index += 1) {
       const slot = this.cursor++ % this.ages.length;
       const start = slot * 3;
       const side = index % 2 === 0 ? -1 : 1;
-      this.positions[start] = laneX + side * (0.72 + (index % 3) * 0.15);
-      this.positions[start + 1] = 0.16 + (index % 4) * 0.05;
-      this.positions[start + 2] = 1.45 + (index % 5) * 0.12;
-      this.velocities[start] = side * (laneChange ? 3.8 : 1.7) + (index % 3 - 1) * 0.4;
-      this.velocities[start + 1] = 0.5 + (index % 4) * 0.22;
-      this.velocities[start + 2] = 2.5 + (index % 5) * 0.35;
+      this.positions[start] = laneX + side * (0.55 + (index % 2) * 0.09);
+      this.positions[start + 1] = 0.12 + (index % 3) * 0.035;
+      this.positions[start + 2] = 1.05 + (index % 3) * 0.08;
+      this.velocities[start] = side * (laneChange ? 1.8 : 0.85) + (index % 3 - 1) * 0.16;
+      this.velocities[start + 1] = 0.24 + (index % 3) * 0.1;
+      this.velocities[start + 2] = 0.9 + (index % 3) * 0.15;
       this.ages[slot] = 0;
     }
     this.object.visible = true;
@@ -256,7 +256,7 @@ export class TireSmokeSystem {
     for (let index = 0; index < this.ages.length; index += 1) {
       if (!Number.isFinite(this.ages[index])) continue;
       this.ages[index] += deltaSeconds;
-      if (this.ages[index] > 0.72) { this.ages[index] = Number.POSITIVE_INFINITY; continue; }
+      if (this.ages[index] > 0.36) { this.ages[index] = Number.POSITIVE_INFINITY; continue; }
       active += 1;
       const start = index * 3;
       this.positions[start] += this.velocities[start]! * deltaSeconds;
@@ -264,7 +264,7 @@ export class TireSmokeSystem {
       this.positions[start + 2] += this.velocities[start + 2]! * deltaSeconds;
       this.velocities[start + 1] += 0.45 * deltaSeconds;
     }
-    (this.object.material as THREE.PointsMaterial).opacity = active ? 0.24 : 0;
+    (this.object.material as THREE.PointsMaterial).opacity = active ? 0.13 : 0;
     this.object.visible = active > 0;
     (this.object.geometry.getAttribute("position") as THREE.BufferAttribute).needsUpdate = true;
   }
