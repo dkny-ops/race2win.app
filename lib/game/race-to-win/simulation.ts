@@ -19,6 +19,9 @@ import type {
 } from "./types";
 
 const LANE_INDICES: readonly LaneIndex[] = [0, 1, 2];
+// Extra margin between approaching waves. The planner reserves enough time to
+// complete a lane change and settle before asking the player to evade again.
+const HUMAN_REACTION_BUFFER_SECONDS = 0.38;
 
 interface TrafficVehicle {
   id: number;
@@ -349,6 +352,10 @@ export class RaceToWinSimulation {
     );
     const wantsDouble = this.prng.next() < doubleProbability;
     const laneIndices = this.pickSurvivableLanePattern(worldDistance, speedMps, wantsDouble);
+    // Dense traffic is desirable, but never at the expense of a physically
+    // reachable lane. Skipping this deterministic spawn is safer than adding
+    // a fallback obstacle that could close the only remaining route.
+    if (!laneIndices) return;
     const waveId = this.nextWaveId++;
 
     this.activeWaves.push({ id: waveId, laneIndices, worldDistance, speedMps });
@@ -374,7 +381,7 @@ export class RaceToWinSimulation {
     worldDistance: number,
     speedMps: number,
     wantsDouble: boolean,
-  ): readonly LaneIndex[] {
+  ): readonly LaneIndex[] | null {
     const candidates: LaneIndex[][] = wantsDouble
       ? [[0, 1], [0, 2], [1, 2]]
       : [[0], [1], [2]];
@@ -393,9 +400,7 @@ export class RaceToWinSimulation {
       }
     }
 
-    // A single obstacle leaves two lanes open. It is the guaranteed safe fallback.
-    const occupiedLane = this.playerLane === 1 ? 0 : 1;
-    return [occupiedLane as LaneIndex];
+    return null;
   }
 
   private hasReachablePath(waves: readonly TrafficWave[]): boolean {
@@ -410,7 +415,10 @@ export class RaceToWinSimulation {
     let reachable = new Set<LaneIndex>([this.playerLane]);
     let previousArrival = 0;
     for (const wave of futureWaves) {
-      const movementWindow = Math.max(0, wave.arrivalSeconds - previousArrival);
+      const movementWindow = Math.max(
+        0,
+        wave.arrivalSeconds - previousArrival - HUMAN_REACTION_BUFFER_SECONDS,
+      );
       const possibleMoves = Math.floor(movementWindow / (this.config.laneChangeDurationMs / 1000));
       const freeLanes = LANE_INDICES.filter((lane) => !wave.laneIndices.includes(lane));
       const nextReachable = new Set<LaneIndex>();

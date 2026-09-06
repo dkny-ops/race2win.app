@@ -259,13 +259,16 @@ export class RaceToWinWorld {
 
   private updateCamera(snapshot: RaceToWinSnapshot, deltaSeconds: number): void {
     const speedProgress = clamp((snapshot.metrics.speedKph - PLAYER_START_SPEED_KPH) / (PLAYER_MAX_SPEED_KPH - PLAYER_START_SPEED_KPH), 0, 1);
-    const desiredX = snapshot.player.laneX * 0.32;
-    this.camera.position.x = damp(this.camera.position.x, desiredX, deltaSeconds, 3.4);
+    // Follow the selected lane enough to keep the complete car inside the
+    // frame on a narrow mobile viewport, while still showing the road ahead.
+    const desiredX = snapshot.player.laneX * 0.82;
+    this.camera.position.x = damp(this.camera.position.x, desiredX, deltaSeconds, 5.8);
     this.camera.position.y = damp(this.camera.position.y, 7.22 + speedProgress * 0.34, deltaSeconds, 3);
     this.camera.position.z = damp(this.camera.position.z, 14.1 - speedProgress * 0.65, deltaSeconds, 3);
-    this.camera.fov = damp(this.camera.fov, 58 + speedProgress * 5.2, deltaSeconds, 2.3);
+    const baseFov = this.quality.mobile ? 66 : 60;
+    this.camera.fov = damp(this.camera.fov, baseFov + speedProgress * 5.2, deltaSeconds, 3.4);
     this.camera.updateProjectionMatrix();
-    this.cameraLookAt.set(snapshot.player.laneX * 0.13, 1.05, -21.5 - speedProgress * 4);
+    this.cameraLookAt.set(snapshot.player.laneX * 0.4, 1.05, -21.5 - speedProgress * 4);
     this.camera.lookAt(this.cameraLookAt);
   }
 
