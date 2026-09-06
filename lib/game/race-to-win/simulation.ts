@@ -481,17 +481,33 @@ export class RaceToWinSimulation {
     worldDistance: number,
     speedMps: number,
   ): boolean {
+    const candidateActiveSeconds = this.secondsUntilTrafficDespawn(worldDistance, speedMps);
     for (const vehicle of this.activeTraffic) {
       if (!vehicle.active || !laneIndices.includes(vehicle.laneIndex)) continue;
       const distanceAtSpawn = vehicle.worldDistance - worldDistance;
       const relativeSpeed = vehicle.speedMps - speedMps;
+      // Once either vehicle has cleared the despawn boundary it no longer has
+      // a visual or gameplay presence. Do not discard a new fair wave merely
+      // because two same-lane vehicles would converge after that point.
+      const sharedActiveSeconds = Math.min(
+        this.config.wavePlanningHorizonSeconds,
+        candidateActiveSeconds,
+        this.secondsUntilTrafficDespawn(vehicle.worldDistance, vehicle.speedMps),
+      );
+      if (sharedActiveSeconds <= 0) continue;
       const closestTime = Math.abs(relativeSpeed) < 0.0001
         ? 0
-        : clamp(-distanceAtSpawn / relativeSpeed, 0, this.config.wavePlanningHorizonSeconds);
+        : clamp(-distanceAtSpawn / relativeSpeed, 0, sharedActiveSeconds);
       const separation = Math.abs(distanceAtSpawn + relativeSpeed * closestTime);
       if (separation < this.config.minimumTrafficSeparationMeters) return false;
     }
     return true;
+  }
+
+  private secondsUntilTrafficDespawn(worldDistance: number, trafficSpeedMps: number): number {
+    const relativeDistance = worldDistance - this.playerDistanceMeters;
+    const closingSpeed = Math.max(1, this.currentSpeedMps - trafficSpeedMps);
+    return Math.max(0, (relativeDistance + this.config.despawnBehindMeters) / closingSpeed);
   }
 
   private hasReachablePath(waves: readonly TrafficWave[]): boolean {
