@@ -2,6 +2,7 @@ import { ButtonLink } from "@/components/ui/button-link";
 import Image from "next/image";
 import { FaqList } from "@/components/marketing/faq-list";
 import { GameCard } from "@/components/marketing/game-card";
+import { GameplayPreview } from "@/components/marketing/gameplay-preview";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
 import { FAQS, GAMES } from "@/content/site";
 import { ROUTES } from "@/lib/routes";
@@ -44,6 +45,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <GameplayPreview />
 
       <section className="section shell" aria-labelledby="how-title">
         <p className="eyebrow">THE FIRST DROP</p><div className="section-heading"><h2 id="how-title">Built for the players who never lift.</h2><p>Race To Win starts with one focused racing experience. Rules and access details will be published before launch.</p></div>
