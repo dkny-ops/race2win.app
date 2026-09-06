@@ -110,21 +110,48 @@ function centerAndScale(model: THREE.Object3D, targetLength: number): void {
 }
 
 function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
-  const blueGlow = new THREE.PointLight("#269dff", player ? 16 : 2.4, player ? 15 : 7, 2);
+  const blueGlow = new THREE.PointLight("#269dff", player ? 23 : 2.4, player ? 16 : 7, 2);
   blueGlow.position.set(0, 0.65, -1.8);
   chassis.add(blueGlow);
 
-  const rearGlow = new THREE.PointLight("#ff572e", player ? 7 : 1.6, player ? 8 : 4.5, 2);
+  const rearGlow = new THREE.PointLight("#ff3045", player ? 12 : 1.6, player ? 10 : 4.5, 2);
   rearGlow.position.set(0, 0.72, 2.15);
   chassis.add(rearGlow);
 
   if (!player) return;
-  const beam = new THREE.SpotLight("#b6eaff", 115, 48, Math.PI / 7, 0.72, 1.25);
+  const beam = new THREE.SpotLight("#d7f4ff", 145, 50, Math.PI / 7, 0.72, 1.25);
   beam.position.set(0, 1.05, -2.65);
   const target = new THREE.Object3D();
   target.position.set(0, 0.1, -40);
   chassis.add(beam, target);
   beam.target = target;
+
+  // Runtime-only LED accents make the owned red car read clearly against the
+  // dark city without altering the source GLB or any traffic vehicle.
+  const accentMaterial = new THREE.MeshStandardMaterial({
+    color: "#ffd7dc",
+    emissive: "#ff1636",
+    emissiveIntensity: 4.2,
+    metalness: 0.4,
+    roughness: 0.2,
+  });
+  const rearStrip = new THREE.Mesh(new THREE.BoxGeometry(2.75, 0.1, 0.09), accentMaterial);
+  rearStrip.name = "race-to-win-player-rear-led";
+  rearStrip.position.set(0, 0.72, 2.86);
+  rearStrip.userData.rtwRuntimeGeometry = true;
+  chassis.add(rearStrip);
+
+  for (const side of [-1, 1]) {
+    const sideStripMaterial = accentMaterial.clone();
+    sideStripMaterial.color.set("#c8f2ff");
+    sideStripMaterial.emissive.set("#168cff");
+    sideStripMaterial.emissiveIntensity = 2.1;
+    const sideStrip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.07, 3.75), sideStripMaterial);
+    sideStrip.name = "race-to-win-player-side-led";
+    sideStrip.position.set(side * 2.34, 0.48, 0.46);
+    sideStrip.userData.rtwRuntimeGeometry = true;
+    chassis.add(sideStrip);
+  }
 }
 
 /** Creates a per-instance visual from an owned GLB without mutating the source asset. */
@@ -165,6 +192,7 @@ export function disposeModelVehicleVisual(visual: VehicleVisual): void {
     if (!(object instanceof THREE.Mesh)) return;
     const materials = Array.isArray(object.material) ? object.material : [object.material];
     for (const material of materials) material.dispose();
+    if (object.userData.rtwRuntimeGeometry) object.geometry.dispose();
   });
 }
 
