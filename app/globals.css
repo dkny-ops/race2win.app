@@ -43,3 +43,13 @@ h3{font-size:clamp(1rem,.93rem + .25vw,1.18rem)}
 @media(max-width:720px){.rtw-game-section{padding-block:4.5rem}.rtw-game-page__navigation{padding-inline:0}.rtw-page-control{font-size:.59rem}.rtw-game-section--dedicated{padding:0 .55rem .8rem}.rtw-game-section--dedicated .rtw-stage,.rtw-game-section--dedicated .rtw-loading{min-height:min(76svh,590px)}.rtw-section-heading{display:grid;gap:1rem;align-items:start}.rtw-section-heading h2{max-width:11ch}.rtw-stage,.rtw-loading{min-height:min(76vh,590px)}.rtw-overlay{width:min(92%,520px);padding:1.5rem}.rtw-overlay--ready{justify-self:center;margin-left:0;text-align:center}.rtw-overlay--ready p:not(.rtw-kicker){margin-inline:auto}.rtw-menu-actions{display:grid;grid-template-columns:1fr}.rtw-menu-actions .rtw-action{width:100%}.rtw-control-hints{justify-content:center;text-align:center;line-height:1.55}.rtw-hud{inset:.75rem .75rem auto;grid-template-columns:repeat(2,minmax(0,1fr));max-width:calc(100% - 1.5rem)}.rtw-hud>div{padding:.58rem .62rem}.rtw-hud>div:nth-child(2){border-right:0}.rtw-hud>div:nth-child(-n+2){border-bottom:1px solid rgba(181,225,255,.16)}.rtw-final-stats{grid-template-columns:1fr}.rtw-final-stats div{padding:.72rem}.rtw-game-over-actions{display:grid;grid-template-columns:1fr}.rtw-game-over-actions .rtw-action{width:100%}}
 @media(max-width:600px){.rtw-game-page__navigation{padding-top:calc(70px + 1rem)}}
 @media(prefers-reduced-motion:reduce){.rtw-action{transition:none}.rtw-countdown{animation:none}}
+
+/* A live race is a focused play view: the track and local HUD own the screen.
+   Navigation and informational chrome return as soon as the run ends. */
+body:has(.rtw-game-page .rtw-stage--running) .site-header,
+body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
+.rtw-game-page:has(.rtw-stage--running) .rtw-game-page__navigation,
+.rtw-game-page:has(.rtw-stage--running) .rtw-local-note{display:none}
+.rtw-game-page:has(.rtw-stage--running) .rtw-game-section--dedicated{padding:0}
+.rtw-game-page:has(.rtw-stage--running) .rtw-game-frame{width:100%;max-width:none;border:0;box-shadow:none}
+.rtw-game-page:has(.rtw-stage--running) .rtw-stage{height:100svh;min-height:100svh}
