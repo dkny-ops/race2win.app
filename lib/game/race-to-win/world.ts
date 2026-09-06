@@ -4,6 +4,7 @@ import {
   createRoadAssets,
   createRoadSegment,
   RoadHazeSystem,
+  TireSmokeSystem,
   type RaceToWinQuality,
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
@@ -62,10 +63,13 @@ export class RaceToWinWorld {
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
   private readonly speedStreaks: SpeedStreakSystem;
   private readonly roadHaze: RoadHazeSystem;
+  private readonly tireSmoke: TireSmokeSystem;
   private readonly collisionSparks: CollisionSparks;
   private readonly cameraLookAt = new THREE.Vector3();
   private previousPlayerX = 0;
   private lastCollisionAt: number | null = null;
+  private wasRunning = false;
+  private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
 
@@ -109,6 +113,8 @@ export class RaceToWinWorld {
     this.scene.add(this.speedStreaks.object);
     this.roadHaze = new RoadHazeSystem(Math.ceil(this.quality.particleCount * 0.68));
     this.scene.add(this.roadHaze.object);
+    this.tireSmoke = new TireSmokeSystem(this.quality.mobile ? 36 : 64);
+    this.scene.add(this.tireSmoke.object);
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
@@ -130,6 +136,11 @@ export class RaceToWinWorld {
     this.updateCamera(snapshot, deltaSeconds);
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
+    if (snapshot.state === "running" && !this.wasRunning) this.tireSmoke.trigger(snapshot.player.laneX, false);
+    if (snapshot.player.isChangingLanes && !this.wasChangingLanes) this.tireSmoke.trigger(snapshot.player.laneX, true);
+    this.wasRunning = snapshot.state === "running";
+    this.wasChangingLanes = snapshot.player.isChangingLanes;
+    this.tireSmoke.update(deltaSeconds);
 
     if (snapshot.collision && snapshot.collision.atMs !== this.lastCollisionAt) {
       this.lastCollisionAt = snapshot.collision.atMs;
@@ -148,6 +159,7 @@ export class RaceToWinWorld {
     this.removeVisual(this.player);
     this.speedStreaks.dispose();
     this.roadHaze.dispose();
+    this.tireSmoke.dispose();
     this.collisionSparks.dispose();
     this.city.dispose();
     this.roadAssets.dispose();

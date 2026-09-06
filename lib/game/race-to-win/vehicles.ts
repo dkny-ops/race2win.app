@@ -3,7 +3,7 @@ import * as THREE from "three";
 export interface VehicleVisual {
   readonly root: THREE.Group;
   readonly chassis: THREE.Group;
-  readonly wheels: readonly THREE.Group[];
+  readonly wheels: readonly THREE.Object3D[];
 }
 
 interface TrafficDimensions {

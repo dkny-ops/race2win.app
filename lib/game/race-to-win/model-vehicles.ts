@@ -79,9 +79,11 @@ function improveMaterial(mesh: THREE.Mesh, source: THREE.Material, player: boole
     material.emissiveIntensity = isRear ? 2.6 : 2.1;
     material.roughness = 0.18;
   } else if (player && !isWheel) {
-    material.color.set("#c4142e");
+    material.color.set("#ef233c");
     material.metalness = 0.95;
     material.roughness = 0.14;
+    material.emissive.set("#260006");
+    material.emissiveIntensity = 0.2;
     if (material instanceof THREE.MeshPhysicalMaterial) {
       material.clearcoat = 1;
       material.clearcoatRoughness = 0.07;
@@ -135,6 +137,11 @@ export function createModelVehicleVisual(template: THREE.Group, player: boolean)
   model.rotation.y = Math.PI;
   centerAndScale(model, player ? 5.85 : 5.25);
 
+  // `race.glb` includes named wheel nodes. Lift only its body to make the
+  // silhouette read as a road sports car rather than an exposed F1 chassis.
+  if (player) model.getObjectByName("body")?.position.add(new THREE.Vector3(0, 0.24, 0));
+  const wheels: THREE.Object3D[] = [];
+
   model.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return;
     object.castShadow = true;
@@ -142,13 +149,14 @@ export function createModelVehicleVisual(template: THREE.Group, player: boolean)
     object.material = Array.isArray(object.material)
       ? object.material.map((material) => improveMaterial(object, material, player))
       : improveMaterial(object, object.material, player);
+    if (/wheel-(front|back)-(left|right)/.test(object.name)) wheels.push(object);
   });
 
   chassis.add(model);
   addRuntimeLights(chassis, player);
   root.add(chassis);
   root.userData.rtwModelVehicle = true;
-  return { root, chassis, wheels: [] };
+  return { root, chassis, wheels };
 }
 
 /** Frees only per-instance cloned materials; template geometry stays cached and reusable. */
