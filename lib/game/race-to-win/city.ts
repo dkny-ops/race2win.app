@@ -8,7 +8,7 @@ const BUILDING_PATHS = Array.from(
   { length: 7 },
   (_, index) => `${BUILDING_ROOT}/edi-${index + 1}.glb`,
 );
-const BILLBOARD_TEXTURE_PATH = "/images/race-to-win-hero.png";
+const BILLBOARD_TEXTURE_PATH = "/images/race-to-win-city-billboard.png";
 
 const manager = new THREE.LoadingManager();
 manager.setURLModifier((url) => {
@@ -76,13 +76,16 @@ function giveBuildingNightMaterials(model: THREE.Object3D): void {
     object.material = materials.map((source) => {
       if (!(source instanceof THREE.MeshStandardMaterial)) return source;
       // The legacy color map is a palette atlas, rather than a night facade.
-      // A stable steel facade preserves the supplied building silhouette under
-      // both mobile and desktop lighting; dedicated window instances provide
-      // the warm detail without a field of dynamic point lights.
-      return new THREE.MeshBasicMaterial({
-        color: "#52677c",
+      // A dark, reflective facade keeps the supplied silhouette believable;
+      // dedicated window instances provide the warm Manhattan detail without
+      // a field of costly dynamic point lights.
+      return new THREE.MeshStandardMaterial({
+        color: "#1d2e42",
+        emissive: "#07101c",
+        emissiveIntensity: 0.45,
+        metalness: 0.74,
+        roughness: 0.42,
         side: source.side,
-        toneMapped: false,
       });
     });
   });
@@ -108,10 +111,10 @@ interface BuildingSlot {
 function slotsForSegment(segmentIndex: number): readonly BuildingSlot[] {
   const variation = Math.abs(segmentIndex) % 7;
   return [
-    { side: -1, x: -15, z: -30, height: 28 + (variation % 3) * 4, templateOffset: variation, rotation: 0.08 },
-    { side: 1, x: 15, z: -22, height: 32 + ((variation + 2) % 3) * 4, templateOffset: variation + 3, rotation: -0.1 },
-    { side: -1, x: -21, z: 19, height: 39 + ((variation + 4) % 3) * 5, templateOffset: variation + 5, rotation: -0.18 },
-    { side: 1, x: 21, z: 29, height: 35 + ((variation + 1) % 3) * 5, templateOffset: variation + 1, rotation: 0.16 },
+    { side: -1, x: -15.2, z: -30, height: 58 + (variation % 3) * 9, templateOffset: variation, rotation: 0.08 },
+    { side: 1, x: 15.2, z: -22, height: 66 + ((variation + 2) % 3) * 9, templateOffset: variation + 3, rotation: -0.1 },
+    { side: -1, x: -21.5, z: 19, height: 82 + ((variation + 4) % 3) * 10, templateOffset: variation + 5, rotation: -0.18 },
+    { side: 1, x: 21.5, z: 29, height: 76 + ((variation + 1) % 3) * 10, templateOffset: variation + 1, rotation: 0.16 },
   ];
 }
 
@@ -147,8 +150,8 @@ function addWindowGlow(
 
   const transforms: THREE.Matrix4[] = [];
   const x = side < 0 ? bounds.max.x + 0.025 : bounds.min.x - 0.025;
-  const columnCount = Math.max(2, Math.min(5, Math.floor(depth / 2.2)));
-  const rowCount = Math.max(2, Math.min(14, Math.floor(height / 2.35)));
+  const columnCount = Math.max(2, Math.min(7, Math.floor(depth / 1.85)));
+  const rowCount = Math.max(3, Math.min(26, Math.floor(height / 2.05)));
   for (let row = 0; row < rowCount; row += 1) {
     for (let column = 0; column < columnCount; column += 1) {
       // Leave plenty of unlit units: a uniform full facade feels synthetic.
@@ -226,6 +229,11 @@ export class RaceToWinCity {
         if (!template) continue;
         const building = cloneSkinned(template);
         normalizeBuilding(building, slot.height);
+        // Preserve the supplied facades but turn their proportions into a
+        // denser Manhattan-style skyline that cannot intrude into the road.
+        building.scale.x *= 0.62;
+        building.scale.z *= 0.72;
+        building.updateMatrixWorld(true);
         giveBuildingNightMaterials(building);
         addWindowGlow(building, slot.side, logicalIndex + slot.templateOffset, this.windowGeometry, this.windowMaterial);
         building.position.set(slot.x, 0, slot.z);
