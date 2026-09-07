@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { GAMEPLAY_VERSION } from "@/lib/game/race-to-win";
+import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
-const SESSION_DURATION_MS = 10 * 60 * 1000;
-const STARTS_PER_MINUTE = 8;
 
 function seedFromServer(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0]!;
@@ -25,26 +24,31 @@ export async function POST() {
     if (!userId) return NextResponse.json({ message: "Sign in to start an official session." }, { status: 401, headers: CACHE });
     if (!isAdminConfigured()) return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
 
-    const admin = createAdminClient();
-    const cutoff = new Date(Date.now() - 60_000).toISOString();
-    const { count, error: countError } = await admin
-      .from("game_sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .gte("created_at", cutoff);
-    if (countError) throw countError;
-    if ((count ?? 0) >= STARTS_PER_MINUTE) return NextResponse.json({ message: "Please wait before starting another session." }, { status: 429, headers: CACHE });
-
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + SESSION_DURATION_MS);
-    const id = crypto.randomUUID();
-    const { data, error } = await admin
-      .from("game_sessions")
-      .insert({ id, user_id: userId, game_id: "race-to-win", gameplay_version: GAMEPLAY_VERSION, seed: seedFromServer(), started_at: now.toISOString(), expires_at: expiresAt.toISOString() })
-      .select("id, game_id, gameplay_version, seed, expires_at")
-      .single();
-    if (error) throw error;
-    return NextResponse.json({ sessionId: data.id, gameId: data.game_id, gameplayVersion: data.gameplay_version, seed: data.seed, expiresAt: data.expires_at }, { headers: CACHE });
+    // The database serializes the verified player's count-and-insert under an
+    // advisory transaction lock, which remains correct across server instances.
+    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session", {
+      p_player_id: userId,
+      p_game_slug: RACE_TO_WIN_GAME_SLUG,
+      p_gameplay_version: GAMEPLAY_VERSION,
+      p_seed: seedFromServer(),
+    });
+    if (error) {
+      if (error.code === "P0001" && error.message === "Official session start rate limit exceeded.") {
+        return NextResponse.json({ message: "Please wait before starting another session." }, { status: 429, headers: CACHE });
+      }
+      throw error;
+    }
+    const session = Array.isArray(data) ? data[0] : null;
+    if (!session || typeof session.id !== "string" || typeof session.gameplay_version !== "string" || typeof session.expires_at !== "string") {
+      throw new Error("Unexpected official session response");
+    }
+    return NextResponse.json({
+      sessionId: session.id,
+      gameId: RACE_TO_WIN_GAME_SLUG,
+      gameplayVersion: session.gameplay_version,
+      seed: session.seed,
+      expiresAt: session.expires_at,
+    }, { headers: CACHE });
   } catch {
     return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
   }
