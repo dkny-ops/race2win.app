@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import test from "node:test";
 import ts from "typescript";
 
 const root = new URL("../", import.meta.url);
 const migration = await readFile(new URL("supabase/migrations/20260907000100_create_competition_foundation.sql", root), "utf8");
+const balanceLedgerFix = await readFile(new URL("supabase/migrations/20260908000100_fix_prize_balance_ledger_debits.sql", root), "utf8");
+const sharePrizePoolFix = await readFile(new URL("supabase/migrations/20260908000200_reconcile_weekly_share_prize_pool.sql", root), "utf8");
+const forwardCompetitionHardening = await readFile(new URL("supabase/migrations/20260908000300_forward_competition_foundation_hardening.sql", root), "utf8");
 
 async function loadRequestBodyHelpers() {
   const source = await readFile(new URL("lib/competition/request-body.ts", root), "utf8");
@@ -63,6 +66,58 @@ test("database hardening covers graph serialization, referral cutoff, reversals,
   assert.match(migration, /rtw:session-start:/);
   assert.match(migration, /rtw:competition:week:/);
   assert.match(migration, /if v_winner\.status = 'claim_started' then return true; end if;/);
+});
+
+test("negative ledger events debit an existing balance without a transient negative insert", () => {
+  assert.match(balanceLedgerFix, /create or replace function private\.apply_prize_ledger_entry\(\)/);
+  assert.match(balanceLedgerFix, /where new\.amount_cents > 0/);
+  assert.match(balanceLedgerFix, /available_cents \+ new\.amount_cents >= 0/);
+  assert.match(balanceLedgerFix, /Ledger debit exceeds the available prize balance/);
+  assert.doesNotMatch(balanceLedgerFix, /on conflict \(player_id\) do update[\s\S]*excluded\.available_cents/i);
+});
+
+test("Share prize reconciliation uses one versioned canonical pool and fails closed balance writes", () => {
+  assert.match(sharePrizePoolFix, /allocation_revision integer not null default 1/);
+  assert.match(sharePrizePoolFix, /allocation_status in \('allocated', 'requires_manual_allocation', 'superseded'\)/);
+  assert.match(sharePrizePoolFix, /provisional_winners_one_active_share_allocation_idx/);
+  assert.match(sharePrizePoolFix, /guard_weekly_share_prize_pool/);
+  assert.match(sharePrizePoolFix, /Weekly Share prize allocation exceeds the fixed pool/);
+  assert.match(sharePrizePoolFix, /reconcile_weekly_share_prize_pool/);
+  assert.match(sharePrizePoolFix, /nullif\(v_winner_count, 0\)/);
+  assert.match(sharePrizePoolFix, /app\.rtw_share_prize_reconcile/);
+  assert.match(sharePrizePoolFix, /reverse_provisional_winner_credit/);
+  assert.match(sharePrizePoolFix, /release_unsettled_payout_holds/);
+  assert.match(sharePrizePoolFix, /payout\.status = 'paid'/);
+  assert.match(sharePrizePoolFix, /current_setting\('app\.rtw_ledger_write', true\) is distinct from 'on'/);
+  assert.match(sharePrizePoolFix, /Confirmed Share competition week is immutable/);
+  assert.doesNotMatch(sharePrizePoolFix, /weekly_shares[\s\S]{0,900}on conflict \(game_id, tournament_week_start, award_type, player_id\) do nothing/i);
+});
+
+test("forward-only hardening preserves Share-week isolation and least-privilege trigger writes", () => {
+  assert.match(forwardCompetitionHardening, /create or replace function private\.refresh_referral_qualification/);
+  assert.match(forwardCompetitionHardening, /group by private\.week_start_for_date\(qualification_day\)/);
+  assert.match(forwardCompetitionHardening, /confirmed_tournament_week_start/);
+  assert.match(forwardCompetitionHardening, /private\.refresh_competition_week\(uuid, date\)/);
+  assert.match(forwardCompetitionHardening, /grant insert, delete on public\.daily_top_scores to service_role/);
+  assert.match(forwardCompetitionHardening, /grant select \(id, email_confirmed_at\) on auth\.users to service_role/);
+  assert.match(forwardCompetitionHardening, /revoke all on function private\.refresh_referral_qualification\(uuid\) from public, anon, authenticated/);
+});
+
+test("competition forward migrations follow the immutable historical foundation", async () => {
+  const migrationFiles = (await readdir(new URL("supabase/migrations/", root)))
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
+  const requiredChain = [
+    "20260904000100_create_profiles.sql",
+    "20260905000100_create_authoritative_game_sessions.sql",
+    "20260907000100_create_competition_foundation.sql",
+    "20260908000100_fix_prize_balance_ledger_debits.sql",
+    "20260908000200_reconcile_weekly_share_prize_pool.sql",
+    "20260908000300_forward_competition_foundation_hardening.sql",
+  ];
+  for (const migrationFile of requiredChain) assert.ok(migrationFiles.includes(migrationFile));
+  const indexes = requiredChain.map((migrationFile) => migrationFiles.indexOf(migrationFile));
+  assert.ok(indexes.every((index, position) => position === 0 || index > indexes[position - 1]));
 });
 
 test("new mutation routes use the bounded parser and database-backed rate gate", async () => {
