@@ -1,0 +1,64 @@
+{
+  "projectRef": "lndvnufmbuzdbinapvze",
+  "baseCommit": "68756bec082b9120c603ee5abd7b6da19b732e57",
+  "migrationCountBefore": 7,
+  "migrationCountAfter": 8,
+  "migrations": [
+    {
+      "file": "20260904000100_create_profiles.sql",
+      "name": "create_profiles",
+      "sha256NormalizedSql": "eb101d0777149e4e0d55a59a0be5657bebcae1b05d90a7b3bc898a424eea7805",
+      "remoteVersion": "20260905033747",
+      "remoteSqlMatchesNormalizedFile": false
+    },
+    {
+      "file": "20260905000100_create_authoritative_game_sessions.sql",
+      "name": "create_authoritative_game_sessions",
+      "sha256NormalizedSql": "bc313986fcf8378b6c8c80aa64ed06b39f9b2ca69732523ea2f3a252c14b5cad",
+      "remoteVersion": "20260908011239",
+      "remoteSqlMatchesNormalizedFile": true
+    },
+    {
+      "file": "20260907000100_create_competition_foundation.sql",
+      "name": "create_competition_foundation",
+      "sha256NormalizedSql": "0031403b683ee8cd97d7fdefeffa2395f2b74071b7001e27e5115c1103f2bfdf",
+      "remoteVersion": "20260908011257",
+      "remoteSqlMatchesNormalizedFile": true
+    },
+    {
+      "file": "20260908000100_fix_prize_balance_ledger_debits.sql",
+      "name": "fix_prize_balance_ledger_debits",
+      "sha256NormalizedSql": "8b14a6b1e520ebe0225ceecbe16ffdc6fd5f85d13fa2ada85bb720d70105b5f5",
+      "remoteVersion": "20260908013017",
+      "remoteSqlMatchesNormalizedFile": true
+    },
+    {
+      "file": "20260908000200_reconcile_weekly_share_prize_pool.sql",
+      "name": "reconcile_weekly_share_prize_pool",
+      "sha256NormalizedSql": "e7f134c02d6dff6e65fe5b2c29334722983a715eea4f76fa91475ac99ac39ec6",
+      "remoteVersion": "20260908203410",
+      "remoteSqlMatchesNormalizedFile": false
+    },
+    {
+      "file": "20260908000300_forward_competition_foundation_hardening.sql",
+      "name": "forward_competition_foundation_hardening",
+      "sha256NormalizedSql": "5d0a6f98242f0e9ae4633d9b7036cda348d79c23c21dbe6a8e1e60575f7b1fb4",
+      "remoteVersion": "20260908220618",
+      "remoteSqlMatchesNormalizedFile": true
+    },
+    {
+      "file": "20260909000100_require_live_profile_sessions.sql",
+      "name": "require_live_profile_sessions",
+      "sha256NormalizedSql": "960fbf70e6b2f0da0097e54823836bbe62c1474a94858d34c4a679471cca5fc4",
+      "remoteVersion": "20260909030316",
+      "remoteSqlMatchesNormalizedFile": true
+    },
+    {
+      "file": "20260909135938_converge_test_migration_state.sql",
+      "name": "converge_test_migration_state",
+      "sha256NormalizedSql": "0f8476bbea4b6a1f600a1fd75c59b6daab58f7c3eb8ba8a51832522422ea8819",
+      "remoteVersion": "20260909185036",
+      "remoteSqlMatchesNormalizedFile": true
+    }
+  ]
+}
