@@ -26,3 +26,12 @@ export async function createClient() {
     },
   });
 }
+
+/** Validate with Auth so an unexpired JWT from a signed-out session cannot authorize writes. */
+export async function getVerifiedUserContext() {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || typeof data.user?.id !== "string") return null;
+  return { supabase, userId: data.user.id };
+}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { EMAIL_PATTERN, USERNAME_PATTERN, normalizePayPalEmail, normalizeUsername } from "@/lib/profile-validation";
 
 const UNAUTHORIZED = { message: "Sign in to access your profile." };
@@ -7,16 +7,9 @@ const PROFILE_ERROR = { message: "Your profile could not be saved. Please try ag
 
 type Profile = { username: string | null; paypal_email: string | null };
 
-async function getProfileContext() {
-  if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  return typeof userId === "string" ? { supabase, userId } : null;
-}
 
 async function readOrCreateProfile() {
-  const context = await getProfileContext();
+  const context = await getVerifiedUserContext();
   if (!context) return null;
 
   const { supabase, userId } = context;

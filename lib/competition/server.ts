@@ -7,7 +7,7 @@ import {
 } from "@/lib/competition/request-body";
 import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getVerifiedUserContext } from "@/lib/supabase/server";
 
 export const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -31,15 +31,9 @@ export async function consumeCompetitionActionRateLimit(
   return data;
 }
 
-/**
- * Reads the signed access-token claims on the server. Do not replace this
- * with a caller-provided identifier or with getSession() authorization.
- */
+/** Require a live Auth session before privileged competition operations. */
 export async function getVerifiedPlayerId(): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  return typeof data?.claims?.sub === "string" ? data.claims.sub : null;
+  return (await getVerifiedUserContext())?.userId ?? null;
 }
 
 export function isUuid(value: unknown): value is string {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { GAMEPLAY_VERSION } from "@/lib/game/race-to-win";
 import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getVerifiedUserContext } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
@@ -12,10 +12,7 @@ function seedFromServer(): number {
 }
 
 async function verifiedUserId(): Promise<string | null> {
-  if (!isSupabaseConfigured()) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  return typeof data?.claims?.sub === "string" ? data.claims.sub : null;
+  return (await getVerifiedUserContext())?.userId ?? null;
 }
 
 export async function POST() {
