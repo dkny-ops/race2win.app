@@ -8,6 +8,7 @@ const migration = await readFile(new URL("supabase/migrations/20260907000100_cre
 const balanceLedgerFix = await readFile(new URL("supabase/migrations/20260908000100_fix_prize_balance_ledger_debits.sql", root), "utf8");
 const sharePrizePoolFix = await readFile(new URL("supabase/migrations/20260908000200_reconcile_weekly_share_prize_pool.sql", root), "utf8");
 const forwardCompetitionHardening = await readFile(new URL("supabase/migrations/20260908000300_forward_competition_foundation_hardening.sql", root), "utf8");
+const awardGenerationRlsHardening = await readFile(new URL("supabase/migrations/20260915000100_enable_competition_award_generations_rls.sql", root), "utf8");
 
 async function loadRequestBodyHelpers() {
   const source = await readFile(new URL("lib/competition/request-body.ts", root), "utf8");
@@ -101,6 +102,12 @@ test("forward-only hardening preserves Share-week isolation and least-privilege 
   assert.match(forwardCompetitionHardening, /grant insert, delete on public\.daily_top_scores to service_role/);
   assert.match(forwardCompetitionHardening, /grant select \(id, email_confirmed_at\) on auth\.users to service_role/);
   assert.match(forwardCompetitionHardening, /revoke all on function private\.refresh_referral_qualification\(uuid\) from public, anon, authenticated/);
+});
+
+test("award-generation idempotency ledger is RLS-protected without browser policies", () => {
+  assert.match(awardGenerationRlsHardening, /alter table private\.competition_award_generations enable row level security/i);
+  assert.doesNotMatch(awardGenerationRlsHardening, /create policy/i);
+  assert.doesNotMatch(awardGenerationRlsHardening, /grant\s+.+\s+to\s+(anon|authenticated|public)/i);
 });
 
 test("competition forward migrations follow the immutable historical foundation", async () => {
