@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 
 export async function POST(request: NextRequest) {
+  const requestId = createSecurityRequestId();
   const response = NextResponse.redirect(new URL("/", request.url), 303);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -22,6 +24,7 @@ export async function POST(request: NextRequest) {
     await supabase.auth.signOut();
   } catch {
     // Always return a neutral redirect. Supabase cookie removal still occurs when possible.
+    logSecurityEvent({ eventType: "auth.sign_out.failed", route: "/api/auth/sign-out", requestId, reason: "provider_rejected", status: 303 });
   }
 
   return response;

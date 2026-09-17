@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getVerifiedPlayerId, getWhatsAppClaimUrl, NO_STORE_HEADERS } from "@/lib/competition/server";
 import type { ClaimablePrize, ClaimablePrizeResponse } from "@/lib/competition/types";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
+import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 
 export const runtime = "nodejs";
 
@@ -16,9 +17,13 @@ function safeCents(value: unknown): number {
 }
 
 export async function GET() {
+  const requestId = createSecurityRequestId();
   try {
     const playerId = await getVerifiedPlayerId();
-    if (!playerId) return NextResponse.json({ message: "Sign in to view prizes." }, { status: 401, headers: NO_STORE_HEADERS });
+    if (!playerId) {
+      logSecurityEvent({ eventType: "prize.claim.rejected", route: "/api/prizes/claimable", requestId, reason: "unauthenticated", status: 401 });
+      return NextResponse.json({ message: "Sign in to view prizes." }, { status: 401, headers: NO_STORE_HEADERS });
+    }
     if (!isAdminConfigured()) return NextResponse.json({ claims: [], canContactWhatsApp: false, eligibleBalanceCents: 0 } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
 
     const { data, error } = await createAdminClient()
@@ -49,6 +54,7 @@ export async function GET() {
     const availableBalance = safeCents(balance?.available_cents);
     return NextResponse.json({ claims, canContactWhatsApp: Boolean(getWhatsAppClaimUrl()), eligibleBalanceCents: availableBalance >= 1000 ? availableBalance : 0 } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
   } catch {
+    logSecurityEvent({ eventType: "prize.claim.failed", route: "/api/prizes/claimable", requestId, reason: "database_operation_failed", status: 503 });
     return NextResponse.json({ message: "Prize information is unavailable." }, { status: 503, headers: NO_STORE_HEADERS });
   }
 }

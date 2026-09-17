@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { EMAIL_PATTERN, USERNAME_PATTERN, normalizePayPalEmail, normalizeUsername } from "@/lib/profile-validation";
+import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 
 const UNAUTHORIZED = { message: "Sign in to access your profile." };
 const PROFILE_ERROR = { message: "Your profile could not be saved. Please try again." };
@@ -28,28 +29,38 @@ async function readOrCreateProfile() {
 }
 
 export async function GET() {
+  const requestId = createSecurityRequestId();
   try {
     const context = await readOrCreateProfile();
-    if (!context) return NextResponse.json(UNAUTHORIZED, { status: 401, headers: { "Cache-Control": "no-store" } });
+    if (!context) {
+      logSecurityEvent({ eventType: "profile.access.rejected", route: "/api/profile", requestId, reason: "unauthenticated", status: 401 });
+      return NextResponse.json(UNAUTHORIZED, { status: 401, headers: { "Cache-Control": "no-store" } });
+    }
     return NextResponse.json({ username: context.profile.username, paypalEmail: context.profile.paypal_email }, { headers: { "Cache-Control": "no-store" } });
   } catch {
+    logSecurityEvent({ eventType: "profile.operation.failed", route: "/api/profile", requestId, reason: "database_operation_failed", status: 500 });
     return NextResponse.json(PROFILE_ERROR, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }
 
 export async function PATCH(request: Request) {
+  const requestId = createSecurityRequestId();
   let body: Record<string, unknown>;
   try {
     const candidate: unknown = await request.json();
     if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) throw new Error();
     body = candidate as Record<string, unknown>;
   } catch {
+    logSecurityEvent({ eventType: "profile.access.rejected", route: "/api/profile", requestId, reason: "invalid_request", status: 400 });
     return NextResponse.json(PROFILE_ERROR, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   try {
     const context = await readOrCreateProfile();
-    if (!context) return NextResponse.json(UNAUTHORIZED, { status: 401, headers: { "Cache-Control": "no-store" } });
+    if (!context) {
+      logSecurityEvent({ eventType: "profile.access.rejected", route: "/api/profile", requestId, reason: "unauthenticated", status: 401 });
+      return NextResponse.json(UNAUTHORIZED, { status: 401, headers: { "Cache-Control": "no-store" } });
+    }
 
     const changes: { username?: string; paypal_email?: string | null } = {};
     if ("username" in body) {
@@ -87,6 +98,7 @@ export async function PATCH(request: Request) {
     }
     return NextResponse.json({ username: data.username, paypalEmail: data.paypal_email }, { headers: { "Cache-Control": "no-store" } });
   } catch {
+    logSecurityEvent({ eventType: "profile.operation.failed", route: "/api/profile", requestId, reason: "database_operation_failed", status: 500 });
     return NextResponse.json(PROFILE_ERROR, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

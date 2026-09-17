@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { GAMEPLAY_VERSION } from "@/lib/game/race-to-win";
+import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
@@ -16,10 +17,17 @@ async function verifiedUserId(): Promise<string | null> {
 }
 
 export async function POST() {
+  const requestId = createSecurityRequestId();
   try {
     const userId = await verifiedUserId();
-    if (!userId) return NextResponse.json({ message: "Sign in to start an official session." }, { status: 401, headers: CACHE });
-    if (!isAdminConfigured()) return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
+    if (!userId) {
+      logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "unauthenticated", status: 401 });
+      return NextResponse.json({ message: "Sign in to start an official session." }, { status: 401, headers: CACHE });
+    }
+    if (!isAdminConfigured()) {
+      logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "missing_configuration", status: 503 });
+      return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
+    }
 
     // The database serializes the verified player's count-and-insert under an
     // advisory transaction lock, which remains correct across server instances.
@@ -31,6 +39,7 @@ export async function POST() {
     });
     if (error) {
       if (error.code === "P0001" && error.message === "Official session start rate limit exceeded.") {
+        logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "rate_limited", status: 429 });
         return NextResponse.json({ message: "Please wait before starting another session." }, { status: 429, headers: CACHE });
       }
       throw error;
@@ -47,6 +56,7 @@ export async function POST() {
       expiresAt: session.expires_at,
     }, { headers: CACHE });
   } catch {
+    logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "database_operation_failed", status: 503 });
     return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
   }
 }

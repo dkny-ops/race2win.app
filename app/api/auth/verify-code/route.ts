@@ -1,10 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 
 const OTP_PATTERN = /^\d{6}$/;
 const INVALID_CODE_MESSAGE = "That code is invalid or expired. Request a new code and try again.";
 
 export async function POST(request: NextRequest) {
+  const requestId = createSecurityRequestId();
   let token = "";
   try {
     const body: unknown = await request.json();
@@ -18,6 +20,7 @@ export async function POST(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!email || !url || !publishableKey || !OTP_PATTERN.test(token)) {
+    logSecurityEvent({ eventType: "auth.verify_code.rejected", route: "/api/auth/verify-code", requestId, reason: "invalid_request", status: 400 });
     return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -36,6 +39,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
     if (error) throw error;
   } catch {
+    logSecurityEvent({ eventType: "auth.verify_code.failed", route: "/api/auth/verify-code", requestId, reason: "provider_rejected", status: 400 });
     return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
