@@ -5,7 +5,7 @@ import {
   type LaneInputEvent,
   replayAuthoritativeProgress,
 } from "@/lib/game/race-to-win";
-import { SCORE_CHECKPOINT_INTERVAL, digestOfficialInputs, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
+import { digestOfficialInputs, isCheckpointInterval, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
 import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } from "@/lib/game/race-to-win/official-inputs";
 import { consumeCompetitionActionRateLimit, getVerifiedPlayerId } from "@/lib/competition/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: session, error: sessionError } = await admin
       .from("game_sessions")
-      .select("id, user_id, gameplay_version, seed, status, started_at, expires_at")
+      .select("id, user_id, gameplay_version, seed, status, started_at, expires_at, checkpoint_interval_score, activity_lease_expires_at")
       .eq("id", body.sessionId)
       .eq("user_id", playerId)
       .maybeSingle();
@@ -70,14 +70,15 @@ export async function POST(request: Request) {
       logSecurityEvent({ eventType: "game_session.checkpoint.rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "session_not_found", status: 404 });
       return NextResponse.json({ message: "Session unavailable." }, { status: 404, headers: CACHE });
     }
-    if (session.status !== "active" || Date.now() > Date.parse(session.expires_at) || !isAuthoritativeGameplayVersion(session.gameplay_version)) {
+    if (session.status !== "active" || !isAuthoritativeGameplayVersion(session.gameplay_version) || !isCheckpointInterval(session.checkpoint_interval_score)) {
       logSecurityEvent({ eventType: "game_session.checkpoint.rejected", route: "/api/game-sessions/checkpoint", requestId, reason: session.status !== "active" ? "session_not_active" : "gameplay_version_rejected", status: 409 });
       return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
     }
 
     const elapsedCapMs = Math.max(0, Math.floor(Date.now() - Date.parse(session.started_at)));
     const progress = replayAuthoritativeProgress(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs);
-    const milestoneScore = body.checkpointIndex * SCORE_CHECKPOINT_INTERVAL;
+    const checkpointInterval = Number(session.checkpoint_interval_score);
+    const milestoneScore = body.checkpointIndex * checkpointInterval;
     if (!progress || progress.score < milestoneScore) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "replay_rejected", status: 409 });
       return NextResponse.json({ message: "Checkpoint is not yet available." }, { status: 409, headers: CACHE });
@@ -90,49 +91,33 @@ export async function POST(request: Request) {
       .order("checkpoint_index", { ascending: true });
     if (existingError) throw existingError;
     const proofs = existing ?? [];
-    if (proofs.some((proof) => !proofMatchesInputs(proof, body.inputs))) {
+    if (proofs.some((proof) => !proofMatchesInputs(proof, body.inputs, checkpointInterval))) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "finalize_conflict", status: 409 });
       return NextResponse.json({ message: "Checkpoint conflicts with prior evidence." }, { status: 409, headers: CACHE });
     }
-    const expectedNext = proofs.length + 1;
-    if (body.checkpointIndex < expectedNext) {
-      // An exact retry returns canonical success. A changed proof was rejected
-      // above; this produces no duplicate state.
-      return NextResponse.json({ checkpointIndex: body.checkpointIndex, milestoneScore, accepted: true }, { headers: CACHE });
-    }
-
     // A missing network request does not penalize a legitimate player: when
     // this full deterministic replay proves the higher milestone, the server
-    // atomically persists every missing 5,000-point checkpoint in order.
+    // atomically persists every missing checkpoint in order and renews the
+    // activity lease exactly once. The database row lock is the concurrency
+    // arbiter, so an exact concurrent retry cannot extend it again.
     const digest = digestOfficialInputs(body.inputs);
-    const missing = Array.from({ length: body.checkpointIndex - expectedNext + 1 }, (_, offset) => {
-      const checkpointIndex = expectedNext + offset;
-      return {
-        game_session_id: session.id,
-        player_id: playerId,
-        gameplay_version: session.gameplay_version,
-        checkpoint_index: checkpointIndex,
-        milestone_score: checkpointIndex * SCORE_CHECKPOINT_INTERVAL,
-        proof_input_digest: digest,
-        proof_input_count: body.inputs.length,
-      };
+    const { data: checkpointRows, error: checkpointError } = await admin.rpc("rtw_record_game_session_checkpoint_with_lease", {
+      p_session_id: session.id,
+      p_player_id: playerId,
+      p_checkpoint_index: body.checkpointIndex,
+      p_proof_input_digest: digest,
+      p_proof_input_count: body.inputs.length,
     });
-    const { error: insertError } = await checkpointTable.insert(missing);
-    if (insertError) {
-      // The unique key is the concurrency arbiter. Re-read canonical rows;
-      // only the same evidence is accepted as an idempotent concurrent retry.
-      const { data: canonical, error: canonicalError } = await checkpointTable
-        .select("checkpoint_index, milestone_score, proof_input_digest, proof_input_count")
-        .eq("game_session_id", session.id)
-        .order("checkpoint_index", { ascending: true });
-      if (canonicalError) throw canonicalError;
-      const checkpoint = (canonical ?? []).find((row) => row.checkpoint_index === body.checkpointIndex);
-      if (checkpoint && proofMatchesInputs(checkpoint, body.inputs)) {
-        return NextResponse.json({ checkpointIndex: body.checkpointIndex, milestoneScore, accepted: true }, { headers: CACHE });
+    if (checkpointError) {
+      if (checkpointError.code === "23514" || checkpointError.code === "P0002") {
+        logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "finalize_conflict", status: 409 });
+        return NextResponse.json({ message: "Checkpoint conflicts with prior evidence." }, { status: 409, headers: CACHE });
       }
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "finalize_conflict", status: 409 });
       return NextResponse.json({ message: "Checkpoint conflicts with prior evidence." }, { status: 409, headers: CACHE });
     }
+    const checkpoint = Array.isArray(checkpointRows) ? checkpointRows[0] : null;
+    if (!checkpoint || checkpoint.accepted !== true) throw new Error("Unexpected checkpoint response");
     return NextResponse.json({ checkpointIndex: body.checkpointIndex, milestoneScore, accepted: true }, { headers: CACHE });
   } catch {
     logSecurityEvent({ eventType: "game_session.checkpoint.failed", route: "/api/game-sessions/checkpoint", requestId, reason: "database_operation_failed", status: 500 });

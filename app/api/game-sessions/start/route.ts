@@ -31,7 +31,7 @@ export async function POST() {
 
     // The database serializes the verified player's count-and-insert under an
     // advisory transaction lock, which remains correct across server instances.
-    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v2", {
+    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v3", {
       p_player_id: userId,
       p_game_slug: RACE_TO_WIN_GAME_SLUG,
       p_gameplay_version: GAMEPLAY_VERSION,
@@ -51,6 +51,9 @@ export async function POST() {
       typeof session.gameplay_version !== "string" ||
       typeof session.started_at !== "string" ||
       typeof session.expires_at !== "string" ||
+      !Number.isSafeInteger(Number(session.checkpoint_interval_score)) ||
+      Number(session.checkpoint_interval_score) < 1 ||
+      typeof session.activity_lease_expires_at !== "string" ||
       !Number.isSafeInteger(Number(session.seed))
     ) {
       throw new Error("Unexpected official session response");
@@ -62,6 +65,8 @@ export async function POST() {
       seed: session.seed,
       startsAt: session.started_at,
       expiresAt: session.expires_at,
+      checkpointInterval: Number(session.checkpoint_interval_score),
+      activityLeaseExpiresAt: session.activity_lease_expires_at,
     }, { headers: CACHE });
   } catch {
     logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "database_operation_failed", status: 503 });

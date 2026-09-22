@@ -15,7 +15,7 @@ test("official start returns a server schedule through a service-only function",
   assert.match(migration, /revoke all on function public\.rtw_start_official_game_session_v2[^\n]+from public, anon, authenticated/);
   assert.match(migration, /grant execute on function public\.rtw_start_official_game_session_v2[^\n]+to service_role/);
   assert.match(route, /getVerifiedUserContext\(\)/);
-  assert.match(route, /rtw_start_official_game_session_v2/);
+  assert.match(route, /rtw_start_official_game_session_v3/);
   assert.match(route, /startsAt: session\.started_at/);
   assert.doesNotMatch(route, /request\.json\(\)/);
 });

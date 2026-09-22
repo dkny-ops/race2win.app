@@ -8,9 +8,16 @@ import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 
 type ScreenState = "loading" | "ready" | "starting" | "countdown" | "running" | "finalizing" | "crashed" | "finalize-failed" | "extra-life" | "unavailable";
-type OfficialSession = Readonly<{ sessionId: string; seed: number; gameplayVersion: string; startsAt: string; expiresAt: string }>;
+type OfficialSession = Readonly<{
+  sessionId: string;
+  seed: number;
+  gameplayVersion: string;
+  startsAt: string;
+  expiresAt: string;
+  checkpointInterval: number;
+  activityLeaseExpiresAt: string;
+}>;
 type OfficialOutcome = Readonly<{ score: number; distanceMillimeters: number; elapsedMs: number; collisionAtMs: number }>;
-const CHECKPOINT_INTERVAL = 5_000;
 const CHECKPOINT_RETRY_LIMIT = 2;
 const EMPTY_METRICS: DisplayMetrics = { score: 0, elapsedSeconds: 0, distanceMeters: 0, speedKph: 97 };
 
@@ -22,8 +29,8 @@ function parseOfficialSession(value: unknown): OfficialSession | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
   const seed = typeof body.seed === "number" ? body.seed : Number(body.seed);
-  if (typeof body.sessionId !== "string" || typeof body.gameplayVersion !== "string" || typeof body.startsAt !== "string" || typeof body.expiresAt !== "string" || !Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff || !Number.isFinite(Date.parse(body.startsAt)) || !Number.isFinite(Date.parse(body.expiresAt))) return null;
-  return { sessionId: body.sessionId, seed, gameplayVersion: body.gameplayVersion, startsAt: body.startsAt, expiresAt: body.expiresAt };
+  if (typeof body.sessionId !== "string" || typeof body.gameplayVersion !== "string" || typeof body.startsAt !== "string" || typeof body.expiresAt !== "string" || typeof body.activityLeaseExpiresAt !== "string" || !Number.isSafeInteger(body.checkpointInterval) || (body.checkpointInterval !== 1_000 && body.checkpointInterval !== 5_000) || !Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff || !Number.isFinite(Date.parse(body.startsAt)) || !Number.isFinite(Date.parse(body.expiresAt)) || !Number.isFinite(Date.parse(body.activityLeaseExpiresAt))) return null;
+  return { sessionId: body.sessionId, seed, gameplayVersion: body.gameplayVersion, startsAt: body.startsAt, expiresAt: body.expiresAt, checkpointInterval: body.checkpointInterval, activityLeaseExpiresAt: body.activityLeaseExpiresAt };
 }
 
 function parseOfficialOutcome(value: unknown): OfficialOutcome | null {
@@ -108,8 +115,10 @@ export function RaceToWinScene() {
   }, [submitCheckpoint]);
 
   const submitReachedCheckpoints = useCallback((score: number) => {
+    const session = officialSessionRef.current;
+    if (!session) return;
     const next = nextCheckpointRef.current;
-    if (Math.floor(score / CHECKPOINT_INTERVAL) >= next && !checkpointInFlightRef.current.has(next) && !checkpointRetryTimersRef.current.has(next)) void submitCheckpoint(next);
+    if (Math.floor(score / session.checkpointInterval) >= next && !checkpointInFlightRef.current.has(next) && !checkpointRetryTimersRef.current.has(next)) void submitCheckpoint(next);
   }, [submitCheckpoint]);
 
   const finalizeOfficialRun = useCallback(async () => {

@@ -20,17 +20,18 @@ async function compileModule(path, requireImpl = (name) => name === "server-only
   return compiled.exports;
 }
 
-test("checkpoint helpers enforce exact 5,000 milestones and immutable evidence prefixes", async () => {
+test("checkpoint helpers enforce versioned milestones and immutable evidence prefixes", async () => {
   const helpers = await compileModule("lib/game/race-to-win/checkpoints.ts");
   const inputs = [{ sequence: 0, atMs: 100, direction: 1 }, { sequence: 1, atMs: 500, direction: -1 }];
-  assert.equal(helpers.checkpointCountForScore(4_999), 0);
-  assert.equal(helpers.checkpointCountForScore(5_000), 1);
-  assert.equal(helpers.checkpointCountForScore(14_999), 2);
+  assert.equal(helpers.checkpointCountForScore(999), 0);
+  assert.equal(helpers.checkpointCountForScore(1_000), 1);
+  assert.equal(helpers.checkpointCountForScore(14_999), 14);
+  assert.equal(helpers.checkpointCountForScore(5_000, helpers.LEGACY_SCORE_CHECKPOINT_INTERVAL), 1);
   assert.equal(helpers.checkpointCountForScore(-1), -1);
-  const proof = { checkpoint_index: 1, milestone_score: 5_000, proof_input_count: 1, proof_input_digest: helpers.digestOfficialInputs(inputs.slice(0, 1)) };
+  const proof = { checkpoint_index: 1, milestone_score: 1_000, proof_input_count: 1, proof_input_digest: helpers.digestOfficialInputs(inputs.slice(0, 1)) };
   assert.equal(helpers.proofMatchesInputs(proof, inputs), true);
   assert.equal(helpers.proofMatchesInputs(proof, [{ ...inputs[0], direction: -1 }, inputs[1]]), false);
-  assert.equal(helpers.proofMatchesInputs({ ...proof, milestone_score: 6_000 }, inputs), false);
+  assert.equal(helpers.proofMatchesInputs({ ...proof, milestone_score: 2_000 }, inputs), false);
 });
 
 test("checkpoint parser rejects malformed, reordered, over-limit, and oversized streamed evidence", async () => {
@@ -61,7 +62,7 @@ test("checkpoint and finalization paths share replay evidence without financial 
   assert.match(checkpointRoute, /consumeCompetitionActionRateLimit\(playerId, "game_checkpoint"\)/);
   assert.match(checkpointRoute, /proofMatchesInputs/);
   assert.doesNotMatch(checkpointRoute, /validated_runs|daily_top_scores|weekly_tournament_totals|prize_ledger|payout/i);
-  assert.match(finalizeRoute, /checkpointCountForScore\(replay\.score\)/);
+  assert.match(finalizeRoute, /checkpointCountForScore\(replay\.score, checkpointInterval\)/);
   assert.match(finalizeRoute, /rtw_finalize_game_session_with_checkpoints/);
   assert.match(finalizeRoute, /proofMatchesInputs/);
   assert.match(finalizeMigration, /for update/);

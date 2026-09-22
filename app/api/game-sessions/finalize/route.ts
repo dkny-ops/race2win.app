@@ -5,7 +5,7 @@ import {
   replayAuthoritativeRace,
   type LaneInputEvent,
 } from "@/lib/game/race-to-win";
-import { checkpointCountForScore, digestOfficialInputs, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
+import { checkpointCountForScore, digestOfficialInputs, isCheckpointInterval, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
 import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } from "@/lib/game/race-to-win/official-inputs";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: session, error } = await admin
       .from("game_sessions")
-      .select("id, user_id, gameplay_version, seed, status, started_at, expires_at, finalized_at, input_digest, input_count, final_score, final_distance_millimeters, final_elapsed_ms, final_collision_at_ms")
+      .select("id, user_id, gameplay_version, seed, status, started_at, expires_at, activity_lease_expires_at, checkpoint_interval_score, finalized_at, input_digest, input_count, final_score, final_distance_millimeters, final_elapsed_ms, final_collision_at_ms")
       .eq("id", body.sessionId).eq("user_id", userId).maybeSingle();
     if (error) throw error;
     if (!session) {
@@ -86,8 +86,7 @@ export async function POST(request: Request) {
       }
       return NextResponse.json(officialOutcome(session), { headers: CACHE });
     }
-    if (session.status !== "active" || Date.now() > Date.parse(session.expires_at)) {
-      if (session.status === "active") await admin.from("game_sessions").update({ status: "expired", invalidated_at: new Date().toISOString(), invalidation_reason: "expired" }).eq("id", session.id).eq("status", "active");
+    if (session.status !== "active" || !isCheckpointInterval(session.checkpoint_interval_score)) {
       logSecurityEvent({ eventType: "game_session.finalize.rejected", route: "/api/game-sessions/finalize", requestId, reason: "session_not_active", status: 409 });
       return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
     }
@@ -97,7 +96,8 @@ export async function POST(request: Request) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "replay_rejected", status: 409 });
       return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: CACHE });
     }
-    const expectedCheckpointCount = checkpointCountForScore(replay.score);
+    const checkpointInterval = Number(session.checkpoint_interval_score);
+    const expectedCheckpointCount = checkpointCountForScore(replay.score, checkpointInterval);
     const checkpointTable = admin.schema("private").from("game_session_checkpoints");
     const { data: existingCheckpoints, error: checkpointReadError } = await checkpointTable
       .select("checkpoint_index, milestone_score, proof_input_digest, proof_input_count")
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
     if (checkpointReadError) throw checkpointReadError;
     const proofs = existingCheckpoints ?? [];
     if (
-      proofs.some((proof) => !proofMatchesInputs(proof, body.inputs)) ||
+      proofs.some((proof) => !proofMatchesInputs(proof, body.inputs, checkpointInterval)) ||
       proofs.some((proof) => proof.checkpoint_index > expectedCheckpointCount)
     ) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });

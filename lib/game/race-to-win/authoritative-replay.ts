@@ -20,8 +20,12 @@ export interface AuthoritativeRaceProgress {
 }
 
 /** Pure server-safe replay: no browser, Three.js, DOM, or client metrics. */
-export function isAuthoritativeGameplayVersion(value: unknown): value is typeof GAMEPLAY_VERSION {
-  return value === GAMEPLAY_VERSION;
+/**
+ * rtw-v6 sessions remain replayable while their short historical lifecycle
+ * exists. New sessions are rtw-v7 and use the renewable activity lease.
+ */
+export function isAuthoritativeGameplayVersion(value: unknown): value is string {
+  return value === "rtw-v6" || value === GAMEPLAY_VERSION;
 }
 
 export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceProgress | null {

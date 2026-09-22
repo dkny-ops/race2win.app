@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v6";
+export const GAMEPLAY_VERSION = "rtw-v7";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
