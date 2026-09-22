@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
+import { safePostAuthPath } from "@/lib/auth/post-auth-path";
 
 const OTP_PATTERN = /^\d{6}$/;
 const INVALID_CODE_MESSAGE = "That code is invalid or expired. Request a new code and try again.";
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
   } catch { /* Return the same safe error below. */ }
 
   const email = request.cookies.get("rtw_otp_email")?.value;
+  const nextPath = safePostAuthPath(request.cookies.get("rtw_otp_next")?.value);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!email || !url || !publishableKey || !OTP_PATTERN.test(token)) {
@@ -24,7 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  let response = NextResponse.redirect(new URL("/", request.url), 303);
+  let response = NextResponse.json({ nextPath }, { headers: { "Cache-Control": "no-store" } });
   const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll() { return request.cookies.getAll(); },
@@ -44,5 +46,6 @@ export async function POST(request: NextRequest) {
   }
 
   response.cookies.set("rtw_otp_email", "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 0, path: "/" });
+  response.cookies.set("rtw_otp_next", "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 0, path: "/" });
   return response;
 }

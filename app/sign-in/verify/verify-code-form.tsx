@@ -17,8 +17,11 @@ export function VerifyCodeForm() {
     setIsSubmitting(true); setNotice("");
     try {
       const response = await fetch("/api/auth/verify-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
-      if (response.ok) { router.replace("/"); router.refresh(); return; }
       const data: unknown = await response.json();
+      if (response.ok) {
+        const nextPath = typeof data === "object" && data !== null && "nextPath" in data && (data as { nextPath?: unknown }).nextPath === "/games/race-to-win" ? "/games/race-to-win" : "/";
+        router.replace(nextPath); router.refresh(); return;
+      }
       setNotice(typeof data === "object" && data !== null && "message" in data ? String((data as { message: unknown }).message) : "That code is invalid or expired. Request a new code and try again.");
     } catch { setNotice("That code is invalid or expired. Request a new code and try again."); }
     finally { setIsSubmitting(false); }

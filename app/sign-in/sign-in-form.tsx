@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const GENERIC_MESSAGE = "If this email can receive a sign-in code, check your inbox shortly.";
 
-export function SignInForm() {
+export function SignInForm({ nextPath = "/" }: { nextPath?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState("");
@@ -16,7 +16,7 @@ export function SignInForm() {
     if (!EMAIL_PATTERN.test(normalizedEmail)) { setNotice("Enter a valid email address."); return; }
     setIsSubmitting(true); setNotice("");
     try {
-      const response = await fetch("/api/auth/request-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: normalizedEmail }) });
+      const response = await fetch("/api/auth/request-code", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: normalizedEmail, next: nextPath }) });
       const data: unknown = await response.json();
       const result = typeof data === "object" && data !== null ? data as { message?: unknown; nextStep?: unknown } : null;
       setNotice(result?.message ? String(result.message) : GENERIC_MESSAGE);

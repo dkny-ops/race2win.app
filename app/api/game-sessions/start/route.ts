@@ -31,7 +31,7 @@ export async function POST() {
 
     // The database serializes the verified player's count-and-insert under an
     // advisory transaction lock, which remains correct across server instances.
-    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session", {
+    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v2", {
       p_player_id: userId,
       p_game_slug: RACE_TO_WIN_GAME_SLUG,
       p_gameplay_version: GAMEPLAY_VERSION,
@@ -45,7 +45,14 @@ export async function POST() {
       throw error;
     }
     const session = Array.isArray(data) ? data[0] : null;
-    if (!session || typeof session.id !== "string" || typeof session.gameplay_version !== "string" || typeof session.expires_at !== "string") {
+    if (
+      !session ||
+      typeof session.id !== "string" ||
+      typeof session.gameplay_version !== "string" ||
+      typeof session.started_at !== "string" ||
+      typeof session.expires_at !== "string" ||
+      !Number.isSafeInteger(Number(session.seed))
+    ) {
       throw new Error("Unexpected official session response");
     }
     return NextResponse.json({
@@ -53,6 +60,7 @@ export async function POST() {
       gameId: RACE_TO_WIN_GAME_SLUG,
       gameplayVersion: session.gameplay_version,
       seed: session.seed,
+      startsAt: session.started_at,
       expiresAt: session.expires_at,
     }, { headers: CACHE });
   } catch {

@@ -6,20 +6,19 @@ import { GameplayPreview } from "@/components/marketing/gameplay-preview";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
 import { FAQS, GAMES } from "@/content/site";
 import { ROUTES } from "@/lib/routes";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getVerifiedUserContext } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let username: string | null = null;
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createClient();
-      const { data } = await supabase.auth.getClaims();
-      if (data?.claims?.sub) {
-        const { data: profile } = await supabase.from("profiles").select("username").eq("user_id", data.claims.sub).maybeSingle<{ username: string | null }>();
+  try {
+      const context = await getVerifiedUserContext();
+      if (context) {
+        const { data: profile } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
         username = profile?.username ?? null;
       }
     } catch { username = null; }
-  }
   return (
     <>
       <section className="hero">
@@ -39,7 +38,7 @@ export default async function HomePage() {
             <h1>RACE <em>TO WIN</em></h1>
             <p className="hero-lede">A new competitive racing experience is in development. One track. One chance to own the run.</p>
             <div className="button-row">
-              <PlayGameLink>PLAY</PlayGameLink><ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>
+              <PlayGameLink>PLAY</PlayGameLink>{username ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>}
             </div>
             <p className="play-note">PLAY opens the Race To Win game.</p>
           </div>

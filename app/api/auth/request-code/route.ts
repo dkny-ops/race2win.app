@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
+import { safePostAuthPath } from "@/lib/auth/post-auth-path";
 
 const GENERIC_MESSAGE = "If this email can receive a sign-in code, check your inbox shortly.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -8,10 +9,13 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   let email = "";
+  let nextPath = "/";
   try {
     const body: unknown = await request.json();
     const candidate = typeof body === "object" && body !== null && "email" in body ? (body as { email?: unknown }).email : undefined;
+    const nextCandidate = typeof body === "object" && body !== null && "next" in body ? (body as { next?: unknown }).next : undefined;
     if (typeof candidate === "string") email = candidate.trim().toLowerCase();
+    nextPath = safePostAuthPath(nextCandidate);
   } catch {
     logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: "invalid_request", status: 202 });
     return NextResponse.json(
@@ -45,6 +49,13 @@ export async function POST(request: Request) {
   );
   if (requestAccepted) {
     response.cookies.set("rtw_otp_email", email, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 600,
+      path: "/",
+    });
+    response.cookies.set("rtw_otp_next", nextPath, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

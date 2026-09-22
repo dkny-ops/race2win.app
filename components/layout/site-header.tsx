@@ -3,22 +3,20 @@ import { SITE_NAME } from "@/content/site";
 import { PRIMARY_NAVIGATION, ROUTES } from "@/lib/routes";
 import { ButtonLink } from "@/components/ui/button-link";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getVerifiedUserContext } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
   let authenticated = false;
   let username: string | null = null;
 
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createClient();
-      const { data } = await supabase.auth.getClaims();
-      authenticated = Boolean(data?.claims?.sub);
-      if (authenticated) {
-        const { data: profile } = await supabase
+  try {
+      const context = await getVerifiedUserContext();
+      authenticated = Boolean(context);
+      if (context) {
+        const { data: profile } = await context.supabase
           .from("profiles")
           .select("username")
-          .eq("user_id", data?.claims?.sub ?? "")
+          .eq("user_id", context.userId)
           .maybeSingle<{ username: string | null }>();
         username = profile?.username ?? null;
       }
@@ -26,7 +24,6 @@ export async function SiteHeader() {
       // A transient auth-provider failure must not make the public site unavailable.
       authenticated = false;
     }
-  }
   return (
     <header className="site-header">
       <div className="shell header-inner">

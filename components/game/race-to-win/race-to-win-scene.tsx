@@ -1,42 +1,40 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
-import {
-  RaceToWinAudio,
-  RaceToWinSimulation,
-  TRACK_SEED,
-  type DisplayMetrics,
-} from "@/lib/game/race-to-win";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { GAMEPLAY_VERSION, RaceToWinAudio, RaceToWinSimulation, TRACK_SEED, type DisplayMetrics, type LaneInputEvent } from "@/lib/game/race-to-win";
 import { RaceToWinWorld } from "@/lib/game/race-to-win/world";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 
-type ScreenState = "loading" | "ready" | "countdown" | "running" | "crashed" | "extra-life" | "unavailable";
+type ScreenState = "loading" | "ready" | "starting" | "countdown" | "running" | "finalizing" | "crashed" | "finalize-failed" | "extra-life" | "unavailable";
+type OfficialSession = Readonly<{ sessionId: string; seed: number; gameplayVersion: string; startsAt: string; expiresAt: string }>;
+type OfficialOutcome = Readonly<{ score: number; distanceMillimeters: number; elapsedMs: number; collisionAtMs: number }>;
+const CHECKPOINT_INTERVAL = 5_000;
+const CHECKPOINT_RETRY_LIMIT = 2;
+const EMPTY_METRICS: DisplayMetrics = { score: 0, elapsedSeconds: 0, distanceMeters: 0, speedKph: 97 };
 
-const EMPTY_METRICS: DisplayMetrics = {
-  score: 0,
-  elapsedSeconds: 0,
-  distanceMeters: 0,
-  speedKph: 97,
-};
+function formatTime(value: number) { return `${Math.floor(value / 60).toString().padStart(2, "0")}:${Math.floor(value % 60).toString().padStart(2, "0")}`; }
+function formatDistance(value: number) { return `${Math.floor(value).toLocaleString()} M`; }
+async function readJson(response: Response): Promise<unknown> { try { return await response.json(); } catch { return null; } }
 
-function formatTime(elapsedSeconds: number): string {
-  const minutes = Math.floor(elapsedSeconds / 60).toString().padStart(2, "0");
-  const seconds = Math.floor(elapsedSeconds % 60).toString().padStart(2, "0");
-  return `${minutes}:${seconds}`;
+function parseOfficialSession(value: unknown): OfficialSession | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const body = value as Record<string, unknown>;
+  const seed = typeof body.seed === "number" ? body.seed : Number(body.seed);
+  if (typeof body.sessionId !== "string" || typeof body.gameplayVersion !== "string" || typeof body.startsAt !== "string" || typeof body.expiresAt !== "string" || !Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff || !Number.isFinite(Date.parse(body.startsAt)) || !Number.isFinite(Date.parse(body.expiresAt))) return null;
+  return { sessionId: body.sessionId, seed, gameplayVersion: body.gameplayVersion, startsAt: body.startsAt, expiresAt: body.expiresAt };
 }
 
-function formatDistance(distanceMeters: number): string {
-  return `${Math.floor(distanceMeters).toLocaleString()} M`;
+function parseOfficialOutcome(value: unknown): OfficialOutcome | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const body = value as Record<string, unknown>;
+  if (!Number.isSafeInteger(body.score) || !Number.isSafeInteger(body.distanceMillimeters) || !Number.isSafeInteger(body.elapsedMs) || !Number.isSafeInteger(body.collisionAtMs) || (body.score as number) < 0 || (body.distanceMillimeters as number) < 0 || (body.elapsedMs as number) < 0 || (body.collisionAtMs as number) < 0) return null;
+  return { score: body.score as number, distanceMillimeters: body.distanceMillimeters as number, elapsedMs: body.elapsedMs as number, collisionAtMs: body.collisionAtMs as number };
 }
 
 export function RaceToWinScene() {
+  const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<RaceToWinSimulation | null>(null);
@@ -45,269 +43,170 @@ export function RaceToWinScene() {
   const animationFrameRef = useRef<number | null>(null);
   const countdownTimerRef = useRef<number | null>(null);
   const gameOverTimerRef = useRef<number | null>(null);
+  const checkpointRetryTimersRef = useRef(new Map<number, number>());
+  const checkpointAttemptsRef = useRef(new Map<number, number>());
+  const checkpointInFlightRef = useRef(new Set<number>());
+  const submitCheckpointRef = useRef<(checkpointIndex: number) => void>(() => undefined);
+  const nextCheckpointRef = useRef(1);
+  const officialSessionRef = useRef<OfficialSession | null>(null);
+  const finalizingRef = useRef(false);
   const screenStateRef = useRef<ScreenState>("loading");
   const touchStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
   const [screenState, setScreenState] = useState<ScreenState>("loading");
   const [countdown, setCountdown] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DisplayMetrics>(EMPTY_METRICS);
+  const [officialOutcome, setOfficialOutcome] = useState<OfficialOutcome | null>(null);
+  const [runNotice, setRunNotice] = useState<string | null>(null);
 
-  const setState = useCallback((nextState: ScreenState) => {
-    screenStateRef.current = nextState;
-    setScreenState(nextState);
-  }, []);
-
-  const cancelCountdown = useCallback(() => {
-    if (countdownTimerRef.current !== null) {
-      window.clearTimeout(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
-  }, []);
-
-  const cancelGameOverReturn = useCallback(() => {
-    if (gameOverTimerRef.current !== null) {
-      window.clearTimeout(gameOverTimerRef.current);
-      gameOverTimerRef.current = null;
-    }
-  }, []);
+  const setState = useCallback((next: ScreenState) => { screenStateRef.current = next; setScreenState(next); }, []);
+  const cancelCountdown = useCallback(() => { if (countdownTimerRef.current !== null) { window.clearTimeout(countdownTimerRef.current); countdownTimerRef.current = null; } }, []);
+  const cancelGameOverReturn = useCallback(() => { if (gameOverTimerRef.current !== null) { window.clearTimeout(gameOverTimerRef.current); gameOverTimerRef.current = null; } }, []);
+  const cancelCheckpointRetries = useCallback(() => { checkpointRetryTimersRef.current.forEach((timer) => window.clearTimeout(timer)); checkpointRetryTimersRef.current.clear(); checkpointAttemptsRef.current.clear(); checkpointInFlightRef.current.clear(); nextCheckpointRef.current = 1; }, []);
 
   const returnToStartScreen = useCallback(() => {
-    cancelCountdown();
-    cancelGameOverReturn();
+    cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); officialSessionRef.current = null; finalizingRef.current = false;
     const simulation = simulationRef.current;
-    if (simulation) {
-      simulation.reset(TRACK_SEED);
-      setMetrics(simulation.snapshot().metrics);
-    }
-    setCountdown(null);
-    setState("ready");
-  }, [cancelCountdown, cancelGameOverReturn, setState]);
+    if (simulation) { simulation.reset(TRACK_SEED); setMetrics(simulation.snapshot().metrics); }
+    setCountdown(null); setOfficialOutcome(null); setRunNotice(null); setState("ready");
+  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, setState]);
 
   const scheduleGameOverReturn = useCallback(() => {
     cancelGameOverReturn();
-    gameOverTimerRef.current = window.setTimeout(() => {
-      gameOverTimerRef.current = null;
-      if (screenStateRef.current === "crashed") returnToStartScreen();
-    }, 3_000);
+    gameOverTimerRef.current = window.setTimeout(() => { gameOverTimerRef.current = null; if (screenStateRef.current === "crashed" || screenStateRef.current === "finalize-failed") returnToStartScreen(); }, 3_000);
   }, [cancelGameOverReturn, returnToStartScreen]);
 
-  const requestLaneChange = useCallback((direction: -1 | 1) => {
-    if (screenStateRef.current !== "running") return;
-    simulationRef.current?.requestLaneChange(direction);
+  const requestLaneChange = useCallback((direction: -1 | 1) => { if (screenStateRef.current === "running") simulationRef.current?.requestLaneChange(direction); }, []);
+
+  const submitCheckpoint = useCallback(async (checkpointIndex: number) => {
+    const session = officialSessionRef.current;
+    const simulation = simulationRef.current;
+    if (!session || !simulation || screenStateRef.current !== "running" || checkpointInFlightRef.current.has(checkpointIndex)) return;
+    checkpointInFlightRef.current.add(checkpointIndex);
+    const inputs: readonly LaneInputEvent[] = simulation.runRecord().inputs;
+    try {
+      const response = await fetch("/api/game-sessions/checkpoint", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ sessionId: session.sessionId, checkpointIndex, inputs }) });
+      const body = response.ok ? await readJson(response) : null;
+      if (!body || typeof body !== "object" || (body as { accepted?: unknown }).accepted !== true) throw new Error("checkpoint_rejected");
+      nextCheckpointRef.current = Math.max(nextCheckpointRef.current, checkpointIndex + 1);
+      checkpointAttemptsRef.current.delete(checkpointIndex);
+    } catch {
+      const attempts = (checkpointAttemptsRef.current.get(checkpointIndex) ?? 0) + 1;
+      checkpointAttemptsRef.current.set(checkpointIndex, attempts);
+      if (attempts <= CHECKPOINT_RETRY_LIMIT && screenStateRef.current === "running" && officialSessionRef.current?.sessionId === session.sessionId) {
+        const timer = window.setTimeout(() => { checkpointRetryTimersRef.current.delete(checkpointIndex); submitCheckpointRef.current(checkpointIndex); }, attempts * 700);
+        checkpointRetryTimersRef.current.set(checkpointIndex, timer);
+      } else {
+        // Finalization can backfill only milestones the server independently proves.
+        nextCheckpointRef.current = Math.max(nextCheckpointRef.current, checkpointIndex + 1);
+        setRunNotice("A progress checkpoint could not be confirmed. The server will validate the complete run at the finish.");
+      }
+    } finally { checkpointInFlightRef.current.delete(checkpointIndex); }
   }, []);
 
-  const beginCountdown = useCallback((): boolean => {
+  useEffect(() => {
+    submitCheckpointRef.current = (checkpointIndex) => { void submitCheckpoint(checkpointIndex); };
+  }, [submitCheckpoint]);
+
+  const submitReachedCheckpoints = useCallback((score: number) => {
+    const next = nextCheckpointRef.current;
+    if (Math.floor(score / CHECKPOINT_INTERVAL) >= next && !checkpointInFlightRef.current.has(next) && !checkpointRetryTimersRef.current.has(next)) void submitCheckpoint(next);
+  }, [submitCheckpoint]);
+
+  const finalizeOfficialRun = useCallback(async () => {
+    const session = officialSessionRef.current;
     const simulation = simulationRef.current;
-    if (!simulation || !worldRef.current) return false;
+    if (!session || !simulation || finalizingRef.current) return;
+    finalizingRef.current = true; cancelCheckpointRetries(); setState("finalizing");
+    try {
+      const response = await fetch("/api/game-sessions/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ sessionId: session.sessionId, inputs: simulation.runRecord().inputs }) });
+      const outcome = response.ok ? parseOfficialOutcome(await readJson(response)) : null;
+      if (!outcome) throw new Error("finalize_rejected");
+      setOfficialOutcome(outcome); setRunNotice(null); setState("crashed");
+    } catch {
+      setOfficialOutcome(null); setRunNotice("This run could not be validated by the server. No official score was recorded."); setState("finalize-failed");
+    } finally { finalizingRef.current = false; scheduleGameOverReturn(); }
+  }, [cancelCheckpointRetries, scheduleGameOverReturn, setState]);
 
-    audioRef.current?.unlock();
-    audioRef.current?.play("countdown", { volume: 0.4 });
-    cancelCountdown();
-    cancelGameOverReturn();
-    simulation.reset(TRACK_SEED);
-    setMetrics(simulation.snapshot().metrics);
-    setState("countdown");
-
-    const stages = ["3", "2", "1", "GO"] as const;
-    const advance = (stageIndex: number) => {
-      setCountdown(stages[stageIndex]!);
-      countdownTimerRef.current = window.setTimeout(() => {
-        if (stageIndex === stages.length - 1) {
-          simulation.start();
-          setCountdown(null);
-          setState("running");
-          countdownTimerRef.current = null;
+  const beginOfficialRun = useCallback(async () => {
+    const simulation = simulationRef.current;
+    if (!simulation || !worldRef.current || !["ready", "crashed", "finalize-failed"].includes(screenStateRef.current)) return;
+    audioRef.current?.unlock(); cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); setOfficialOutcome(null); setRunNotice(null); setState("starting");
+    try {
+      const response = await fetch("/api/game-sessions/start", { method: "POST", credentials: "same-origin" });
+      if (response.status === 401) { router.push(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`); return; }
+      const session = response.ok ? parseOfficialSession(await readJson(response)) : null;
+      if (!session || session.gameplayVersion !== GAMEPLAY_VERSION) throw new Error("session_rejected");
+      const startsAtMs = Date.parse(session.startsAt);
+      if (startsAtMs <= Date.now() || startsAtMs >= Date.parse(session.expiresAt)) throw new Error("session_timing_rejected");
+      officialSessionRef.current = session; nextCheckpointRef.current = 1; simulation.reset(session.seed); setMetrics(simulation.snapshot().metrics); audioRef.current?.play("countdown", { volume: 0.4 }); setState("countdown");
+      const tick = () => {
+        const remainingMs = startsAtMs - Date.now();
+        if (remainingMs <= 0) {
+          simulation.start(); setState("running"); setCountdown("GO");
+          countdownTimerRef.current = window.setTimeout(() => { countdownTimerRef.current = null; setCountdown(null); }, 350);
           return;
         }
-        advance(stageIndex + 1);
-      }, stageIndex === stages.length - 1 ? 480 : 760);
-    };
-    advance(0);
-    return true;
-  }, [cancelCountdown, cancelGameOverReturn, setState]);
+        setCountdown(String(Math.min(3, Math.max(1, Math.ceil(remainingMs / 1_000)))));
+        countdownTimerRef.current = window.setTimeout(tick, Math.min(200, remainingMs));
+      };
+      tick();
+    } catch {
+      officialSessionRef.current = null; setRunNotice("Official play is unavailable right now. Please try again shortly."); setState("ready");
+    }
+  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, router, setState]);
 
-  const selectExtraLife = useCallback(() => {
-    // This deliberately opens only a local placeholder. No reward, score, or
-    // player entitlement is created until an authoritative server flow exists.
-    cancelCountdown();
-    cancelGameOverReturn();
-    setState("extra-life");
-  }, [cancelCountdown, cancelGameOverReturn, setState]);
+  const selectExtraLife = useCallback(() => { cancelCountdown(); cancelGameOverReturn(); setState("extra-life"); }, [cancelCountdown, cancelGameOverReturn, setState]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const stage = stageRef.current;
+    const canvas = canvasRef.current; const stage = stageRef.current;
     if (!canvas || !stage) return;
-
     let world: RaceToWinWorld;
-    try {
-      world = new RaceToWinWorld(canvas);
-    } catch {
-      const nextPaint = window.requestAnimationFrame(() => setState("unavailable"));
-      return () => window.cancelAnimationFrame(nextPaint);
-    }
-
+    try { world = new RaceToWinWorld(canvas); } catch { const frame = window.requestAnimationFrame(() => setState("unavailable")); return () => window.cancelAnimationFrame(frame); }
     const simulation = new RaceToWinSimulation({ seed: TRACK_SEED, trafficVariantCount: 6 });
-    audioRef.current = new RaceToWinAudio();
-    worldRef.current = world;
-    simulationRef.current = simulation;
-    const initialSnapshot = simulation.snapshot();
-    world.update(initialSnapshot, 0);
-    const initializedFrame = window.requestAnimationFrame(() => {
-      setMetrics(initialSnapshot.metrics);
-      setState("ready");
-    });
-
-    const resize = () => {
-      const bounds = stage.getBoundingClientRect();
-      world.resize(bounds.width, bounds.height);
-    };
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(stage);
-    resize();
-
+    audioRef.current = new RaceToWinAudio(); worldRef.current = world; simulationRef.current = simulation;
+    const initial = simulation.snapshot(); world.update(initial, 0);
+    const initializedFrame = window.requestAnimationFrame(() => { setMetrics(initial.metrics); setState("ready"); });
+    const resize = () => { const bounds = stage.getBoundingClientRect(); world.resize(bounds.width, bounds.height); };
+    const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage); resize();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat || screenStateRef.current !== "running") return;
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
-        event.preventDefault();
-        requestLaneChange(-1);
-      }
-      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
-        event.preventDefault();
-        requestLaneChange(1);
-      }
+      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") { event.preventDefault(); requestLaneChange(-1); }
+      if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") { event.preventDefault(); requestLaneChange(1); }
     };
     window.addEventListener("keydown", onKeyDown, { passive: false });
-
-    let previousFrameAt = performance.now();
-    let lastHudUpdateAt = 0;
+    let previousFrameAt = performance.now(); let lastHudUpdateAt = 0;
     const frame = (now: number) => {
-      const deltaMs = Math.min(now - previousFrameAt, 100);
-      previousFrameAt = now;
-      const snapshot = screenStateRef.current === "running"
-        ? simulation.step(deltaMs)
-        : simulation.snapshot();
-      world.update(snapshot, deltaMs / 1000);
-
-      if (now - lastHudUpdateAt >= 90 || snapshot.state === "crashed") {
-        setMetrics(snapshot.metrics);
-        lastHudUpdateAt = now;
-      }
-      if (snapshot.state === "crashed" && screenStateRef.current === "running") {
-        audioRef.current?.play("collision", { volume: 0.7 });
-        setState("crashed");
-        scheduleGameOverReturn();
-      }
+      const deltaMs = Math.min(now - previousFrameAt, 100); previousFrameAt = now;
+      const snapshot = screenStateRef.current === "running" ? simulation.step(deltaMs) : simulation.snapshot();
+      world.update(snapshot, deltaMs / 1_000);
+      if (now - lastHudUpdateAt >= 90 || snapshot.state === "crashed") { setMetrics(snapshot.metrics); lastHudUpdateAt = now; }
+      if (screenStateRef.current === "running") submitReachedCheckpoints(snapshot.metrics.score);
+      if (snapshot.state === "crashed" && screenStateRef.current === "running") { audioRef.current?.play("collision", { volume: 0.7 }); void finalizeOfficialRun(); }
       animationFrameRef.current = window.requestAnimationFrame(frame);
     };
     animationFrameRef.current = window.requestAnimationFrame(frame);
-
     return () => {
-      cancelCountdown();
-      cancelGameOverReturn();
-      window.cancelAnimationFrame(initializedFrame);
+      cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); window.cancelAnimationFrame(initializedFrame);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
-      resizeObserver.disconnect();
-      window.removeEventListener("keydown", onKeyDown);
-      world.dispose();
-      audioRef.current?.dispose();
-      audioRef.current = null;
-      simulationRef.current = null;
-      worldRef.current = null;
+      resizeObserver.disconnect(); window.removeEventListener("keydown", onKeyDown); world.dispose(); audioRef.current?.dispose(); audioRef.current = null; simulationRef.current = null; worldRef.current = null;
     };
-  }, [cancelCountdown, cancelGameOverReturn, requestLaneChange, scheduleGameOverReturn, setState]);
+  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, finalizeOfficialRun, requestLaneChange, setState, submitReachedCheckpoints]);
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (screenStateRef.current !== "running" || event.pointerType !== "touch") return;
-    touchStartRef.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => { if (screenStateRef.current === "running" && event.pointerType === "touch") { touchStartRef.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }; event.currentTarget.setPointerCapture(event.pointerId); } };
+  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => { const start = touchStartRef.current; touchStartRef.current = null; if (!start || start.pointerId !== event.pointerId || event.pointerType !== "touch") return; const horizontal = event.clientX - start.x; const vertical = event.clientY - start.y; if (Math.abs(horizontal) >= 38 && Math.abs(horizontal) > Math.abs(vertical)) requestLaneChange(horizontal < 0 ? -1 : 1); };
+  const officialFinalMetrics = officialOutcome ? { score: officialOutcome.score, elapsedSeconds: officialOutcome.elapsedMs / 1_000, distanceMeters: officialOutcome.distanceMillimeters / 1_000 } : null;
 
-  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const start = touchStartRef.current;
-    touchStartRef.current = null;
-    if (!start || start.pointerId !== event.pointerId || event.pointerType !== "touch") return;
-    const horizontalTravel = event.clientX - start.x;
-    const verticalTravel = event.clientY - start.y;
-    if (Math.abs(horizontalTravel) < 38 || Math.abs(horizontalTravel) <= Math.abs(verticalTravel)) return;
-    requestLaneChange(horizontalTravel < 0 ? -1 : 1);
-  };
-
-  const onPointerCancel = () => {
-    touchStartRef.current = null;
-  };
-
-  return (
-    <div
-      className={`rtw-stage rtw-stage--${screenState}`}
-      ref={stageRef}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-    >
-      <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" />
-      <div className="rtw-vignette" aria-hidden="true" />
-
-      {screenState === "running" ? (
-        <div className="rtw-hud" aria-label="Local game metrics">
-          <div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div>
-          <div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div>
-          <div><span>DISTANCE</span><strong>{formatDistance(metrics.distanceMeters)}</strong></div>
-          <div><span>SPEED</span><strong>{Math.round(metrics.speedKph)} <small>KPH</small></strong></div>
-        </div>
-      ) : null}
-
-      {screenState === "ready" ? (
-        <div className="rtw-overlay rtw-overlay--ready">
-          <p className="rtw-kicker">LOCAL PLAYTEST</p>
-          <h3>RACE TO WIN</h3>
-          <p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p>
-          <div className="rtw-menu-actions">
-            <button type="button" className="rtw-action rtw-action--primary" onClick={beginCountdown}>PLAY</button>
-            <Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link>
-          </div>
-          <div className="rtw-control-hints" aria-label="Game controls">
-            <span><b>DESKTOP</b> A / D OR ARROW KEYS</span>
-            <span><b>MOBILE</b> SWIPE TO CHANGE LANES</span>
-          </div>
-        </div>
-      ) : null}
-
-      {screenState === "countdown" && countdown ? (
-        <div className="rtw-countdown" aria-live="assertive">{countdown}</div>
-      ) : null}
-
-      {screenState === "crashed" ? (
-        <div className="rtw-overlay rtw-overlay--game-over" role="status">
-          <p className="rtw-kicker">RUN COMPLETE</p>
-          <h3>GAME OVER</h3>
-          <dl className="rtw-final-stats">
-            <div><dt>SCORE</dt><dd>{metrics.score.toLocaleString()}</dd></div>
-            <div><dt>TIME</dt><dd>{formatTime(metrics.elapsedSeconds)}</dd></div>
-            <div><dt>DISTANCE</dt><dd>{formatDistance(metrics.distanceMeters)}</dd></div>
-          </dl>
-          <div className="rtw-game-over-actions">
-            <button type="button" className="rtw-action rtw-action--primary" onClick={beginCountdown}>PLAY AGAIN</button>
-            <button type="button" className="rtw-action rtw-action--placeholder" onClick={selectExtraLife}>EXTRA LIFE <small>COMING SOON</small></button>
-          </div>
-        </div>
-      ) : null}
-
-      {screenState === "extra-life" ? (
-        <div className="rtw-overlay rtw-overlay--game-over" role="status">
-          <p className="rtw-kicker">EXTRA LIFE</p>
-          <h3>COMING SOON</h3>
-          <p>Extra Life is reserved for a future authoritative reward flow. No local reward has been granted.</p>
-          <button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button>
-        </div>
-      ) : null}
-
-      {screenState === "loading" ? <div className="rtw-loading" role="status">LOADING TRACK…</div> : null}
-      {screenState === "unavailable" ? (
-        <div className="rtw-overlay rtw-overlay--unavailable" role="status">
-          <h3>TRACK UNAVAILABLE</h3>
-          <p>This browser could not start the local racing scene. Please try a current browser with hardware acceleration enabled.</p>
-        </div>
-      ) : null}
-    </div>
-  );
+  return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
+    <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
+    {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div><div><span>DISTANCE</span><strong>{formatDistance(metrics.distanceMeters)}</strong></div><div><span>SPEED</span><strong>{Math.round(metrics.speedKph)} <small>KPH</small></strong></div></div> : null}
+    {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><button type="button" className="rtw-action rtw-action--primary" onClick={() => void beginOfficialRun()}>PLAY</button><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
+    {screenState === "starting" ? <div className="rtw-loading" role="status">PREPARING OFFICIAL SESSION…</div> : null}
+    {(screenState === "countdown" || (screenState === "running" && countdown === "GO")) && countdown ? <div className="rtw-countdown" aria-live="assertive">{countdown}</div> : null}
+    {screenState === "finalizing" ? <div className="rtw-loading" role="status">VALIDATING RUN…</div> : null}
+    {screenState === "crashed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">OFFICIAL RESULT</p><h3>GAME OVER</h3>{officialFinalMetrics ? <dl className="rtw-final-stats"><div><dt>OFFICIAL SCORE</dt><dd>{officialFinalMetrics.score.toLocaleString()}</dd></div><div><dt>TIME</dt><dd>{formatTime(officialFinalMetrics.elapsedSeconds)}</dd></div><div><dt>DISTANCE</dt><dd>{formatDistance(officialFinalMetrics.distanceMeters)}</dd></div></dl> : null}<div className="rtw-game-over-actions"><button type="button" className="rtw-action rtw-action--primary" onClick={() => void beginOfficialRun()}>PLAY AGAIN</button><button type="button" className="rtw-action rtw-action--placeholder" onClick={selectExtraLife}>EXTRA LIFE <small>COMING SOON</small></button></div></div> : null}
+    {screenState === "finalize-failed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">RUN NOT VALIDATED</p><h3>GAME OVER</h3><p>{runNotice}</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
+    {screenState === "extra-life" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">EXTRA LIFE</p><h3>COMING SOON</h3><p>Extra Life is reserved for a future authoritative reward flow. No local reward has been granted.</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
+    {screenState === "loading" ? <div className="rtw-loading" role="status">LOADING TRACK…</div> : null}
+    {screenState === "unavailable" ? <div className="rtw-overlay rtw-overlay--unavailable" role="status"><h3>TRACK UNAVAILABLE</h3><p>This browser could not start the racing scene. Please try a current browser with hardware acceleration enabled.</p></div> : null}
+  </div>;
 }
