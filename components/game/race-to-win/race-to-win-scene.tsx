@@ -14,6 +14,8 @@ import {
   type DisplayMetrics,
 } from "@/lib/game/race-to-win";
 import { RaceToWinWorld } from "@/lib/game/race-to-win/world";
+import Link from "next/link";
+import { ROUTES } from "@/lib/routes";
 
 type ScreenState = "loading" | "ready" | "countdown" | "running" | "crashed" | "extra-life" | "unavailable";
 
@@ -261,7 +263,7 @@ export function RaceToWinScene() {
           <p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p>
           <div className="rtw-menu-actions">
             <button type="button" className="rtw-action rtw-action--primary" onClick={beginCountdown}>PLAY</button>
-            <button type="button" className="rtw-action rtw-action--placeholder" disabled title="Scores are not available in this phase">SCORES <small>COMING SOON</small></button>
+            <Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link>
           </div>
           <div className="rtw-control-hints" aria-label="Game controls">
             <span><b>DESKTOP</b> A / D OR ARROW KEYS</span>

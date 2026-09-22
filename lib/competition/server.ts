@@ -13,7 +13,7 @@ export const NO_STORE_HEADERS = { "Cache-Control": "no-store" } as const;
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export { COMPETITION_MUTATION_BODY_LIMIT_BYTES, hasEmptyBoundedBody, readBoundedJson };
 
-export type CompetitionRateLimitAction = "referral_attach" | "prize_claim" | "balance_claim";
+export type CompetitionRateLimitAction = "referral_attach" | "prize_claim" | "balance_claim" | "game_checkpoint";
 
 /**
  * Uses a database-backed atomic counter, so parallel server instances share

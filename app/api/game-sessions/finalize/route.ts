@@ -1,14 +1,18 @@
-import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { MAX_OFFICIAL_INPUTS, isAuthoritativeGameplayVersion, replayAuthoritativeRace, type LaneInputEvent } from "@/lib/game/race-to-win";
+import {
+  MAX_OFFICIAL_INPUTS,
+  isAuthoritativeGameplayVersion,
+  replayAuthoritativeRace,
+  type LaneInputEvent,
+} from "@/lib/game/race-to-win";
+import { checkpointCountForScore, digestOfficialInputs, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
+import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } from "@/lib/game/race-to-win/official-inputs";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 
 export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
-const MAX_BODY_BYTES = 64 * 1024;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type FinalizeBody = { sessionId: string; inputs: LaneInputEvent[] };
 
@@ -26,47 +30,10 @@ async function verifiedUserId(): Promise<string | null> {
 function parseBody(value: unknown): FinalizeBody | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
-  if (Object.keys(body).length !== 2 || typeof body.sessionId !== "string" || !UUID.test(body.sessionId) || !Array.isArray(body.inputs) || body.inputs.length > MAX_OFFICIAL_INPUTS) return null;
-  const inputs: LaneInputEvent[] = [];
-  let previousAtMs = -1;
-  for (let index = 0; index < body.inputs.length; index += 1) {
-    const input = body.inputs[index];
-    if (!input || typeof input !== "object" || Array.isArray(input)) return null;
-    const candidate = input as Record<string, unknown>;
-    if (Object.keys(candidate).length !== 3 || candidate.sequence !== index || !Number.isSafeInteger(candidate.atMs) || (candidate.atMs as number) < previousAtMs || (candidate.atMs as number) < 0 || (candidate.direction !== -1 && candidate.direction !== 1)) return null;
-    inputs.push({ sequence: index, atMs: candidate.atMs as number, direction: candidate.direction as -1 | 1 });
-    previousAtMs = candidate.atMs as number;
-  }
+  if (Object.keys(body).length !== 2 || typeof body.sessionId !== "string" || !OFFICIAL_SESSION_UUID.test(body.sessionId)) return null;
+  const inputs = parseOfficialInputs(body.inputs, MAX_OFFICIAL_INPUTS);
+  if (!inputs) return null;
   return { sessionId: body.sessionId, inputs };
-}
-
-async function readBoundedJson(request: Request): Promise<unknown | null> {
-  const declaredLength = request.headers.get("content-length");
-  if (declaredLength !== null && (!/^\d+$/.test(declaredLength) || Number(declaredLength) > MAX_BODY_BYTES)) return null;
-  const reader = request.body?.getReader();
-  if (!reader) return null;
-
-  const decoder = new TextDecoder();
-  let byteLength = 0;
-  let text = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      byteLength += value.byteLength;
-      if (byteLength > MAX_BODY_BYTES) {
-        await reader.cancel();
-        return null;
-      }
-      text += decoder.decode(value, { stream: true });
-    }
-    text += decoder.decode();
-    return JSON.parse(text);
-  } catch {
-    return null;
-  } finally {
-    reader.releaseLock();
-  }
 }
 
 function officialOutcome(session: StoredOfficialOutcome) {
@@ -81,7 +48,7 @@ function officialOutcome(session: StoredOfficialOutcome) {
 export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   try {
-    const body = parseBody(await readBoundedJson(request));
+    const body = parseBody(await readOfficialSessionJson(request));
     if (!body) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "invalid_request", status: 400 });
       return NextResponse.json({ message: "Invalid run record." }, { status: 400, headers: CACHE });
@@ -111,7 +78,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
     }
 
-    const digest = createHash("sha256").update(JSON.stringify(body.inputs)).digest("hex");
+    const digest = digestOfficialInputs(body.inputs);
     if (session.status === "finalized") {
       if (session.input_digest !== digest) {
         logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
@@ -130,15 +97,49 @@ export async function POST(request: Request) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "replay_rejected", status: 409 });
       return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: CACHE });
     }
-    const { data: finalizedSession, error: updateError } = await admin
-      .from("game_sessions")
-      .update({ status: "finalized", finalized_at: new Date().toISOString(), input_digest: digest, input_count: body.inputs.length, final_score: replay.score, final_distance_millimeters: replay.distanceMillimeters, final_elapsed_ms: replay.elapsedMs, final_collision_at_ms: replay.collisionAtMs })
-      .eq("id", session.id)
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .select("status, input_digest, final_score, final_distance_millimeters, final_elapsed_ms, final_collision_at_ms")
-      .maybeSingle();
-    if (updateError) throw updateError;
+    const expectedCheckpointCount = checkpointCountForScore(replay.score);
+    const checkpointTable = admin.schema("private").from("game_session_checkpoints");
+    const { data: existingCheckpoints, error: checkpointReadError } = await checkpointTable
+      .select("checkpoint_index, milestone_score, proof_input_digest, proof_input_count")
+      .eq("game_session_id", session.id)
+      .order("checkpoint_index", { ascending: true });
+    if (checkpointReadError) throw checkpointReadError;
+    const proofs = existingCheckpoints ?? [];
+    if (
+      proofs.some((proof) => !proofMatchesInputs(proof, body.inputs)) ||
+      proofs.some((proof) => proof.checkpoint_index > expectedCheckpointCount)
+    ) {
+      logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
+      return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: CACHE });
+    }
+    const checkpointProofs = proofs.map((proof) => ({
+      checkpointIndex: proof.checkpoint_index,
+      inputCount: proof.proof_input_count,
+      inputDigest: digestOfficialInputs(body.inputs.slice(0, proof.proof_input_count)),
+    }));
+    // The database function locks the session, validates every existing proof,
+    // backfills only replay-proven missing milestones, then changes status in
+    // one transaction. This closes the read/check/update race with concurrent
+    // checkpoint requests.
+    const { data: finalizedRows, error: finalizeError } = await admin.rpc("rtw_finalize_game_session_with_checkpoints", {
+      p_session_id: session.id,
+      p_player_id: userId,
+      p_input_digest: digest,
+      p_input_count: body.inputs.length,
+      p_final_score: replay.score,
+      p_final_distance_millimeters: replay.distanceMillimeters,
+      p_final_elapsed_ms: replay.elapsedMs,
+      p_final_collision_at_ms: replay.collisionAtMs,
+      p_checkpoint_proofs: checkpointProofs,
+    });
+    if (finalizeError) {
+      if (finalizeError.code === "23514" || finalizeError.code === "P0002") {
+        logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
+        return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: CACHE });
+      }
+      throw finalizeError;
+    }
+    const finalizedSession = finalizedRows?.[0] ?? null;
     if (finalizedSession) return NextResponse.json(officialOutcome(finalizedSession), { headers: CACHE });
 
     // The conditional status transition is the database-level arbiter. If a

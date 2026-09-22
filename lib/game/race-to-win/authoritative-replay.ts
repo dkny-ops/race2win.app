@@ -11,12 +11,20 @@ export interface AuthoritativeRaceResult {
   readonly collisionAtMs: number;
 }
 
+export interface AuthoritativeRaceProgress {
+  readonly score: number;
+  readonly distanceMillimeters: number;
+  readonly elapsedMs: number;
+  readonly collisionAtMs: number | null;
+  readonly state: "running" | "crashed";
+}
+
 /** Pure server-safe replay: no browser, Three.js, DOM, or client metrics. */
 export function isAuthoritativeGameplayVersion(value: unknown): value is typeof GAMEPLAY_VERSION {
   return value === GAMEPLAY_VERSION;
 }
 
-export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceResult | null {
+export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceProgress | null {
   if (!isAuthoritativeGameplayVersion(gameplayVersion)) return null;
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff || !Number.isSafeInteger(elapsedCapMs) || elapsedCapMs < 0) return null;
   if (inputs.length > MAX_OFFICIAL_INPUTS) return null;
@@ -32,11 +40,23 @@ export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, 
   const stepMs = DEFAULT_RACE_TO_WIN_CONFIG.fixedStepMs;
   while (simulation.snapshot().state === "running" && simulation.snapshot().simulationTimeMs + stepMs <= elapsedCapMs) simulation.step(stepMs);
   const snapshot = simulation.snapshot();
-  if (snapshot.state !== "crashed" || !snapshot.collision) return null;
+  if (snapshot.state !== "running" && snapshot.state !== "crashed") return null;
   return {
     score: snapshot.metrics.score,
     distanceMillimeters: Math.round(snapshot.metrics.distanceMeters * 1000),
     elapsedMs: snapshot.simulationTimeMs,
-    collisionAtMs: snapshot.collision.atMs,
+    collisionAtMs: snapshot.collision?.atMs ?? null,
+    state: snapshot.state,
+  };
+}
+
+export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceResult | null {
+  const progress = replayAuthoritativeProgress(gameplayVersion, seed, inputs, elapsedCapMs);
+  if (!progress || progress.state !== "crashed" || progress.collisionAtMs === null) return null;
+  return {
+    score: progress.score,
+    distanceMillimeters: progress.distanceMillimeters,
+    elapsedMs: progress.elapsedMs,
+    collisionAtMs: progress.collisionAtMs,
   };
 }

@@ -14,6 +14,8 @@ export const ROUTES = {
   play: `/games/${RACE_TO_WIN_GAME_SLUG}`,
   signIn: "/sign-in",
   profile: "/profile",
+  scores: "/scores",
+  leaderboard: "/leaderboard",
 } as const;
 
 export const PRIMARY_NAVIGATION = [
