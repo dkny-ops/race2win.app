@@ -7,25 +7,30 @@ alter table public.game_sessions
   add column if not exists checkpoint_interval_score integer,
   add column if not exists activity_lease_expires_at timestamptz;
 
-update public.game_sessions
-set checkpoint_interval_score = 5000,
-    activity_lease_expires_at = expires_at
-where checkpoint_interval_score is null
-   or activity_lease_expires_at is null;
-
-alter table public.game_sessions
-  alter column checkpoint_interval_score set not null,
-  alter column activity_lease_expires_at set not null;
-
+-- Existing rtw-v6 rows must retain their original immutable lifecycle and
+-- fixed-expiry semantics. In particular, an active legacy row cannot be
+-- backfilled: the integrity trigger intentionally rejects every active-row
+-- rewrite. NULL is therefore the truthful legacy representation; both fields
+-- are required only for sessions created as rtw-v7 below.
 alter table public.game_sessions
   drop constraint if exists game_sessions_checkpoint_interval_score_check,
   add constraint game_sessions_checkpoint_interval_score_check
-    check (checkpoint_interval_score in (1000, 5000));
+    check (checkpoint_interval_score is null or checkpoint_interval_score = 1000);
 
 alter table public.game_sessions
   drop constraint if exists game_sessions_gameplay_version_check,
   add constraint game_sessions_gameplay_version_check
     check (gameplay_version in ('rtw-v6', 'rtw-v7'));
+
+alter table public.game_sessions
+  add constraint game_sessions_versioned_checkpoint_lease_shape check (
+    (gameplay_version = 'rtw-v6'
+      and checkpoint_interval_score is null
+      and activity_lease_expires_at is null)
+    or (gameplay_version = 'rtw-v7'
+      and checkpoint_interval_score = 1000
+      and activity_lease_expires_at is not null)
+  );
 
 comment on column public.game_sessions.expires_at is
   'Legacy fixed expiry retained for historical rtw-v6 compatibility. rtw-v7 authorization uses activity_lease_expires_at only.';
@@ -51,6 +56,24 @@ begin
     or new.expires_at is distinct from old.expires_at
     or new.checkpoint_interval_score is distinct from old.checkpoint_interval_score then
     raise exception 'Immutable game session fields cannot be changed.' using errcode = '23514';
+  end if;
+
+  -- rtw-v6 sessions predate renewable leases. Keep their historical rule
+  -- unchanged rather than converting them while they are active or settled.
+  if old.gameplay_version = 'rtw-v6' then
+    if new.activity_lease_expires_at is distinct from old.activity_lease_expires_at then
+      raise exception 'Immutable game session fields cannot be changed.' using errcode = '23514';
+    end if;
+    if old.status <> 'active' then
+      raise exception 'A completed or invalid session is immutable.' using errcode = '23514';
+    end if;
+    if new.status = 'active' then
+      raise exception 'An active session cannot be rewritten.' using errcode = '23514';
+    end if;
+    if new.status = 'finalized' and new.finalized_at is null then
+      raise exception 'A finalized session requires a server finalization time.' using errcode = '23514';
+    end if;
+    return new;
   end if;
 
   if old.status <> 'active' then
@@ -175,10 +198,24 @@ begin
   if not found then
     raise exception 'Official session is unavailable.' using errcode = '23503';
   end if;
-  if v_session.status <> 'active' or v_session.activity_lease_expires_at <= now() then
-    raise exception 'Official session is not active.' using errcode = '23514';
+  if v_session.gameplay_version = 'rtw-v6' then
+    if v_session.status <> 'active' or v_session.expires_at <= now() then
+      raise exception 'Official session is not active.' using errcode = '23514';
+    end if;
+    if new.player_id is distinct from v_session.user_id
+      or new.gameplay_version is distinct from v_session.gameplay_version
+      or new.milestone_score <> new.checkpoint_index * 5000 then
+      raise exception 'Checkpoint does not match its official session.' using errcode = '23514';
+    end if;
+    return new;
   end if;
-  if new.player_id is distinct from v_session.user_id
+
+  if v_session.gameplay_version <> 'rtw-v7'
+    or v_session.status <> 'active'
+    or v_session.activity_lease_expires_at is null
+    or v_session.activity_lease_expires_at <= now()
+    or v_session.checkpoint_interval_score <> 1000
+    or new.player_id is distinct from v_session.user_id
     or new.gameplay_version is distinct from v_session.gameplay_version
     or new.milestone_score <> new.checkpoint_index * v_session.checkpoint_interval_score then
     raise exception 'Checkpoint does not match its official session.' using errcode = '23514';
@@ -232,6 +269,11 @@ begin
   for update;
   if not found then
     raise exception 'Official session is unavailable.' using errcode = 'P0002';
+  end if;
+  if v_session.gameplay_version <> 'rtw-v7'
+    or v_session.checkpoint_interval_score <> 1000
+    or v_session.activity_lease_expires_at is null then
+    raise exception 'Official session does not support renewable leases.' using errcode = '23514';
   end if;
   if v_session.status <> 'active' then
     raise exception 'Official session is not active.' using errcode = '23514';
@@ -305,6 +347,7 @@ declare
   v_expected jsonb;
   v_required_count integer;
   v_index integer;
+  v_checkpoint_interval integer;
   v_now timestamptz := now();
 begin
   if p_input_digest is null or p_input_digest !~ '^[a-f0-9]{64}$'
@@ -322,14 +365,26 @@ begin
   where id = p_session_id and user_id = p_player_id for update;
   if not found then raise exception 'Official session is unavailable.' using errcode = 'P0002'; end if;
   if v_session.status <> 'active' then raise exception 'Official session is not active.' using errcode = '23514'; end if;
-  if v_session.activity_lease_expires_at <= v_now then
+  if v_session.gameplay_version = 'rtw-v6' then
+    if v_session.expires_at <= v_now then
+      raise exception 'Official session is not active.' using errcode = '23514';
+    end if;
+    v_checkpoint_interval := 5000;
+  elsif v_session.gameplay_version = 'rtw-v7'
+    and v_session.checkpoint_interval_score = 1000
+    and v_session.activity_lease_expires_at is not null then
+    v_checkpoint_interval := 1000;
+  else
+    raise exception 'Official session has an invalid lifecycle.' using errcode = '23514';
+  end if;
+  if v_session.gameplay_version = 'rtw-v7' and v_session.activity_lease_expires_at <= v_now then
     update public.game_sessions
     set status = 'expired', invalidated_at = v_now, invalidation_reason = 'activity_lease_expired'
     where id = v_session.id and status = 'active';
     raise exception 'Official session activity lease has expired.' using errcode = '23514';
   end if;
 
-  v_required_count := floor(p_final_score / v_session.checkpoint_interval_score::numeric)::integer;
+  v_required_count := floor(p_final_score / v_checkpoint_interval::numeric)::integer;
   for v_checkpoint in select * from private.game_session_checkpoints where game_session_id = p_session_id order by checkpoint_index loop
     if v_checkpoint.checkpoint_index > v_required_count then
       raise exception 'Checkpoint exceeds final authoritative score.' using errcode = '23514';
@@ -349,7 +404,7 @@ begin
         milestone_score, proof_input_digest, proof_input_count
       ) values (
         p_session_id, p_player_id, v_session.gameplay_version, v_index,
-        v_index * v_session.checkpoint_interval_score, p_input_digest, p_input_count
+        v_index * v_checkpoint_interval, p_input_digest, p_input_count
       );
     end if;
   end loop;

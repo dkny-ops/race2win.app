@@ -39,7 +39,9 @@ test("rtw-v7 checkpoint cadence is reachable before its server activity lease ex
 test("renewable lease migration removes v7 absolute gameplay expiry without weakening database ownership", async () => {
   const migration = await read("supabase/migrations/20260922000200_add_endless_official_session_leases.sql");
   assert.match(migration, /add column if not exists activity_lease_expires_at timestamptz/);
-  assert.match(migration, /checkpoint_interval_score in \(1000, 5000\)/);
+  assert.match(migration, /checkpoint_interval_score is null or checkpoint_interval_score = 1000/);
+  assert.match(migration, /game_sessions_versioned_checkpoint_lease_shape/);
+  assert.doesNotMatch(migration, /update public\.game_sessions\s+set checkpoint_interval_score/i);
   assert.match(migration, /create function public\.rtw_start_official_game_session_v3/);
   assert.match(migration, /p_gameplay_version <> 'rtw-v7'/);
   assert.match(migration, /v_lease_expires_at timestamptz := v_started_at \+ interval '6 minutes'/);
@@ -56,7 +58,23 @@ test("renewable lease migration removes v7 absolute gameplay expiry without weak
   const finalizer = migration.slice(migration.indexOf("create or replace function public.rtw_finalize_game_session_with_checkpoints"));
   assert.match(finalizer, /v_session\.activity_lease_expires_at <= v_now/);
   assert.match(finalizer, /v_session\.checkpoint_interval_score/);
-  assert.doesNotMatch(finalizer, /v_session\.expires_at <=/);
+  // Legacy rtw-v6 finalization retains its original fixed expiry, while the
+  // new rtw-v7 branch alone consults the renewable lease.
+  assert.match(finalizer, /if v_session\.gameplay_version = 'rtw-v6' then[\s\S]*v_session\.expires_at <= v_now/);
+  assert.match(finalizer, /if v_session\.gameplay_version = 'rtw-v7' and v_session\.activity_lease_expires_at <= v_now then/);
+});
+
+test("endless migration preserves immutable rtw-v6 rows and scopes renewable leases to new rtw-v7 sessions", async () => {
+  const migration = await read("supabase/migrations/20260922000200_add_endless_official_session_leases.sql");
+
+  assert.match(migration, /gameplay_version = 'rtw-v6'\s+and checkpoint_interval_score is null\s+and activity_lease_expires_at is null/s);
+  assert.match(migration, /gameplay_version = 'rtw-v7'\s+and checkpoint_interval_score = 1000\s+and activity_lease_expires_at is not null/s);
+  assert.match(migration, /if old\.gameplay_version = 'rtw-v6' then/);
+  assert.match(migration, /raise exception 'An active session cannot be rewritten\.'/);
+  assert.match(migration, /if v_session\.gameplay_version <> 'rtw-v7'/);
+  assert.match(migration, /v_checkpoint_interval := 5000/);
+  assert.match(migration, /v_checkpoint_interval := 1000/);
+  assert.doesNotMatch(migration, /disable trigger|alter table public\.game_sessions disable/i);
 });
 
 test("server routes use per-session interval and canonical database lease renewal only", async () => {
