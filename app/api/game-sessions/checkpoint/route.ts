@@ -5,7 +5,7 @@ import {
   type LaneInputEvent,
   replayAuthoritativeProgress,
 } from "@/lib/game/race-to-win";
-import { digestOfficialInputs, isCheckpointInterval, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
+import { digestOfficialInputs, isCheckpointInterval, proofMatchesInputs, type StoredCheckpointProof } from "@/lib/game/race-to-win/checkpoints";
 import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } from "@/lib/game/race-to-win/official-inputs";
 import { consumeCompetitionActionRateLimit, getVerifiedPlayerId } from "@/lib/competition/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
@@ -84,13 +84,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Checkpoint is not yet available." }, { status: 409, headers: CACHE });
     }
 
-    const checkpointTable = admin.schema("private").from("game_session_checkpoints");
-    const { data: existing, error: existingError } = await checkpointTable
-      .select("checkpoint_index, milestone_score, proof_input_digest, proof_input_count")
-      .eq("game_session_id", session.id)
-      .order("checkpoint_index", { ascending: true });
+    const { data: existing, error: existingError } = await admin.rpc("rtw_read_game_session_checkpoint_proofs", {
+      p_session_id: session.id,
+      p_player_id: playerId,
+    });
     if (existingError) throw existingError;
-    const proofs = existing ?? [];
+    const proofs = (existing ?? []) as StoredCheckpointProof[];
     if (proofs.some((proof) => !proofMatchesInputs(proof, body.inputs, checkpointInterval))) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "finalize_conflict", status: 409 });
       return NextResponse.json({ message: "Checkpoint conflicts with prior evidence." }, { status: 409, headers: CACHE });

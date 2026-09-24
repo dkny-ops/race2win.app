@@ -95,6 +95,26 @@ test("server routes use per-session interval and canonical database lease renewa
   assert.doesNotMatch(scene, /CHECKPOINT_INTERVAL =/);
 });
 
+test("checkpoint lease recording qualifies generated checkpoint indexes to avoid output-variable ambiguity", async () => {
+  const migration = await read("supabase/migrations/20260924004134_fix_checkpoint_lease_insert_ambiguity.sql");
+  assert.match(migration, /from generate_series\(v_expected_next, p_checkpoint_index\) as generated\(checkpoint_index\)/);
+  assert.match(migration, /generated\.checkpoint_index \* v_session\.checkpoint_interval_score/);
+  assert.doesNotMatch(migration, /\n\s*checkpoint_index \* v_session\.checkpoint_interval_score/);
+  assert.match(migration, /for update/);
+  assert.match(migration, /set_config\('rtw\.activity_lease_renewal', 'validated', true\)/);
+  assert.match(migration, /revoke all on function public\.rtw_record_game_session_checkpoint_with_lease/);
+  assert.match(migration, /grant execute on function public\.rtw_record_game_session_checkpoint_with_lease[^\n]+to service_role/);
+});
+
+test("v7 removes only the inherited global 5K checkpoint constraint", async () => {
+  const migration = await read("supabase/migrations/20260924004559_drop_legacy_checkpoint_interval_constraint.sql");
+  const v7 = await read("supabase/migrations/20260922000200_add_endless_official_session_leases.sql");
+  assert.match(migration, /drop constraint if exists game_session_checkpoints_check/);
+  assert.match(v7, /new\.milestone_score <> new\.checkpoint_index \* v_session\.checkpoint_interval_score/);
+  assert.match(v7, /new\.milestone_score <> new\.checkpoint_index \* 5000/);
+  assert.match(v7, /game_session_checkpoints_milestone_score_positive_check/);
+});
+
 test("lease checkpoints remain non-financial and browser evidence never includes authority fields", async () => {
   const checkpoint = await read("app/api/game-sessions/checkpoint/route.ts");
   assert.match(checkpoint, /replayAuthoritativeProgress/);

@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const migration = await readFile(new URL("supabase/migrations/20260917000100_create_authoritative_game_session_checkpoints.sql", root), "utf8");
 const finalizeMigration = await readFile(new URL("supabase/migrations/20260917000200_finalize_game_session_checkpoint_chain.sql", root), "utf8");
 const finalizeHardening = await readFile(new URL("supabase/migrations/20260917000300_harden_checkpoint_finalization_inputs.sql", root), "utf8");
+const checkpointProofReadMigration = await readFile(new URL("supabase/migrations/20260924000840_read_game_session_checkpoint_proofs.sql", root), "utf8");
 const checkpointRoute = await readFile(new URL("app/api/game-sessions/checkpoint/route.ts", root), "utf8");
 const finalizeRoute = await readFile(new URL("app/api/game-sessions/finalize/route.ts", root), "utf8");
 
@@ -61,6 +62,8 @@ test("checkpoint and finalization paths share replay evidence without financial 
   assert.match(checkpointRoute, /replayAuthoritativeProgress/);
   assert.match(checkpointRoute, /consumeCompetitionActionRateLimit\(playerId, "game_checkpoint"\)/);
   assert.match(checkpointRoute, /proofMatchesInputs/);
+  assert.match(checkpointRoute, /rpc\("rtw_read_game_session_checkpoint_proofs"/);
+  assert.doesNotMatch(checkpointRoute, /\.schema\("private"\)/);
   assert.doesNotMatch(checkpointRoute, /validated_runs|daily_top_scores|weekly_tournament_totals|prize_ledger|payout/i);
   assert.match(finalizeRoute, /checkpointCountForScore\(replay\.score, checkpointInterval\)/);
   assert.match(finalizeRoute, /rtw_finalize_game_session_with_checkpoints/);
@@ -69,6 +72,20 @@ test("checkpoint and finalization paths share replay evidence without financial 
   assert.match(finalizeMigration, /p_checkpoint_proofs is null/);
   assert.match(finalizeHardening, /proof\.value/);
   assert.match(finalizeMigration, /revoke all on function public\.rtw_finalize_game_session_with_checkpoints/);
+});
+
+test("checkpoint proof reads use a minimum, service-role-only read-only RPC", () => {
+  assert.match(checkpointProofReadMigration, /create function public\.rtw_read_game_session_checkpoint_proofs\(\s*p_session_id uuid,\s*p_player_id uuid/s);
+  assert.match(checkpointProofReadMigration, /returns table \(\s*checkpoint_index integer,\s*milestone_score integer,\s*proof_input_digest text,\s*proof_input_count integer\s*\)/s);
+  assert.match(checkpointProofReadMigration, /security definer\s+set search_path = ''/s);
+  assert.match(checkpointProofReadMigration, /p_session_id is null or p_player_id is null/);
+  assert.match(checkpointProofReadMigration, /from public\.game_sessions as session/);
+  assert.match(checkpointProofReadMigration, /session\.id = p_session_id\s+and session\.user_id = p_player_id/s);
+  assert.match(checkpointProofReadMigration, /from private\.game_session_checkpoints as checkpoint/);
+  assert.match(checkpointProofReadMigration, /revoke all on function public\.rtw_read_game_session_checkpoint_proofs\(uuid, uuid\) from public, anon, authenticated/);
+  assert.match(checkpointProofReadMigration, /grant execute on function public\.rtw_read_game_session_checkpoint_proofs\(uuid, uuid\) to service_role/);
+  assert.doesNotMatch(checkpointProofReadMigration, /\b(?:insert|update|delete)\b/i);
+  assert.doesNotMatch(checkpointProofReadMigration, /execute\s+(?!on function)/i);
 });
 
 test("scores read API has bounded allowlisted public queries and derives personal identity server-side", async () => {
