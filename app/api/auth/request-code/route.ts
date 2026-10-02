@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
+import { readBoundedJson } from "@/lib/competition/request-body";
 
 const GENERIC_MESSAGE = "If this email can receive a sign-in code, check your inbox shortly.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -11,7 +12,8 @@ export async function POST(request: Request) {
   let email = "";
   let nextPath = "/";
   try {
-    const body: unknown = await request.json();
+    const body: unknown = await readBoundedJson(request);
+    if (body === null) throw new Error("Invalid request body");
     const candidate = typeof body === "object" && body !== null && "email" in body ? (body as { email?: unknown }).email : undefined;
     const nextCandidate = typeof body === "object" && body !== null && "next" in body ? (body as { next?: unknown }).next : undefined;
     if (typeof candidate === "string") email = candidate.trim().toLowerCase();

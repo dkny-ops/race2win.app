@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { EMAIL_PATTERN, USERNAME_PATTERN, normalizePayPalEmail, normalizeUsername } from "@/lib/profile-validation";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
+import { readBoundedJson } from "@/lib/competition/request-body";
 
 const UNAUTHORIZED = { message: "Sign in to access your profile." };
 const PROFILE_ERROR = { message: "Your profile could not be saved. Please try again." };
@@ -47,7 +48,7 @@ export async function PATCH(request: Request) {
   const requestId = createSecurityRequestId();
   let body: Record<string, unknown>;
   try {
-    const candidate: unknown = await request.json();
+    const candidate: unknown = await readBoundedJson(request);
     if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) throw new Error();
     body = candidate as Record<string, unknown>;
   } catch {

@@ -1,9 +1,13 @@
+import "server-only";
+
 export const COMPETITION_MUTATION_BODY_LIMIT_BYTES = 2 * 1024;
 
 function declaredBodyLengthIsAllowed(request: Request, limit: number): boolean {
   const rawLength = request.headers.get("content-length");
   if (rawLength === null) return true;
-  return /^\d+$/.test(rawLength) && Number(rawLength) <= limit;
+  if (!/^\d+$/.test(rawLength)) return false;
+  const parsedLength = Number(rawLength);
+  return Number.isSafeInteger(parsedLength) && parsedLength <= limit;
 }
 
 /**

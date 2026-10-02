@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
+import { readBoundedJson } from "@/lib/competition/request-body";
 
 const OTP_PATTERN = /^\d{6}$/;
 const INVALID_CODE_MESSAGE = "That code is invalid or expired. Request a new code and try again.";
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
   const requestId = createSecurityRequestId();
   let token = "";
   try {
-    const body: unknown = await request.json();
+    const body: unknown = await readBoundedJson(request);
     if (typeof body === "object" && body !== null && "token" in body) {
       const candidate = (body as { token?: unknown }).token;
       if (typeof candidate === "string") token = candidate.trim();

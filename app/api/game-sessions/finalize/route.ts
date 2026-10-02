@@ -5,7 +5,7 @@ import {
   replayAuthoritativeRace,
   type LaneInputEvent,
 } from "@/lib/game/race-to-win";
-import { checkpointCountForScore, digestOfficialInputs, isCheckpointInterval, proofMatchesInputs } from "@/lib/game/race-to-win/checkpoints";
+import { checkpointCountForScore, digestOfficialInputs, isCheckpointInterval, proofMatchesInputs, type StoredCheckpointProof } from "@/lib/game/race-to-win/checkpoints";
 import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } from "@/lib/game/race-to-win/official-inputs";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
@@ -98,13 +98,12 @@ export async function POST(request: Request) {
     }
     const checkpointInterval = Number(session.checkpoint_interval_score);
     const expectedCheckpointCount = checkpointCountForScore(replay.score, checkpointInterval);
-    const checkpointTable = admin.schema("private").from("game_session_checkpoints");
-    const { data: existingCheckpoints, error: checkpointReadError } = await checkpointTable
-      .select("checkpoint_index, milestone_score, proof_input_digest, proof_input_count")
-      .eq("game_session_id", session.id)
-      .order("checkpoint_index", { ascending: true });
+    const { data: existingCheckpoints, error: checkpointReadError } = await admin.rpc("rtw_read_game_session_checkpoint_proofs", {
+      p_session_id: session.id,
+      p_player_id: userId,
+    });
     if (checkpointReadError) throw checkpointReadError;
-    const proofs = existingCheckpoints ?? [];
+    const proofs = (existingCheckpoints ?? []) as StoredCheckpointProof[];
     if (
       proofs.some((proof) => !proofMatchesInputs(proof, body.inputs, checkpointInterval)) ||
       proofs.some((proof) => proof.checkpoint_index > expectedCheckpointCount)

@@ -16,7 +16,10 @@ async function loadRequestBodyHelpers() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const compiledModule = { exports: {} };
-  new Function("exports", "module", output)(compiledModule.exports, compiledModule);
+  new Function("exports", "module", "require", output)(compiledModule.exports, compiledModule, (name) => {
+    if (name === "server-only") return {};
+    throw new Error("Unexpected module: " + name);
+  });
   return compiledModule.exports;
 }
 
@@ -47,6 +50,17 @@ test("bounded mutation parsing handles missing metadata and rejects malformed or
     await readBoundedJson(requestFromChunks([new Uint8Array(COMPETITION_MUTATION_BODY_LIMIT_BYTES + 1)])),
     null,
   );
+  assert.equal(
+    await readBoundedJson(requestFromChunks([encoder.encode("{}")], { "content-length": String(COMPETITION_MUTATION_BODY_LIMIT_BYTES + 1) })),
+    null,
+  );
+  assert.equal(
+    await readBoundedJson(requestFromChunks([encoder.encode("{}")], { "content-length": "999999999999999999999999999" })),
+    null,
+  );
+  const exactBody = `{"value":"${"x".repeat(COMPETITION_MUTATION_BODY_LIMIT_BYTES - encoder.encode('{"value":""}').byteLength)}"}`;
+  assert.equal(encoder.encode(exactBody).byteLength, COMPETITION_MUTATION_BODY_LIMIT_BYTES);
+  assert.deepEqual(await readBoundedJson(requestFromChunks([encoder.encode(exactBody)])), { value: "x".repeat(COMPETITION_MUTATION_BODY_LIMIT_BYTES - encoder.encode('{"value":""}').byteLength) });
 });
 
 test("balance claims enforce their empty-body contract", async () => {
@@ -142,4 +156,24 @@ test("new mutation routes use the bounded parser and database-backed rate gate",
   const startRoute = await readFile(new URL("app/api/game-sessions/start/route.ts", root), "utf8");
   assert.match(startRoute, /rtw_start_official_game_session/);
   assert.doesNotMatch(startRoute, /\.from\("game_sessions"\)\s*\.insert/);
+});
+
+test("Auth and profile mutation routes use the shared streamed parser before sensitive providers or profile access", async () => {
+  const [requestCode, verifyCode, profile] = await Promise.all([
+    readFile(new URL("app/api/auth/request-code/route.ts", root), "utf8"),
+    readFile(new URL("app/api/auth/verify-code/route.ts", root), "utf8"),
+    readFile(new URL("app/api/profile/route.ts", root), "utf8"),
+  ]);
+  for (const route of [requestCode, verifyCode, profile]) {
+    assert.match(route, /@\/lib\/competition\/request-body/);
+    assert.match(route, /readBoundedJson\(request\)/);
+    assert.doesNotMatch(route, /request\.json\(/);
+  }
+  assert.ok(requestCode.indexOf("readBoundedJson(request)") < requestCode.indexOf("signInWithOtp"));
+  assert.ok(verifyCode.indexOf("readBoundedJson(request)") < verifyCode.indexOf("verifyOtp"));
+  const profilePatch = profile.slice(profile.indexOf("export async function PATCH"));
+  assert.ok(profilePatch.indexOf("readBoundedJson(request)") < profilePatch.indexOf("const context = await readOrCreateProfile()"));
+  assert.match(requestCode, /If this email can receive a sign-in code, check your inbox shortly\./);
+  assert.match(verifyCode, /That code is invalid or expired\. Request a new code and try again\./);
+  assert.doesNotMatch(`${requestCode}\n${verifyCode}\n${profile}`, /console\.(?:log|warn|error)\([^\n]*(?:email|token|otp|paypal|cookie)/i);
 });

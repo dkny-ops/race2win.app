@@ -64,6 +64,8 @@ test("checkpoint and finalization paths share replay evidence without financial 
   assert.match(checkpointRoute, /proofMatchesInputs/);
   assert.match(checkpointRoute, /rpc\("rtw_read_game_session_checkpoint_proofs"/);
   assert.doesNotMatch(checkpointRoute, /\.schema\("private"\)/);
+  assert.doesNotMatch(finalizeRoute, /\.schema\("private"\)/);
+  assert.match(finalizeRoute, /rpc\("rtw_read_game_session_checkpoint_proofs"/);
   assert.doesNotMatch(checkpointRoute, /validated_runs|daily_top_scores|weekly_tournament_totals|prize_ledger|payout/i);
   assert.match(finalizeRoute, /checkpointCountForScore\(replay\.score, checkpointInterval\)/);
   assert.match(finalizeRoute, /rtw_finalize_game_session_with_checkpoints/);
