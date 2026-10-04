@@ -123,9 +123,26 @@ export type LeaderboardResponse = Readonly<{
   entries: readonly { rank: number; username: string; weeklyTotal: number }[];
 }>;
 
+type RankedPublicUsername = Readonly<{ player_id: string; username: string }>;
+
+/**
+ * Keeps database diagnostics in server logs without sending provider errors,
+ * table details, or player data to a public leaderboard caller.
+ */
+export class LeaderboardReadError extends Error {
+  constructor(readonly stage: "game" | "totals" | "profiles") {
+    super("Leaderboard read failed.");
+  }
+}
+
 export async function readLeaderboard(params: NonNullable<ReturnType<typeof parseLeaderboardRequest>>): Promise<LeaderboardResponse> {
-  const game = await gameForSlug(params.gameSlug);
-  if (!game) throw new Error("Game unavailable.");
+  let game: Awaited<ReturnType<typeof gameForSlug>>;
+  try {
+    game = await gameForSlug(params.gameSlug);
+  } catch {
+    throw new LeaderboardReadError("game");
+  }
+  if (!game) throw new LeaderboardReadError("game");
   const from = (params.page - 1) * params.pageSize;
   const to = from + params.pageSize - 1;
   const admin = createAdminClient();
@@ -136,14 +153,19 @@ export async function readLeaderboard(params: NonNullable<ReturnType<typeof pars
     .eq("tournament_week_start", params.week)
     .order("rank_position", { ascending: true })
     .range(from, to);
-  if (totalError) throw totalError;
+  if (totalError) throw new LeaderboardReadError("totals");
   const playerIds = (totals ?? []).map((row) => row.player_id);
   const { data: profiles, error: profileError } = playerIds.length === 0
     ? { data: [], error: null }
-    : await admin.from("profiles").select("user_id, username").in("user_id", playerIds);
-  if (profileError) throw profileError;
-  const usernames = new Map((profiles ?? []).flatMap((profile) =>
-    typeof profile.username === "string" && profile.username.length > 0 ? [[profile.user_id, profile.username] as const] : [],
+    : await admin.rpc("rtw_read_ranked_public_usernames", {
+      p_game_id: game.id,
+      p_tournament_week_start: params.week,
+      p_player_ids: playerIds,
+    });
+  if (profileError) throw new LeaderboardReadError("profiles");
+  const publicUsernames = (profiles ?? []) as readonly RankedPublicUsername[];
+  const usernames = new Map(publicUsernames.flatMap((profile) =>
+    typeof profile.username === "string" && profile.username.length > 0 ? [[profile.player_id, profile.username] as const] : [],
   ));
   // A public board only presents users who chose a public game username; raw
   // UUIDs are never exposed as a fallback identity.

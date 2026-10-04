@@ -4,21 +4,29 @@ import { FaqList } from "@/components/marketing/faq-list";
 import { GameCard } from "@/components/marketing/game-card";
 import { GameplayPreview } from "@/components/marketing/gameplay-preview";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
+import { ShareCampaign } from "@/components/share/share-campaign";
 import { FAQS, GAMES } from "@/content/site";
+import { normalizeReferralCode } from "@/lib/competition/server";
+import { readWeeklyShareLeaderboard } from "@/lib/competition/shares";
 import { ROUTES } from "@/lib/routes";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
   let username: string | null = null;
+  let authenticated = false;
   try {
       const context = await getVerifiedUserContext();
       if (context) {
+        authenticated = true;
         const { data: profile } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
         username = profile?.username ?? null;
       }
     } catch { username = null; }
+  const referralCode = normalizeReferralCode((await searchParams).ref);
+  let shareLeaderboard: Awaited<ReturnType<typeof readWeeklyShareLeaderboard>> | null = null;
+  try { shareLeaderboard = await readWeeklyShareLeaderboard(); } catch { /* Render only a safe unavailable state. */ }
   return (
     <>
       <section className="hero">
@@ -38,9 +46,9 @@ export default async function HomePage() {
             <h1>RACE <em>TO WIN</em></h1>
             <p className="hero-lede">A new competitive racing experience is in development. One track. One chance to own the run.</p>
             <div className="button-row">
-              <PlayGameLink>PLAY</PlayGameLink>{username ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>}
+              <PlayGameLink>{authenticated ? "PLAY" : "PLAY AS GUEST"}</PlayGameLink>{authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`} variant="secondary">SIGN IN TO COMPETE</ButtonLink>}
             </div>
-            <p className="play-note">PLAY opens the Race To Win game.</p>
+            <p className="play-note">Play for free without signing in. Sign in to save your scores, compete in tournaments and qualify for prizes. Guest scores are not saved.</p>
           </div>
         </div>
       </section>
@@ -53,6 +61,8 @@ export default async function HomePage() {
         <article><span>01</span><h3>GET READY</h3><p>Explore the first local playable foundation and public information.</p></article><article><span>02</span><h3>GET ACCESS</h3><p>Player access details will be shared when the next phase is ready.</p></article><article><span>03</span><h3>RUN THE TRACK</h3><p>Official game rules and conditions will be visible before competition goes live.</p></article>
         </div>
       </section>
+
+      <ShareCampaign authenticated={authenticated} referralCode={referralCode} tournamentWeek={shareLeaderboard?.tournamentWeek ?? null} entries={shareLeaderboard?.entries ?? []} unavailable={shareLeaderboard === null} />
 
       <section className="section section-tint" aria-labelledby="games-title">
         <div className="shell">
