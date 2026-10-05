@@ -145,7 +145,10 @@ type PublicLeaderboardRow = Readonly<{
   rank_position: unknown;
   username: unknown;
   weekly_total_score: unknown;
+}>;
+type PublicLeaderboardPage = Readonly<{
   total_public_entries: unknown;
+  entries: unknown;
 }>;
 
 /**
@@ -167,23 +170,25 @@ export async function readLeaderboard(params: NonNullable<ReturnType<typeof pars
   }
   if (!game) throw new LeaderboardReadError("game");
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("rtw_read_public_leaderboard_page", {
+  const { data, error } = await admin.rpc("rtw_read_public_leaderboard_page_metadata", {
     p_game_id: game.id,
     p_tournament_week_start: params.week,
     p_page: params.page,
     p_page_size: params.pageSize,
   });
   if (error) throw new LeaderboardReadError("totals");
-  const rows = (data ?? []) as readonly PublicLeaderboardRow[];
-  let totalPublicEntries = 0;
-  const entries = rows.map((row) => {
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new LeaderboardReadError("totals");
+  const page = data as PublicLeaderboardPage;
+  const totalPublicEntries = page.total_public_entries;
+  if (typeof totalPublicEntries !== "number" || !Number.isSafeInteger(totalPublicEntries) || totalPublicEntries < 0 || !Array.isArray(page.entries) || page.entries.length > params.pageSize) {
+    throw new LeaderboardReadError("totals");
+  }
+  const entries = (page.entries as readonly PublicLeaderboardRow[]).map((row) => {
     if (
       typeof row.rank_position !== "number" || !Number.isSafeInteger(row.rank_position) || row.rank_position < 1
       || typeof row.username !== "string" || row.username.length < 1 || row.username.length > 40
       || typeof row.weekly_total_score !== "number" || !Number.isSafeInteger(row.weekly_total_score) || row.weekly_total_score < 0
-      || typeof row.total_public_entries !== "number" || !Number.isSafeInteger(row.total_public_entries) || row.total_public_entries < 1
     ) throw new LeaderboardReadError("totals");
-    totalPublicEntries = row.total_public_entries;
     return { rank: row.rank_position, username: row.username, weeklyTotal: row.weekly_total_score };
   });
   return {
@@ -191,7 +196,7 @@ export async function readLeaderboard(params: NonNullable<ReturnType<typeof pars
     tournamentWeek: params.week,
     page: params.page,
     pageSize: params.pageSize,
-    hasNextPage: entries.length > 0 && params.page * params.pageSize < totalPublicEntries,
+    hasNextPage: params.page * params.pageSize < totalPublicEntries,
     entries,
   };
 }

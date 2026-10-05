@@ -56,6 +56,14 @@ test("Back navigation uses only fixed internal destinations and preserves game c
   assert.match(gamePage, /rtw-page-control/);
 });
 
+test("every World Players pagination control follows server metadata", async () => {
+  const table = await read("components/scores/leaderboard-table.tsx");
+  assert.match(table, /hasNextPage: boolean/);
+  assert.match(table, /disabled=\{!data\.hasNextPage\}/);
+  assert.match(table, /setData\(null\)/);
+  assert.doesNotMatch(table, /entries\.length < data\.pageSize/);
+});
+
 test("secondary static pages use the safe home Back destination", async () => {
   const pages = [
     "app/profile/page.tsx", "app/prizes/page.tsx", "app/leaderboard/page.tsx", "app/games/page.tsx",

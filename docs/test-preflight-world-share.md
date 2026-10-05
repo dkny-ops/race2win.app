@@ -58,12 +58,26 @@ where (n.nspname, c.relname) in (
   ('public', 'weekly_share_results'), ('private', 'game_session_checkpoints')
 )
 order by n.nspname, c.relname;
+
+select lower(username) as normalized_username, count(*) as duplicate_count
+from public.profiles
+where username is not null
+group by lower(username)
+having count(*) > 1;
+
+select indexname, indexdef
+from pg_catalog.pg_indexes
+where schemaname = 'public' and tablename = 'profiles'
+  and indexname = 'profiles_username_lower_key';
 ```
 
 Expected values: both `anon_*` and `authenticated_*` function permissions are
 false, both profile privileges are false, both `service_*` permissions are
 true, and every listed protected table has RLS enabled. Record only PASS/FAIL;
 do not export live ranking rows during this permission check.
+The duplicate query must return zero rows before relying on the existing
+case-insensitive unique index; it is a preflight observation only and must not
+rename or delete any profile automatically.
 
 ## 3. Official-score validation (isolated TEST fixture)
 

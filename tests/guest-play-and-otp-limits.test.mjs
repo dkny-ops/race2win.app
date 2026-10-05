@@ -87,7 +87,7 @@ test("Scores panel only displays server-generated Top 7 and leaderboard values",
   assert.match(leaderboardRoute, /readLeaderboard\(params\)/);
   assert.match(scoreLibrary, /timeZone: "America\/New_York"/);
   assert.match(scoreLibrary, /weekly_total_score, rank_position/);
-  assert.match(scoreLibrary, /rpc\("rtw_read_public_leaderboard_page"/);
-  assert.match(scoreLibrary, /hasNextPage: entries\.length > 0/);
+  assert.match(scoreLibrary, /rpc\("rtw_read_public_leaderboard_page_metadata"/);
+  assert.match(scoreLibrary, /hasNextPage: params\.page \* params\.pageSize < totalPublicEntries/);
   assert.doesNotMatch(scoreLibrary, /grant .* to (?:anon|authenticated)/i);
 });
