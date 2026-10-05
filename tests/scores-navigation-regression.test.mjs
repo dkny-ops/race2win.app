@@ -12,7 +12,10 @@ test("weekly scores remain independently available when the public leaderboard r
   assert.match(scores, /setLeaderboardError\("World players are temporarily unavailable/);
   assert.match(scores, /tab === "weekly" \? !personal/);
   assert.match(scores, /!leaderboard \? <p className="scores-message"/);
-  assert.match(scores, /personal\?\.rank === entry\.rank/);
+  assert.match(scores, /personal\?\.publicUsername === entry\.username/);
+  assert.doesNotMatch(scores, /personal\?\.rank === entry\.rank/);
+  assert.match(scores, /setLeaderboard\(null\)/);
+  assert.match(scores, /const controller = new AbortController\(\)/);
   assert.doesNotMatch(scores, /validated_runs|weekly_tournament_totals|daily_top_scores|prize|ledger|payout/i);
 });
 
@@ -25,12 +28,12 @@ test("public leaderboard records only an allowlisted failure stage", async () =>
   assert.match(scores, /class LeaderboardReadError/);
   assert.match(scores, /new LeaderboardReadError\("game"\)/);
   assert.match(scores, /new LeaderboardReadError\("totals"\)/);
-  assert.match(scores, /new LeaderboardReadError\("profiles"\)/);
+  assert.doesNotMatch(scores, /new LeaderboardReadError\("profiles"\)/);
   assert.match(route, /error instanceof LeaderboardReadError/);
   assert.doesNotMatch(route, /error\.message|JSON\.stringify\(error\)/);
   assert.match(events, /"leaderboard_game_unavailable"/);
   assert.match(events, /"leaderboard_totals_unavailable"/);
-  assert.match(events, /"leaderboard_profiles_unavailable"/);
+  assert.doesNotMatch(route, /leaderboard_profiles_unavailable/);
 });
 
 test("Back navigation uses only fixed internal destinations and preserves game context", async () => {

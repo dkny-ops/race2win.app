@@ -7,7 +7,12 @@ import { ROUTES } from "@/lib/routes";
 type ShareEntry = Readonly<{ rank: number; username: string; confirmedShares: number }>;
 
 function shareUrl(code: string) {
-  return `${window.location.origin}/?ref=${encodeURIComponent(code)}`;
+  const url = new URL(window.location.origin);
+  if (url.protocol !== "https:" && url.hostname !== "localhost") throw new Error("unsupported_share_origin");
+  url.pathname = "/";
+  url.search = `?ref=${encodeURIComponent(code)}`;
+  url.hash = "";
+  return url.toString();
 }
 
 export function ShareCampaign({
@@ -37,8 +42,9 @@ export function ShareCampaign({
       if (typeof navigator.share === "function") await navigator.share({ title: "Race To Win", text: "Join me on Race To Win.", url });
       else if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(url); setNotice("Your personal Share link was copied."); }
       else setNotice("Your browser cannot share this link automatically. Please try a current browser.");
-    } catch {
-      setNotice("Your Share link is temporarily unavailable. Please try again shortly.");
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === "AbortError") setNotice("Share canceled.");
+      else setNotice("Your Share link is temporarily unavailable. Please try again shortly.");
     } finally { setBusy(false); }
   }
 

@@ -4,9 +4,10 @@ import { isAdminConfigured } from "@/lib/supabase/admin";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 
 export const runtime = "nodejs";
-// CDN caching is the multi-instance-safe guard for a public, non-mutating
-// board. The origin only accepts bounded, allowlisted query parameters.
-const CACHE = { "Cache-Control": "public, max-age=0, s-maxage=30, stale-while-revalidate=60" } as const;
+// Rankings change after server-authoritative finalization. Do not let a CDN
+// replay a stale success or failure after a page transition; request bounds and
+// the database projection remain the public-read controls.
+const CACHE = { "Cache-Control": "no-store" } as const;
 
 export async function GET(request: Request) {
   const requestId = createSecurityRequestId();

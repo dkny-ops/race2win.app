@@ -79,14 +79,15 @@ test("Scores panel only displays server-generated Top 7 and leaderboard values",
   assert.match(scores, /MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN/);
   assert.match(scores, /fetch\("\/api\/scores\/me"/);
   assert.match(scores, /fetch\(`\/api\/leaderboard\?page=\$\{worldPage\}&pageSize=50`/);
-  assert.match(scores, /leaderboard\.entries\.length < leaderboard\.pageSize/);
-  assert.match(scores, /personal\?\.rank === entry\.rank/);
+  assert.match(scores, /disabled=\{!leaderboard\.hasNextPage\}/);
+  assert.match(scores, /personal\?\.publicUsername === entry\.username/);
   assert.match(scores, /No scores yet/);
   assert.doesNotMatch(scores, /validated_runs|daily_top_scores|weekly_tournament_totals|prize|ledger|payout/i);
   assert.match(scoresRoute, /getVerifiedPlayerId\(\)/);
   assert.match(leaderboardRoute, /readLeaderboard\(params\)/);
   assert.match(scoreLibrary, /timeZone: "America\/New_York"/);
   assert.match(scoreLibrary, /weekly_total_score, rank_position/);
-  assert.match(scoreLibrary, /order\("rank_position", \{ ascending: true \}\)/);
+  assert.match(scoreLibrary, /rpc\("rtw_read_public_leaderboard_page"/);
+  assert.match(scoreLibrary, /hasNextPage: entries\.length > 0/);
   assert.doesNotMatch(scoreLibrary, /grant .* to (?:anon|authenticated)/i);
 });

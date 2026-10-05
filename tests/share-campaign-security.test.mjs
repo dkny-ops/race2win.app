@@ -36,12 +36,38 @@ test("Share UI obtains a personal link and attaches referrals only through authe
   assert.match(campaign, /fetch\("\/api\/referrals\/attach"/);
   assert.match(campaign, /JOIN WITH THIS INVITE/);
   assert.match(campaign, /navigator\.share/);
+  assert.match(campaign, /new URL\(window\.location\.origin\)/);
+  assert.match(campaign, /url\.protocol !== "https:" && url\.hostname !== "localhost"/);
+  assert.match(campaign, /url\.pathname = "\/"/);
+  assert.match(campaign, /url\.hash = ""/);
+  assert.match(campaign, /error\.name === "AbortError"/);
+  assert.match(campaign, /Share canceled\./);
   assert.match(campaign, /3 server-validated official runs on 5 different New York days/);
   assert.match(campaign, /fixed \$10 pool is split by the server/);
   assert.match(campaign, /JSON\.stringify\(\{ code: referralCode \}\)/);
   assert.doesNotMatch(campaign, /JSON\.stringify\(\{[^}]*\b(?:userId|playerId|score|balance|payout|prizeClaim)\b/i);
   assert.ok(postAuth.includes('/^\\/\\?ref=[A-Z0-9]{10,32}$/.test(value)'));
   assert.match(verify, /safePostAuthPath/);
+});
+
+test("referral attachment is server-owned, self-safe, and idempotent", async () => {
+  const [route, competition] = await Promise.all([
+    read("app/api/referrals/attach/route.ts"),
+    read("supabase/migrations/20260907000100_create_competition_foundation.sql"),
+  ]);
+  assert.match(route, /getVerifiedPlayerId/);
+  assert.match(route, /Object\.keys\(body\)\.length !== 1/);
+  assert.match(route, /normalizeReferralCode\(body\.code\)/);
+  assert.match(route, /p_invitee_user_id: playerId/);
+  assert.match(route, /p_code: code/);
+  assert.match(route, /const playerId = await getVerifiedPlayerId\(\)/);
+  assert.doesNotMatch(route, /body\.(?:userId|playerId|confirmed_share_count|weekly_share_results)/i);
+  assert.match(competition, /if v_inviter_user_id = p_invitee_user_id then/);
+  assert.match(competition, /Self referral is not permitted/);
+  assert.match(competition, /invitee_user_id uuid not null unique/);
+  assert.match(competition, /return v_existing\.id/);
+  assert.match(competition, /security definer/);
+  assert.match(competition, /set search_path = ''/);
 });
 
 test("Share rules explain that clicks and guest or altered browser state do not count", async () => {

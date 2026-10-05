@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useGuestScores, type GuestRun } from "./guest-score-store";
 
-type Leaderboard = { game: { name: string }; tournamentWeek: string; page: number; pageSize: number; entries: { rank: number; username: string; weeklyTotal: number }[] };
+type Leaderboard = { game: { name: string }; tournamentWeek: string; page: number; pageSize: number; hasNextPage: boolean; entries: { rank: number; username: string; weeklyTotal: number }[] };
 const LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
 function weekDays(weekStart: string) {
@@ -43,15 +43,22 @@ export function GuestRaceStats({ tournamentWeek }: Readonly<{ tournamentWeek: st
 
   useEffect(() => {
     let active = true;
-    void fetch(`/api/leaderboard?page=${worldPage}&pageSize=50`, { cache: "no-store" })
+    const controller = new AbortController();
+    void fetch(`/api/leaderboard?page=${worldPage}&pageSize=50`, { cache: "no-store", signal: controller.signal })
       .then(async (response) => ({ response, body: await response.json().catch(() => null) }))
       .then((result) => {
         if (!active) return;
         if (!result.response.ok || !result.body) { setLeaderboardError("World players are temporarily unavailable. Please try again shortly."); return; }
         setLeaderboard(result.body as Leaderboard);
-      }).catch(() => { if (active) setLeaderboardError("World players are temporarily unavailable. Please try again shortly."); });
-    return () => { active = false; };
+      }).catch((error: unknown) => { if (active && !(error instanceof Error && error.name === "AbortError")) setLeaderboardError("World players are temporarily unavailable. Please try again shortly."); });
+    return () => { active = false; controller.abort(); };
   }, [worldPage]);
+
+  function changeWorldPage(nextPage: number) {
+    setLeaderboard(null);
+    setLeaderboardError(null);
+    setWorldPage(nextPage);
+  }
 
   return <div className="scores-layout">
     <section className="scores-summary" aria-label="Guest session weekly summary">
@@ -74,7 +81,7 @@ export function GuestRaceStats({ tournamentWeek }: Readonly<{ tournamentWeek: st
     </section> : !leaderboard ? <p className="scores-message" role="status">{leaderboardError ?? "LOADING WORLD PLAYERS…"}</p> : <section className="scores-panel" role="tabpanel">
       <div className="scores-panel__heading"><div><p className="eyebrow">SERVER-VALIDATED TOTALS</p><h2>WORLD PLAYERS</h2></div><span className="scores-game-label">{leaderboard.game.name}</span></div>
       {leaderboard.entries.length === 0 ? <p className="muted">No scores yet</p> : <div className="scores-table scores-table--leaderboard" role="table" aria-label="World players leaderboard"><div className="scores-table__header" role="row"><span>POSITION</span><span>PLAYER</span><span>WEEKLY TOTAL</span></div>{leaderboard.entries.map((entry) => <div role="row" key={`${entry.rank}-${entry.username}`}><strong>#{entry.rank}</strong><span>{entry.username}</span><strong>{entry.weeklyTotal.toLocaleString()}</strong></div>)}</div>}
-      <div className="scores-pagination"><button className="button button--secondary" type="button" disabled={worldPage === 1} onClick={() => { setLeaderboardError(null); setWorldPage(worldPage - 1); }}>PREVIOUS</button><span>PAGE {leaderboard.page}</span><button className="button button--secondary" type="button" disabled={leaderboard.entries.length < leaderboard.pageSize} onClick={() => { setLeaderboardError(null); setWorldPage(worldPage + 1); }}>NEXT</button></div>
+      <div className="scores-pagination"><button className="button button--secondary" type="button" disabled={worldPage === 1} onClick={() => changeWorldPage(worldPage - 1)}>PREVIOUS</button><span>PAGE {leaderboard.page}</span><button className="button button--secondary" type="button" disabled={!leaderboard.hasNextPage} onClick={() => changeWorldPage(worldPage + 1)}>NEXT</button></div>
     </section>}
   </div>;
 }
