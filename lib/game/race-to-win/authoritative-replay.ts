@@ -42,7 +42,14 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
   }
   simulation.start();
   const stepMs = DEFAULT_RACE_TO_WIN_CONFIG.fixedStepMs;
-  while (simulation.snapshot().state === "running" && simulation.snapshot().simulationTimeMs + stepMs <= elapsedCapMs) simulation.step(stepMs);
+  // Evidence timestamps are rounded milliseconds. Count fixed ticks instead
+  // of adding a fractional step to an already-rounded snapshot timestamp.
+  // This includes the collision tick when its rounded timestamp equals cap.
+  let ticks = 0;
+  while (simulation.snapshot().state === "running" && Math.round((ticks + 1) * stepMs) <= elapsedCapMs) {
+    simulation.step(stepMs);
+    ticks += 1;
+  }
   const snapshot = simulation.snapshot();
   if (snapshot.state !== "running" && snapshot.state !== "crashed") return null;
   return {

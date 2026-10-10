@@ -70,6 +70,7 @@ export type SecurityEventReason =
   | "authorization_rejected"
   | "eligibility_rejected"
   | "database_operation_failed"
+  | "finalize_sql_ambiguity"
   | "unexpected_response"
   | "unexpected_error";
 

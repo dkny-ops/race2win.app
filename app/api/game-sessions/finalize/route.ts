@@ -132,6 +132,10 @@ export async function POST(request: Request) {
       p_checkpoint_proofs: checkpointProofs,
     });
     if (finalizeError) {
+      if (finalizeError.code === "42702") {
+        logSecurityEvent({ eventType: "game_session.finalize.failed", route: "/api/game-sessions/finalize", requestId, reason: "finalize_sql_ambiguity", status: 500 });
+        return NextResponse.json({ message: "Official session could not be finalized." }, { status: 500, headers: CACHE });
+      }
       if (finalizeError.code === "23514" || finalizeError.code === "P0002") {
         logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
         return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: CACHE });
