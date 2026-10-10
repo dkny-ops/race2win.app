@@ -54,8 +54,14 @@ export type SecurityEventReason =
   | "invalid_request"
   | "unauthenticated"
   | "rate_limited"
+  | "abuse_protection_unavailable"
   | "missing_configuration"
   | "provider_rejected"
+  | "provider_rate_limited"
+  | "provider_unavailable"
+  | "leaderboard_game_unavailable"
+  | "leaderboard_totals_unavailable"
+  | "leaderboard_profiles_unavailable"
   | "session_not_found"
   | "session_not_active"
   | "gameplay_version_rejected"
@@ -64,6 +70,7 @@ export type SecurityEventReason =
   | "authorization_rejected"
   | "eligibility_rejected"
   | "database_operation_failed"
+  | "finalize_sql_ambiguity"
   | "unexpected_response"
   | "unexpected_error";
 

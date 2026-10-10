@@ -6,6 +6,7 @@ import { RaceToWinWorld } from "@/lib/game/race-to-win/world";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
+import { useGuestScores } from "@/components/scores/guest-score-store";
 
 type ScreenState = "loading" | "ready" | "starting" | "countdown" | "running" | "finalizing" | "crashed" | "finalize-failed" | "extra-life" | "unavailable";
 type OfficialSession = Readonly<{
@@ -18,6 +19,7 @@ type OfficialSession = Readonly<{
   activityLeaseExpiresAt: string;
 }>;
 type OfficialOutcome = Readonly<{ score: number; distanceMillimeters: number; elapsedMs: number; collisionAtMs: number }>;
+type GuestOutcome = Readonly<{ score: number; distanceMeters: number; elapsedSeconds: number }>;
 const CHECKPOINT_RETRY_LIMIT = 2;
 const EMPTY_METRICS: DisplayMetrics = { score: 0, elapsedSeconds: 0, distanceMeters: 0, speedKph: 97 };
 
@@ -40,8 +42,9 @@ function parseOfficialOutcome(value: unknown): OfficialOutcome | null {
   return { score: body.score as number, distanceMillimeters: body.distanceMillimeters as number, elapsedMs: body.elapsedMs as number, collisionAtMs: body.collisionAtMs as number };
 }
 
-export function RaceToWinScene() {
+export function RaceToWinScene({ officialMode, playerName }: { officialMode: boolean; playerName: string }) {
   const router = useRouter();
+  const { addRun: addGuestRun, clear: clearGuestRuns } = useGuestScores();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const simulationRef = useRef<RaceToWinSimulation | null>(null);
@@ -63,7 +66,10 @@ export function RaceToWinScene() {
   const [countdown, setCountdown] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DisplayMetrics>(EMPTY_METRICS);
   const [officialOutcome, setOfficialOutcome] = useState<OfficialOutcome | null>(null);
+  const [guestOutcome, setGuestOutcome] = useState<GuestOutcome | null>(null);
   const [runNotice, setRunNotice] = useState<string | null>(null);
+
+  useEffect(() => { if (officialMode) clearGuestRuns(); }, [clearGuestRuns, officialMode]);
 
   const setState = useCallback((next: ScreenState) => { screenStateRef.current = next; setScreenState(next); }, []);
   const cancelCountdown = useCallback(() => { if (countdownTimerRef.current !== null) { window.clearTimeout(countdownTimerRef.current); countdownTimerRef.current = null; } }, []);
@@ -74,7 +80,7 @@ export function RaceToWinScene() {
     cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); officialSessionRef.current = null; finalizingRef.current = false;
     const simulation = simulationRef.current;
     if (simulation) { simulation.reset(TRACK_SEED); setMetrics(simulation.snapshot().metrics); }
-    setCountdown(null); setOfficialOutcome(null); setRunNotice(null); setState("ready");
+    setCountdown(null); setOfficialOutcome(null); setGuestOutcome(null); setRunNotice(null); setState("ready");
   }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, setState]);
 
   const scheduleGameOverReturn = useCallback(() => {
@@ -139,7 +145,7 @@ export function RaceToWinScene() {
   const beginOfficialRun = useCallback(async () => {
     const simulation = simulationRef.current;
     if (!simulation || !worldRef.current || !["ready", "crashed", "finalize-failed"].includes(screenStateRef.current)) return;
-    audioRef.current?.unlock(); cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); setOfficialOutcome(null); setRunNotice(null); setState("starting");
+    audioRef.current?.unlock(); cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); setOfficialOutcome(null); setGuestOutcome(null); setRunNotice(null); setState("starting");
     try {
       const response = await fetch("/api/game-sessions/start", { method: "POST", credentials: "same-origin" });
       if (response.status === 401) { router.push(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`); return; }
@@ -163,6 +169,26 @@ export function RaceToWinScene() {
       officialSessionRef.current = null; setRunNotice("Official play is unavailable right now. Please try again shortly."); setState("ready");
     }
   }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, router, setState]);
+
+  const beginGuestRun = useCallback(() => {
+    const simulation = simulationRef.current;
+    if (!simulation || !worldRef.current || !["ready", "crashed", "finalize-failed"].includes(screenStateRef.current)) return;
+    // Guest play is deliberately local-only. It never creates an official
+    // session, sends replay evidence, or calls a competition API.
+    audioRef.current?.unlock(); cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); officialSessionRef.current = null; setOfficialOutcome(null); setGuestOutcome(null); setRunNotice(null);
+    simulation.reset(TRACK_SEED); setMetrics(simulation.snapshot().metrics); audioRef.current?.play("countdown", { volume: 0.4 }); setState("countdown");
+    let remaining = 3;
+    const tick = () => {
+      if (remaining <= 0) {
+        simulation.start(); setState("running"); setCountdown("GO");
+        countdownTimerRef.current = window.setTimeout(() => { countdownTimerRef.current = null; setCountdown(null); }, 350);
+        return;
+      }
+      setCountdown(String(remaining)); remaining -= 1;
+      countdownTimerRef.current = window.setTimeout(tick, 1_000);
+    };
+    tick();
+  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, setState]);
 
   const selectExtraLife = useCallback(() => { cancelCountdown(); cancelGameOverReturn(); setState("extra-life"); }, [cancelCountdown, cancelGameOverReturn, setState]);
 
@@ -189,8 +215,12 @@ export function RaceToWinScene() {
       const snapshot = screenStateRef.current === "running" ? simulation.step(deltaMs) : simulation.snapshot();
       world.update(snapshot, deltaMs / 1_000);
       if (now - lastHudUpdateAt >= 90 || snapshot.state === "crashed") { setMetrics(snapshot.metrics); lastHudUpdateAt = now; }
-      if (screenStateRef.current === "running") submitReachedCheckpoints(snapshot.metrics.score);
-      if (snapshot.state === "crashed" && screenStateRef.current === "running") { audioRef.current?.play("collision", { volume: 0.7 }); void finalizeOfficialRun(); }
+      if (officialMode && screenStateRef.current === "running") submitReachedCheckpoints(snapshot.metrics.score);
+      if (snapshot.state === "crashed" && screenStateRef.current === "running") {
+        audioRef.current?.play("collision", { volume: 0.7 });
+        if (officialMode) void finalizeOfficialRun();
+        else { const outcome = { score: snapshot.metrics.score, distanceMeters: snapshot.metrics.distanceMeters, elapsedSeconds: snapshot.metrics.elapsedSeconds }; setGuestOutcome(outcome); addGuestRun({ score: outcome.score, completedAt: new Date().toISOString() }); setState("crashed"); scheduleGameOverReturn(); }
+      }
       animationFrameRef.current = window.requestAnimationFrame(frame);
     };
     animationFrameRef.current = window.requestAnimationFrame(frame);
@@ -199,7 +229,7 @@ export function RaceToWinScene() {
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       resizeObserver.disconnect(); window.removeEventListener("keydown", onKeyDown); world.dispose(); audioRef.current?.dispose(); audioRef.current = null; simulationRef.current = null; worldRef.current = null;
     };
-  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, finalizeOfficialRun, requestLaneChange, setState, submitReachedCheckpoints]);
+  }, [addGuestRun, cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, finalizeOfficialRun, officialMode, requestLaneChange, scheduleGameOverReturn, setState, submitReachedCheckpoints]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => { if (screenStateRef.current === "running" && event.pointerType === "touch") { touchStartRef.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }; event.currentTarget.setPointerCapture(event.pointerId); } };
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => { const start = touchStartRef.current; touchStartRef.current = null; if (!start || start.pointerId !== event.pointerId || event.pointerType !== "touch") return; const horizontal = event.clientX - start.x; const vertical = event.clientY - start.y; if (Math.abs(horizontal) >= 38 && Math.abs(horizontal) > Math.abs(vertical)) requestLaneChange(horizontal < 0 ? -1 : 1); };
@@ -207,12 +237,12 @@ export function RaceToWinScene() {
 
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
     <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
-    {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div><div><span>DISTANCE</span><strong>{formatDistance(metrics.distanceMeters)}</strong></div><div><span>SPEED</span><strong>{Math.round(metrics.speedKph)} <small>KPH</small></strong></div></div> : null}
-    {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><button type="button" className="rtw-action rtw-action--primary" onClick={() => void beginOfficialRun()}>PLAY</button><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
+    {screenState === "running" ? <div className="rtw-hud" aria-label="Live display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div><div><span>DISTANCE</span><strong>{formatDistance(metrics.distanceMeters)}</strong></div><div><span>PLAYER</span><strong>{playerName}</strong></div></div> : null}
+    {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">{officialMode ? "OFFICIAL SESSION" : "GUEST PLAY"}</p><h3>RACE TO WIN</h3><p>{officialMode ? "DODGE TRAFFIC. SURVIVE. GO FARTHER." : "Play for free without signing in. Guest scores stay only while this page is open and cannot qualify for the tournament."}</p><div className="rtw-menu-actions">{officialMode ? <><button type="button" className="rtw-action rtw-action--primary" onClick={() => void beginOfficialRun()}>PLAY</button><Link className="rtw-action rtw-action--placeholder" href={`${ROUTES.scores}?from=play`}>SCORES</Link></> : <><button type="button" className="rtw-action rtw-action--primary" onClick={beginGuestRun}>PLAY AS GUEST</button><Link className="rtw-action rtw-action--placeholder" href={`${ROUTES.scores}?from=play`}>SCORES</Link><Link className="rtw-action rtw-action--placeholder" href={`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`}>SIGN IN TO COMPETE</Link></>}</div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
     {screenState === "starting" ? <div className="rtw-loading" role="status">PREPARING OFFICIAL SESSION…</div> : null}
     {(screenState === "countdown" || (screenState === "running" && countdown === "GO")) && countdown ? <div className="rtw-countdown" aria-live="assertive">{countdown}</div> : null}
     {screenState === "finalizing" ? <div className="rtw-loading" role="status">VALIDATING RUN…</div> : null}
-    {screenState === "crashed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">OFFICIAL RESULT</p><h3>GAME OVER</h3>{officialFinalMetrics ? <dl className="rtw-final-stats"><div><dt>OFFICIAL SCORE</dt><dd>{officialFinalMetrics.score.toLocaleString()}</dd></div><div><dt>TIME</dt><dd>{formatTime(officialFinalMetrics.elapsedSeconds)}</dd></div><div><dt>DISTANCE</dt><dd>{formatDistance(officialFinalMetrics.distanceMeters)}</dd></div></dl> : null}<div className="rtw-game-over-actions"><button type="button" className="rtw-action rtw-action--primary" onClick={() => void beginOfficialRun()}>PLAY AGAIN</button><button type="button" className="rtw-action rtw-action--placeholder" onClick={selectExtraLife}>EXTRA LIFE <small>COMING SOON</small></button></div></div> : null}
+    {screenState === "crashed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">{officialMode ? "OFFICIAL RESULT" : "GUEST RESULT · NOT SAVED"}</p><h3>GAME OVER</h3>{officialMode && officialFinalMetrics ? <dl className="rtw-final-stats"><div><dt>OFFICIAL SCORE</dt><dd>{officialFinalMetrics.score.toLocaleString()}</dd></div><div><dt>TIME</dt><dd>{formatTime(officialFinalMetrics.elapsedSeconds)}</dd></div><div><dt>DISTANCE</dt><dd>{formatDistance(officialFinalMetrics.distanceMeters)}</dd></div></dl> : null}{!officialMode && guestOutcome ? <dl className="rtw-final-stats"><div><dt>GUEST SCORE</dt><dd>{guestOutcome.score.toLocaleString()}</dd></div><div><dt>TIME</dt><dd>{formatTime(guestOutcome.elapsedSeconds)}</dd></div><div><dt>DISTANCE</dt><dd>{formatDistance(guestOutcome.distanceMeters)}</dd></div></dl> : null}<p>{officialMode ? null : "This guest score is visible only while this page stays open. Signing in starts your official scores at zero."}</p><div className="rtw-game-over-actions"><button type="button" className="rtw-action rtw-action--primary" onClick={officialMode ? () => void beginOfficialRun() : beginGuestRun}>PLAY AGAIN</button>{officialMode ? <button type="button" className="rtw-action rtw-action--placeholder" onClick={selectExtraLife}>EXTRA LIFE <small>COMING SOON</small></button> : <><Link className="rtw-action rtw-action--placeholder" href={`${ROUTES.scores}?from=play`}>SCORES</Link><Link className="rtw-action rtw-action--placeholder" href={`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`}>SIGN IN TO COMPETE</Link></>}</div></div> : null}
     {screenState === "finalize-failed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">RUN NOT VALIDATED</p><h3>GAME OVER</h3><p>{runNotice}</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "extra-life" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">EXTRA LIFE</p><h3>COMING SOON</h3><p>Extra Life is reserved for a future authoritative reward flow. No local reward has been granted.</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "loading" ? <div className="rtw-loading" role="status">LOADING TRACK…</div> : null}

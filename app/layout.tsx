@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { GuestScoreProvider } from "@/components/scores/guest-score-store";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/content/site";
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
         <SiteHeader />
-        <main id="main-content">{children}</main>
+        <GuestScoreProvider><main id="main-content">{children}</main></GuestScoreProvider>
         <SiteFooter />
       </body>
     </html>
