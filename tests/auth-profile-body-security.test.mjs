@@ -54,6 +54,7 @@ test("oversized or malformed Auth/Profile bodies fail before their sensitive pro
     "@/lib/supabase/server": { createClient: async () => { requestCodeProviderCalls += 1; return {}; }, isSupabaseConfigured: () => true },
     "@/lib/observability/security-event": observability,
     "@/lib/auth/post-auth-path": { safePostAuthPath: () => "/" },
+    "@/lib/auth/otp-challenge": { issueOtpChallenge: () => "test-challenge", verifyOtpChallenge: () => true, OTP_CHALLENGE_COOKIE: "rtw_otp_challenge" },
     "@/lib/auth/otp-abuse": { consumeOtpAbuseLimit: async () => "allowed" },
     "@/lib/competition/request-body": body,
     "@/lib/security/turnstile": { verifyTurnstileToken: async () => ({ status: "unavailable", reason: "disabled" }) },
@@ -69,6 +70,7 @@ test("oversized or malformed Auth/Profile bodies fail before their sensitive pro
     "next/server": next,
     "@/lib/observability/security-event": observability,
     "@/lib/auth/post-auth-path": { safePostAuthPath: () => "/" },
+    "@/lib/auth/otp-challenge": { issueOtpChallenge: () => "test-challenge", verifyOtpChallenge: () => true, OTP_CHALLENGE_COOKIE: "rtw_otp_challenge" },
     "@/lib/auth/otp-abuse": { consumeOtpAbuseLimit: async () => "allowed" },
     "@/lib/competition/request-body": body,
   });

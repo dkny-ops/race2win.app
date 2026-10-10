@@ -58,6 +58,7 @@ export function TurnstileWidget({ siteKey, onTokenChange, resetNonce }: Turnstil
 
   useEffect(() => () => {
     if (widgetIdRef.current && window.turnstile) window.turnstile.remove(widgetIdRef.current);
+    widgetIdRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export function TurnstileWidget({ siteKey, onTokenChange, resetNonce }: Turnstil
   }, [onTokenChange, resetNonce]);
 
   return <div className="turnstile-widget" aria-label="Human verification">
-    <Script src={TURNSTILE_SCRIPT_URL} strategy="afterInteractive" onLoad={() => setScriptReady(true)} onError={() => onTokenChange(null)} />
+    <Script src={TURNSTILE_SCRIPT_URL} strategy="afterInteractive" onReady={() => setScriptReady(true)} onError={() => onTokenChange(null)} />
     <div ref={containerRef} />
   </div>;
 }

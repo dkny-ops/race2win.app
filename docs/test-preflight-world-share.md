@@ -28,8 +28,11 @@ results (never result rows containing player identifiers):
   documented allowlist. The World Players projection returns rank, username,
   weekly total, and an internal pagination count; no player id, email, tie-break
   vector, replay, financial, or payout field crosses the HTTP response.
+- `anon` retains no direct `SELECT` privilege on profiles. `authenticated`
+  retains SELECT and its column-specific writes on profiles under owner RLS
+  and the restrictive live-session policy; verify foreign/revoked rows are denied.
 - `anon` and `authenticated` retain no direct `SELECT` privilege on
-  `public.profiles`, `public.weekly_tournament_totals`,
+  `public.weekly_tournament_totals`,
   `public.weekly_share_results`, checkpoints, ledger, balances, prizes, or
   payouts. RLS remains enabled on the protected tables.
 - Call each read projection with null, non-Monday week, out-of-range page, and

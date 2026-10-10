@@ -3,6 +3,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
 import { consumeOtpAbuseLimit } from "@/lib/auth/otp-abuse";
+import { issueOtpChallenge, OTP_CHALLENGE_COOKIE } from "@/lib/auth/otp-challenge";
 import { readBoundedJson } from "@/lib/competition/request-body";
 import { verifyTurnstileToken } from "@/lib/security/turnstile";
 
@@ -72,11 +73,16 @@ export async function POST(request: Request) {
     }
   }
 
+  const challenge = requestAccepted ? issueOtpChallenge(email) : null;
+  requestAccepted = requestAccepted && challenge !== null;
   const response = NextResponse.json(
     { message: GENERIC_MESSAGE, nextStep: requestAccepted },
     { status: 202, headers: { "Cache-Control": "no-store" } },
   );
   if (requestAccepted) {
+    response.cookies.set(OTP_CHALLENGE_COOKIE, challenge!, {
+      httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 600, path: "/",
+    });
     response.cookies.set("rtw_otp_email", email, {
       httpOnly: true,
       sameSite: "lax",

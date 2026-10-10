@@ -1,0 +1,94 @@
+{
+  "productionProjectRef": "fspszgqmwhwfoiitnerp",
+  "sourceBaseRevision": "e170955298847d4d56ff7f5d615627d6a9cb2cd2",
+  "baseProductionVersions": [
+    "20260904000100",
+    "20260905000100",
+    "20260907000100",
+    "20260908000100",
+    "20260908000200",
+    "20260908000300",
+    "20260909000100",
+    "20260909135938",
+    "20260915000100"
+  ],
+  "originalPendingCount": 15,
+  "pending": [
+    {
+      "file": "20260917000100_create_authoritative_game_session_checkpoints.sql",
+      "version": "20260917000100",
+      "sha256": "8676dd7d85c2f4381b9873b8e9b7c43e544e7c56d6e9fa06a442941d4cf7c331"
+    },
+    {
+      "file": "20260917000200_finalize_game_session_checkpoint_chain.sql",
+      "version": "20260917000200",
+      "sha256": "a412365c11b8d38392088d53d8942e0d06caae6f044f03263a6640f5ede61ef6"
+    },
+    {
+      "file": "20260917000300_harden_checkpoint_finalization_inputs.sql",
+      "version": "20260917000300",
+      "sha256": "382b3d0dd4bcf06de9242b3ce353f5c4230235b5994012b87e5c05595fe6e4d8"
+    },
+    {
+      "file": "20260922000100_return_official_session_start_time.sql",
+      "version": "20260922000100",
+      "sha256": "40d0e4524d5a50b5f2a363d037db40c01e3229d86e6c21105c0390144d8d3ad0"
+    },
+    {
+      "file": "20260922000200_add_endless_official_session_leases.sql",
+      "version": "20260922000200",
+      "sha256": "2e233144be1cc41edfbd59555e693b33a1cd33ba8cb2afdc9f2a0c85ef3462da"
+    },
+    {
+      "file": "20260924000840_read_game_session_checkpoint_proofs.sql",
+      "version": "20260924000840",
+      "sha256": "24ab167d0372d10047439ec4d471f3651f3867174be8e007f9317389448d258e"
+    },
+    {
+      "file": "20260924004134_fix_checkpoint_lease_insert_ambiguity.sql",
+      "version": "20260924004134",
+      "sha256": "c3cec295e6f642c6be37baba513fa625ecccdb2b6b7d0dd54022c2e9feaafac6"
+    },
+    {
+      "file": "20260924004559_drop_legacy_checkpoint_interval_constraint.sql",
+      "version": "20260924004559",
+      "sha256": "fc190ff63f3c9e6ae33b7c875dbf09a08e59d6ba3be4a857335f3a0365e2d8d7"
+    },
+    {
+      "file": "20261002000100_add_pre_auth_otp_abuse_rate_limits.sql",
+      "version": "20261002000100",
+      "sha256": "e5b4eb525355abab36b28ead89a863b6715538f48b599037b87d344c6f9dd1c5"
+    },
+    {
+      "file": "20261002220305_update_pre_auth_otp_email_limits.sql",
+      "version": "20261002220305",
+      "sha256": "dcea636a8ff4c30eee6087ff562c4de0b29fcd7eea60b4d7e839695f004dbe7c"
+    },
+    {
+      "file": "20261004000100_read_ranked_public_usernames.sql",
+      "version": "20261004000100",
+      "sha256": "e5940c4531bd15167a082fdcc137ff57c3136aed793b61d13f7e84b59c414b9f"
+    },
+    {
+      "file": "20261004000200_read_weekly_share_leaderboard.sql",
+      "version": "20261004000200",
+      "sha256": "ed66681bd9163f32994b4af884c840b5dc04296a7300f47220ec2c1c4f0598ed"
+    },
+    {
+      "file": "20261004214551_read_public_leaderboard_page.sql",
+      "version": "20261004214551",
+      "sha256": "8e1cefd50c0a54b40a1f4b3cd5dadbdbe2daae41f80c0e0c3a82328ce80ff3b1"
+    },
+    {
+      "file": "20261005014540_read_public_leaderboard_page_metadata.sql",
+      "version": "20261005014540",
+      "sha256": "02b9638a2dcfad3189e326024af110d91321dc9e2f1a7e324693962c19169a01"
+    },
+    {
+      "file": "20261010032418_fix_finalize_expired_lease_status.sql",
+      "version": "20261010032418",
+      "sha256": "71787d329765a3db3c3ff53ef889cb9699b9d75e1f2aacbf6a0f72ec85b1b168"
+    }
+  ],
+  "productionExecutionAuthorized": false
+}

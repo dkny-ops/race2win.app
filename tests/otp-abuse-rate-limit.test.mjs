@@ -96,6 +96,7 @@ test("request and verify routes do not call Supabase Auth when abuse control blo
     "@/lib/supabase/server": { createClient: async () => { requestProviderCalls += 1; return {}; }, isSupabaseConfigured: () => true },
     "@/lib/observability/security-event": observability,
     "@/lib/auth/post-auth-path": { safePostAuthPath: () => "/" },
+    "@/lib/auth/otp-challenge": { issueOtpChallenge: () => "test-challenge", verifyOtpChallenge: () => true, OTP_CHALLENGE_COOKIE: "rtw_otp_challenge" },
     "@/lib/auth/otp-abuse": { consumeOtpAbuseLimit: async () => "blocked" },
     "@/lib/competition/request-body": body,
     "@/lib/security/turnstile": { verifyTurnstileToken: async () => ({ status: "unavailable", reason: "disabled" }) },
@@ -112,6 +113,7 @@ test("request and verify routes do not call Supabase Auth when abuse control blo
     "next/server": next,
     "@/lib/observability/security-event": observability,
     "@/lib/auth/post-auth-path": { safePostAuthPath: () => "/" },
+    "@/lib/auth/otp-challenge": { issueOtpChallenge: () => "test-challenge", verifyOtpChallenge: () => true, OTP_CHALLENGE_COOKIE: "rtw_otp_challenge" },
     "@/lib/auth/otp-abuse": { consumeOtpAbuseLimit: async () => "unavailable" },
     "@/lib/competition/request-body": { readBoundedJson: async () => ({ token: "123456" }) },
   });

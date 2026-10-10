@@ -99,7 +99,7 @@ export function getTurnstileRequestWidgetConfiguration(): TurnstileRequestWidget
   if (process.env.TURNSTILE_ENFORCEMENT_ENABLED !== "true") return null;
   const config = configuration();
   const siteKey = configuredSiteKey();
-  return config && siteKey ? { siteKey } : null;
+  return config?.allowedActions.has("otp_request") && siteKey ? { siteKey } : null;
 }
 
 function providerReportedReuse(body: SiteverifyResponse): boolean {

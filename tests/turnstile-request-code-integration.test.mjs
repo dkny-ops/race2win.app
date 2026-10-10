@@ -24,6 +24,7 @@ async function loadRequestCodeRoute({ turnstileDecision, abuseDecision = "allowe
     };
     if (name === "@/lib/observability/security-event") return { createSecurityRequestId: () => "safe-request-id", logSecurityEvent: (event) => calls.logs.push(event) };
     if (name === "@/lib/auth/post-auth-path") return { safePostAuthPath: () => "/" };
+    if (name === "@/lib/auth/otp-challenge") return { issueOtpChallenge: () => "test-challenge", OTP_CHALLENGE_COOKIE: "rtw_otp_challenge" };
     if (name === "@/lib/auth/otp-abuse") return { consumeOtpAbuseLimit: async () => { calls.abuse += 1; return abuseDecision; } };
     if (name === "@/lib/competition/request-body") return { readBoundedJson: async (request) => request.json() };
     if (name === "@/lib/security/turnstile") return { verifyTurnstileToken: async () => { calls.turnstile += 1; return turnstileDecision; } };

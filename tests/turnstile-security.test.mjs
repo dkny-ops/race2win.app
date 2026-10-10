@@ -105,6 +105,9 @@ test("Turnstile fails closed when disabled, configured incompletely, malformed, 
 test("the sign-in widget configuration and server enforcement share one complete server-side activation decision", async () => {
   const enabled = await loadTurnstile(enabledEnv());
   assert.deepEqual(enabled.getTurnstileRequestWidgetConfiguration(), { siteKey: "public-site-key" });
+  const wrongAction = await loadTurnstile(enabledEnv({ TURNSTILE_ENABLED_ACTIONS: "otp_verify_step_up" }));
+  assert.equal(wrongAction.getTurnstileRequestWidgetConfiguration(), null);
+  assert.deepEqual(await wrongAction.verifyTurnstileToken("token", "otp_request"), { status: "unavailable", reason: "missing_configuration" });
   const disabled = await loadTurnstile(enabledEnv({ TURNSTILE_ENFORCEMENT_ENABLED: "false" }));
   assert.equal(disabled.getTurnstileRequestWidgetConfiguration(), null);
   assert.deepEqual(await disabled.verifyTurnstileToken("token", "otp_request"), { status: "unavailable", reason: "disabled" });

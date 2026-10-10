@@ -1,6 +1,6 @@
 # Turnstile activation plan
 
-This repository contains a server-only verifier, but no route currently calls it.
+The OTP request route calls the server-only verifier before its abuse limiter and Auth provider. Disabled enforcement preserves the DB limiter; enabled but incomplete configuration fails closed. The widget requires the otp_request action and uses Script.onReady to handle navigation back to sign-in.
 That is intentional: Turnstile is not active until it has been configured and
 validated in Preview/TEST.
 
@@ -24,10 +24,10 @@ the same complete server configuration, so there is no independent browser flag
 that can drift from server enforcement. A future protected route must fail
 closed on `rejected` and `unavailable` once its rollout is deliberately enabled.
 
-## Planned integration boundary
+## Integration boundary
 
-1. Add a Turnstile widget on the sign-in form and require an `otp_request`
-   verification before requesting an OTP.
+1. The sign-in form collects the widget token; when enabled, the request route
+   requires `otp_request` verification before the DB limiter and OTP provider.
 2. Keep `otp_verify_step_up` available only for risk-triggered verification;
    do not challenge every OTP attempt by default.
 3. Require a recent, server-verified proof at prize/balance claim boundaries.
