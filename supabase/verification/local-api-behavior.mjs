@@ -72,5 +72,24 @@ export async function verifyLocalApi(db) {
   assert.equal((await POST(request({sessionId:sid,inputs:[{sequence:0,atMs:100,direction:1}]}))).status,409);
   const rows=(await db.query('select score,elapsed_ms from public.validated_runs where game_session_id=$1',[sid])).rows;
   assert.equal(rows.length,1); assert.equal(rows[0].score,outcome.score); assert.equal(rows[0].elapsed_ms,outcome.elapsedMs);
+  const concurrentId=randomUUID();
+  await db.query(`insert into public.game_sessions(id,user_id,game_id,gameplay_version,seed,started_at,expires_at,checkpoint_interval_score,activity_lease_expires_at)
+    select $1,$2,id,'rtw-v7',1,now()-interval '20 minutes',now()-interval '10 minutes',1000,now()+interval '1 minute' from public.games where slug='race-to-win'`,[concurrentId,owner]);
+  const concurrent=await Promise.all(Array.from({length:8},()=>POST(request({sessionId:concurrentId,inputs:[]}))));
+  assert.deepEqual(concurrent.map(response=>response.status),Array(8).fill(200));
+  const canonical=await concurrent[0].json();
+  for(const response of concurrent.slice(1)) assert.deepEqual(await response.json(),canonical);
+  assert.equal(Number((await db.query('select count(*) n from public.validated_runs where game_session_id=$1',[concurrentId])).rows[0].n),1);
+  assert.equal((await POST(request({sessionId:concurrentId,inputs:[{sequence:0,atMs:100,direction:1}]}))).status,409);
+  const conflictId=randomUUID();
+  await db.query(`insert into public.game_sessions(id,user_id,game_id,gameplay_version,seed,started_at,expires_at,checkpoint_interval_score,activity_lease_expires_at)
+    select $1,$2,id,'rtw-v7',1,now()-interval '5 minutes',now()+interval '5 minutes',1000,now()+interval '1 minute' from public.games where slug='race-to-win'`,[conflictId,owner]);
+  const conflicting=await Promise.all([
+    POST(request({sessionId:conflictId,inputs:[]})),
+    POST(request({sessionId:conflictId,inputs:[{sequence:0,atMs:100,direction:1}]})),
+  ]);
+  assert.deepEqual(conflicting.map(response=>response.status).sort(),[200,409]);
+  assert.equal(Number((await db.query('select count(*) n from public.validated_runs where game_session_id=$1',[conflictId])).rows[0].n),1);
+  console.log('PASS eight interleaved FINALIZE retries return the canonical result; one validated run (single connection, not multi-connection locking)');
   return 'PASS real FINALIZE route/parser/replay→SQL→single validated run; unauthenticated/foreign/authority rejected; exact retry canonical';
 }

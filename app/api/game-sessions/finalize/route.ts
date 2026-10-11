@@ -137,6 +137,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: "Official session could not be finalized." }, { status: 500, headers: CACHE });
       }
       if (finalizeError.code === "23514" || finalizeError.code === "P0002") {
+        // A duplicate in-flight request can read active before the winner
+        // commits, then receive the SQL status guard. Return a result only
+        // when the stored owner-scoped evidence exactly matches this retry.
+        const { data: canonical, error: canonicalError } = await admin
+          .from("game_sessions")
+          .select("status, input_digest, final_score, final_distance_millimeters, final_elapsed_ms, final_collision_at_ms")
+          .eq("id", session.id).eq("user_id", userId).maybeSingle();
+        if (canonicalError) throw canonicalError;
+        if (canonical?.status === "finalized" && canonical.input_digest === digest) {
+          return NextResponse.json(officialOutcome(canonical), { headers: CACHE });
+        }
         logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
         return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: CACHE });
       }

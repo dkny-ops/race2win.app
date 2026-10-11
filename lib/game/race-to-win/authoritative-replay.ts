@@ -37,7 +37,11 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
   for (let index = 0; index < inputs.length; index += 1) {
     const input = inputs[index]!;
     if (input.sequence !== index || !Number.isSafeInteger(input.atMs) || input.atMs < 0 || input.atMs < previousAtMs || input.atMs > elapsedCapMs || (input.direction !== -1 && input.direction !== 1)) return null;
-    if (!simulation.queueReplayInput(input)) return null;
+    // Browser input timestamps describe the rounded snapshot AFTER a tick.
+    // A queued browser action is consumed on the next tick, never on that
+    // already-completed tick. Move v7 replay scheduling past its timestamp;
+    // keep submitted evidence/digests and historical v6 replay unchanged.
+    if (!simulation.queueReplayInput(gameplayVersion === GAMEPLAY_VERSION ? { ...input, atMs: input.atMs + 1 } : input)) return null;
     previousAtMs = input.atMs;
   }
   simulation.start();
