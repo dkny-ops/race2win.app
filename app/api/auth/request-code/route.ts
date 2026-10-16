@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
+import { verifyTurnstileToken } from "@/lib/security/turnstile";
 import { readBoundedJson } from "@/lib/competition/request-body";
 
 const GENERIC_MESSAGE = "If this email can receive a sign-in code, check your inbox shortly.";
@@ -11,6 +12,8 @@ export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   let email = "";
   let nextPath = "/";
+  let turnstileToken: unknown;
+  let supabaseCaptchaToken: unknown;
   try {
     const body: unknown = await readBoundedJson(request);
     if (body === null) throw new Error("Invalid request body");
@@ -18,6 +21,8 @@ export async function POST(request: Request) {
     const nextCandidate = typeof body === "object" && body !== null && "next" in body ? (body as { next?: unknown }).next : undefined;
     if (typeof candidate === "string") email = candidate.trim().toLowerCase();
     nextPath = safePostAuthPath(nextCandidate);
+    turnstileToken = typeof body === "object" && body !== null && "turnstileToken" in body ? (body as { turnstileToken?: unknown }).turnstileToken : undefined;
+    supabaseCaptchaToken = typeof body === "object" && body !== null && "supabaseCaptchaToken" in body ? (body as { supabaseCaptchaToken?: unknown }).supabaseCaptchaToken : undefined;
   } catch {
     logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: "invalid_request", status: 202 });
     return NextResponse.json(
@@ -32,9 +37,14 @@ export async function POST(request: Request) {
   } else if (!isSupabaseConfigured()) {
     logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "missing_configuration", status: 202 });
   } else {
-    try {
+    const turnstileDecision = await verifyTurnstileToken(turnstileToken, "otp_request");
+    if (turnstileDecision.status !== "verified") {
+      logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: "captcha_rejected", status: 202 });
+    } else if (typeof supabaseCaptchaToken !== "string" || !supabaseCaptchaToken.trim() || supabaseCaptchaToken.length > 2048 || supabaseCaptchaToken === turnstileToken) {
+      logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: "invalid_request", status: 202 });
+    } else try {
       const supabase = await createClient();
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true, captchaToken: supabaseCaptchaToken } });
       requestAccepted = !error;
       if (error) {
         logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "provider_rejected", status: 202 });
