@@ -61,6 +61,7 @@ export type PersonalScoresResponse = Readonly<{
   game: { slug: string; name: string };
   weeklyTotal: number;
   rank: number | null;
+  publicUsername: string | null;
   dailyTop7: readonly { day: string; rank: number; score: number }[];
   recentValidatedRuns: readonly { score: number; distanceMillimeters: number; elapsedMs: number; completedAt: string; tournamentDay: string }[];
 }>;
@@ -95,11 +96,26 @@ export async function readPersonalScores(playerId: string): Promise<PersonalScor
   if (totalResult.error) throw totalResult.error;
   if (dailyResult.error) throw dailyResult.error;
   if (recentResult.error) throw recentResult.error;
+  // This optional server-only lookup exposes only the caller's already-public
+  // username when they are actually in this week's ranked result. A failure
+  // here must never make the independent Weekly panel unavailable.
+  let publicUsername: string | null = null;
+  if (totalResult.data?.rank_position) {
+    const { data: names } = await admin.rpc("rtw_read_ranked_public_usernames", {
+      p_game_id: game.id,
+      p_tournament_week_start: tournamentWeek,
+      p_player_ids: [playerId],
+    });
+    const rankedNames = (names ?? []) as readonly RankedPublicUsername[];
+    const name = rankedNames.find((row) => row.player_id === playerId)?.username;
+    if (typeof name === "string" && name.length > 0 && name.length <= 40) publicUsername = name;
+  }
   return {
     tournamentWeek,
     game: { slug: game.slug, name: game.display_name },
     weeklyTotal: Number(totalResult.data?.weekly_total_score ?? 0),
     rank: totalResult.data?.rank_position ?? null,
+    publicUsername,
     dailyTop7: (dailyResult.data ?? []).map((row) => ({
       day: row.tournament_day,
       rank: row.daily_rank,
@@ -120,42 +136,67 @@ export type LeaderboardResponse = Readonly<{
   tournamentWeek: ScoreWeek;
   page: number;
   pageSize: number;
+  hasNextPage: boolean;
   entries: readonly { rank: number; username: string; weeklyTotal: number }[];
 }>;
 
+type RankedPublicUsername = Readonly<{ player_id: string; username: string }>;
+type PublicLeaderboardRow = Readonly<{
+  rank_position: unknown;
+  username: unknown;
+  weekly_total_score: unknown;
+}>;
+type PublicLeaderboardPage = Readonly<{
+  total_public_entries: unknown;
+  entries: unknown;
+}>;
+
+/**
+ * Keeps database diagnostics in server logs without sending provider errors,
+ * table details, or player data to a public leaderboard caller.
+ */
+export class LeaderboardReadError extends Error {
+  constructor(readonly stage: "game" | "totals") {
+    super("Leaderboard read failed.");
+  }
+}
+
 export async function readLeaderboard(params: NonNullable<ReturnType<typeof parseLeaderboardRequest>>): Promise<LeaderboardResponse> {
-  const game = await gameForSlug(params.gameSlug);
-  if (!game) throw new Error("Game unavailable.");
-  const from = (params.page - 1) * params.pageSize;
-  const to = from + params.pageSize - 1;
+  let game: Awaited<ReturnType<typeof gameForSlug>>;
+  try {
+    game = await gameForSlug(params.gameSlug);
+  } catch {
+    throw new LeaderboardReadError("game");
+  }
+  if (!game) throw new LeaderboardReadError("game");
   const admin = createAdminClient();
-  const { data: totals, error: totalError } = await admin
-    .from("weekly_tournament_totals")
-    .select("player_id, weekly_total_score, rank_position")
-    .eq("game_id", game.id)
-    .eq("tournament_week_start", params.week)
-    .order("rank_position", { ascending: true })
-    .range(from, to);
-  if (totalError) throw totalError;
-  const playerIds = (totals ?? []).map((row) => row.player_id);
-  const { data: profiles, error: profileError } = playerIds.length === 0
-    ? { data: [], error: null }
-    : await admin.from("profiles").select("user_id, username").in("user_id", playerIds);
-  if (profileError) throw profileError;
-  const usernames = new Map((profiles ?? []).flatMap((profile) =>
-    typeof profile.username === "string" && profile.username.length > 0 ? [[profile.user_id, profile.username] as const] : [],
-  ));
-  // A public board only presents users who chose a public game username; raw
-  // UUIDs are never exposed as a fallback identity.
-  const entries = (totals ?? []).flatMap((total) => {
-    const username = usernames.get(total.player_id);
-    return username ? [{ rank: total.rank_position, username, weeklyTotal: Number(total.weekly_total_score) }] : [];
+  const { data, error } = await admin.rpc("rtw_read_public_leaderboard_page_metadata", {
+    p_game_id: game.id,
+    p_tournament_week_start: params.week,
+    p_page: params.page,
+    p_page_size: params.pageSize,
+  });
+  if (error) throw new LeaderboardReadError("totals");
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new LeaderboardReadError("totals");
+  const page = data as PublicLeaderboardPage;
+  const totalPublicEntries = page.total_public_entries;
+  if (typeof totalPublicEntries !== "number" || !Number.isSafeInteger(totalPublicEntries) || totalPublicEntries < 0 || !Array.isArray(page.entries) || page.entries.length > params.pageSize) {
+    throw new LeaderboardReadError("totals");
+  }
+  const entries = (page.entries as readonly PublicLeaderboardRow[]).map((row) => {
+    if (
+      typeof row.rank_position !== "number" || !Number.isSafeInteger(row.rank_position) || row.rank_position < 1
+      || typeof row.username !== "string" || row.username.length < 1 || row.username.length > 40
+      || typeof row.weekly_total_score !== "number" || !Number.isSafeInteger(row.weekly_total_score) || row.weekly_total_score < 0
+    ) throw new LeaderboardReadError("totals");
+    return { rank: row.rank_position, username: row.username, weeklyTotal: row.weekly_total_score };
   });
   return {
     game: { slug: game.slug, name: game.display_name },
     tournamentWeek: params.week,
     page: params.page,
     pageSize: params.pageSize,
+    hasNextPage: params.page * params.pageSize < totalPublicEntries,
     entries,
   };
 }

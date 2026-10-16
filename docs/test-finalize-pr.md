@@ -1,0 +1,7 @@
+La integración recupera la corrección de FINALIZE instalada en Supabase TEST que faltaba en Git: el status de la rama de lease vencido se califica con el alias de sesión. El replay incluye el tick de choque cuando su timestamp redondeado coincide exactamente con el límite autorizado; las constantes y reglas de simulación no cambian. Un diagnóstico fijo distingue SQL 42702 sin exponer errores del proveedor ni evidencia del jugador.
+
+Base: audit/web-scores-share-20261004, 34790bd, descendiente de main remoto 54418b6. Este PR incluye los tres commits previos de audit; revisar también su diff web/scores/share/OTP. No hay cambios adicionales en pagos, premios, reglas ni dependencias.
+
+Validación: 81 pruebas pasaron; typecheck, lint y build Next.js pasaron. En lndvnufmbuzdbinapvze se ejecutó la migración dos veces dentro de BEGIN/ROLLBACK y pasaron checks de ownership, RLS, permisos, evidencia inválida, FINALIZE con lease vencido, Top7 y suma semanal. Sesión real d3bfe233-9b2e-4965-945f-fe4cc1520327: finalized, valid, 608867 ms, 7734 puntos, siete checkpoints, Top7 rango 1 y total semanal recalculado 25666.
+
+Límites: no hubo despliegue, cambios persistentes en TEST, operaciones Production ni replay completo de los 283 inputs de esa sesión (no disponibles). No se validó fresh install de toda la cadena histórica. npm audit reporta nueve vulnerabilidades heredadas (ocho high y una critical, incluyendo Next.js 16.3.4); resolver y verificar antes de promover a Production. main local sucio permanece intacto.

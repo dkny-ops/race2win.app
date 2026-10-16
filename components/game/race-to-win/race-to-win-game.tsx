@@ -12,20 +12,17 @@ const RaceToWinScene = dynamic(
   },
 );
 
-export function RaceToWinGame({ canStartOfficial }: { canStartOfficial: boolean }) {
+export function RaceToWinGame({ canStartOfficial, playerName }: { canStartOfficial: boolean; playerName: string }) {
   return (
     <section className="rtw-game-section rtw-game-section--dedicated" id={RACE_TO_WIN_GAME_SECTION_ID} aria-label="Race To Win game">
       <div className="rtw-game-frame">
-        {canStartOfficial ? <RaceToWinScene /> : (
-          <div className="rtw-overlay rtw-overlay--ready rtw-auth-gate">
-            <p className="rtw-kicker">OFFICIAL PLAY</p>
-            <h3>SIGN IN TO RACE</h3>
-            <p>Official sessions, checkpoints, and results require a live player session.</p>
-            <Link className="rtw-action rtw-action--primary" href={`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`}>SIGN IN</Link>
-          </div>
-        )}
+        <RaceToWinScene officialMode={canStartOfficial} playerName={playerName} />
       </div>
-      <p className="rtw-local-note">Official sessions validate the final result on the server. The live HUD is display-only.</p>
+      {canStartOfficial ? (
+        <p className="rtw-local-note">Official sessions validate the final result on the server. The live HUD is display-only.</p>
+      ) : (
+        <div className="rtw-local-note rtw-guest-note"><p>Play for free without signing in. Sign in to save your scores, compete in tournaments and qualify for prizes. Guest scores are not saved.</p><Link href={`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`}>SIGN IN TO COMPETE</Link></div>
+      )}
     </section>
   );
 }

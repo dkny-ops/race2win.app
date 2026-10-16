@@ -15,7 +15,8 @@ test("official start returns a server schedule through a service-only function",
   assert.match(migration, /revoke all on function public\.rtw_start_official_game_session_v2[^\n]+from public, anon, authenticated/);
   assert.match(migration, /grant execute on function public\.rtw_start_official_game_session_v2[^\n]+to service_role/);
   assert.match(route, /getVerifiedUserContext\(\)/);
-  assert.match(route, /rtw_start_official_game_session_v3/);
+  assert.match(route, /rtw_start_official_game_session_v4/);
+  assert.match(route, /Idempotency-Key/);
   assert.match(route, /startsAt: session\.started_at/);
   assert.doesNotMatch(route, /request\.json\(\)/);
 });
@@ -37,20 +38,42 @@ test("the gameplay client supplies evidence only and renders only a returned off
   assert.doesNotMatch(scene, /userId/);
 });
 
-test("anonymous entry is gated and the post-OTP redirect is a fixed allowlist", async () => {
+test("guest entry stays local while official endpoints and the post-OTP redirect remain authenticated", async () => {
   const game = await read("components/game/race-to-win/race-to-win-game.tsx");
+  const scene = await read("components/game/race-to-win/race-to-win-scene.tsx");
   const page = await read("app/games/race-to-win/page.tsx");
   const nextPath = await read("lib/auth/post-auth-path.ts");
   const requestCode = await read("app/api/auth/request-code/route.ts");
   const verifyCode = await read("app/api/auth/verify-code/route.ts");
   assert.match(page, /getVerifiedUserContext\(\)/);
   assert.match(game, /canStartOfficial/);
-  assert.match(game, /SIGN IN TO RACE/);
+  assert.match(game, /officialMode=\{canStartOfficial\}/);
+  assert.match(scene, /PLAY AS GUEST/);
+  assert.match(game, /SIGN IN TO COMPETE/);
   assert.match(nextPath, /value === ROUTES\.raceToWinGame/);
   assert.match(requestCode, /safePostAuthPath/);
   assert.match(requestCode, /rtw_otp_next/);
   assert.match(verifyCode, /safePostAuthPath/);
   assert.match(verifyCode, /nextPath/);
+});
+
+test("the HUD identifies the server-authorized player and guest crashes return safely", async () => {
+  const [page, game, scene] = await Promise.all([
+    read("app/games/race-to-win/page.tsx"),
+    read("components/game/race-to-win/race-to-win-game.tsx"),
+    read("components/game/race-to-win/race-to-win-scene.tsx"),
+  ]);
+  assert.match(page, /getVerifiedUserContext\(\)/);
+  assert.match(page, /from\("profiles"\)\s*\.select\("username"\)\s*\.eq\("user_id", context\.userId\)/s);
+  assert.match(page, /playerName = "GUEST"/);
+  assert.match(game, /playerName=\{playerName\}/);
+  assert.match(scene, /<span>PLAYER<\/span><strong>\{playerName\}<\/strong>/);
+  assert.doesNotMatch(scene, /<span>SPEED<\/span>/);
+  const guestCrashStart = scene.indexOf("const outcome = { score: snapshot.metrics.score");
+  const guestCrash = scene.slice(guestCrashStart, scene.indexOf("animationFrameRef.current", guestCrashStart));
+  assert.match(guestCrash, /scheduleGameOverReturn\(\)/);
+  assert.match(scene, /cancelGameOverReturn\(\).*setState\("countdown"\)/s);
+  assert.match(scene, /screenStateRef\.current === "crashed" \|\| screenStateRef\.current === "finalize-failed"/);
 });
 
 test("checkpoint client requests cannot create competitive or financial state", async () => {

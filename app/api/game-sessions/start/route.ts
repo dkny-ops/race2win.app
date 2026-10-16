@@ -16,9 +16,17 @@ async function verifiedUserId(): Promise<string | null> {
   return (await getVerifiedUserContext())?.userId ?? null;
 }
 
-export async function POST() {
+function isUuid(value: string | null): value is string {
+  return value !== null && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   try {
+    if (request.headers.get("origin") !== new URL(request.url).origin) {
+      logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "invalid_request", status: 403 });
+      return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 403, headers: CACHE });
+    }
     const userId = await verifiedUserId();
     if (!userId) {
       logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "unauthenticated", status: 401 });
@@ -29,18 +37,24 @@ export async function POST() {
       return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
     }
 
-    // The database serializes the verified player's count-and-insert under an
-    // advisory transaction lock, which remains correct across server instances.
-    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v3", {
+    const startRequestId = request.headers.get("Idempotency-Key");
+    if (!isUuid(startRequestId)) {
+      return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 400, headers: CACHE });
+    }
+    // The database serializes the verified player's allowance-and-insert under
+    // an advisory transaction lock. The opaque retry key only recovers the
+    // canonical session; it cannot choose the player, score, or allowance.
+    const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v4", {
       p_player_id: userId,
       p_game_slug: RACE_TO_WIN_GAME_SLUG,
       p_gameplay_version: GAMEPLAY_VERSION,
       p_seed: seedFromServer(),
+      p_start_request_id: startRequestId,
     });
     if (error) {
-      if (error.code === "P0001" && error.message === "Official session start rate limit exceeded.") {
+      if (error.code === "P0001") {
         logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "rate_limited", status: 429 });
-        return NextResponse.json({ message: "Please wait before starting another session." }, { status: 429, headers: CACHE });
+        return NextResponse.json({ message: "No official plays remain for this hour." }, { status: 429, headers: CACHE });
       }
       throw error;
     }
@@ -67,6 +81,9 @@ export async function POST() {
       expiresAt: session.expires_at,
       checkpointInterval: Number(session.checkpoint_interval_score),
       activityLeaseExpiresAt: session.activity_lease_expires_at,
+      freePlaysRemaining: Number(session.free_plays_remaining),
+      rewardedPlaysRemaining: Number(session.rewarded_plays_remaining),
+      hourEndsAt: session.hour_ends_at,
     }, { headers: CACHE });
   } catch {
     logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "database_operation_failed", status: 503 });

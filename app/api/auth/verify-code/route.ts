@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
+import { consumeOtpAbuseLimit } from "@/lib/auth/otp-abuse";
+import { verifyOtpChallenge, OTP_CHALLENGE_COOKIE } from "@/lib/auth/otp-challenge";
 import { readBoundedJson } from "@/lib/competition/request-body";
 
 const OTP_PATTERN = /^\d{6}$/;
@@ -18,12 +20,19 @@ export async function POST(request: NextRequest) {
     }
   } catch { /* Return the same safe error below. */ }
 
-  const email = request.cookies.get("rtw_otp_email")?.value;
+  const email = request.cookies.get("rtw_otp_email")?.value.trim().toLowerCase();
   const nextPath = safePostAuthPath(request.cookies.get("rtw_otp_next")?.value);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!email || !url || !publishableKey || !OTP_PATTERN.test(token)) {
+  if (!email || !url || !publishableKey || !OTP_PATTERN.test(token)
+    || !verifyOtpChallenge(email, request.cookies.get(OTP_CHALLENGE_COOKIE)?.value)) {
     logSecurityEvent({ eventType: "auth.verify_code.rejected", route: "/api/auth/verify-code", requestId, reason: "invalid_request", status: 400 });
+    return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const abuseDecision = await consumeOtpAbuseLimit("otp_verify", email);
+  if (abuseDecision !== "allowed") {
+    logSecurityEvent({ eventType: "auth.verify_code.rejected", route: "/api/auth/verify-code", requestId, reason: abuseDecision === "blocked" ? "rate_limited" : "abuse_protection_unavailable", status: 400 });
     return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -46,6 +55,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
+  response.cookies.set(OTP_CHALLENGE_COOKIE, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 0, path: "/" });
   response.cookies.set("rtw_otp_email", "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 0, path: "/" });
   response.cookies.set("rtw_otp_next", "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 0, path: "/" });
   return response;

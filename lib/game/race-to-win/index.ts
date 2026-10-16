@@ -11,6 +11,7 @@ export { RaceToWinAudio, type RaceToWinAudioCue, type RaceToWinAudioSources } fr
 export { RaceToWinSimulation, type RaceToWinSimulationOptions } from "./simulation";
 export {
   MAX_OFFICIAL_INPUTS,
+  hasMeaningfulReferralEvidence,
   isAuthoritativeGameplayVersion,
   replayAuthoritativeProgress,
   replayAuthoritativeRace,

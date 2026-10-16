@@ -166,11 +166,12 @@ test("Auth and profile mutation routes use the shared streamed parser before sen
   ]);
   for (const route of [requestCode, verifyCode, profile]) {
     assert.match(route, /@\/lib\/competition\/request-body/);
-    assert.match(route, /readBoundedJson\(request\)/);
+    assert.match(route, /readBoundedJson\(request(?:, 8 \* 1024)?\)/);
     assert.doesNotMatch(route, /request\.json\(/);
   }
-  assert.ok(requestCode.indexOf("readBoundedJson(request)") < requestCode.indexOf("signInWithOtp"));
-  assert.ok(verifyCode.indexOf("readBoundedJson(request)") < verifyCode.indexOf("verifyOtp"));
+  const requestParse = requestCode.indexOf("readBoundedJson(request, 8 * 1024)");
+  assert.ok(requestParse >= 0 && requestParse < requestCode.indexOf("signInWithOtp"));
+  assert.ok(verifyCode.indexOf("readBoundedJson(request)") < verifyCode.indexOf("supabase.auth.verifyOtp"));
   const profilePatch = profile.slice(profile.indexOf("export async function PATCH"));
   assert.ok(profilePatch.indexOf("readBoundedJson(request)") < profilePatch.indexOf("const context = await readOrCreateProfile()"));
   assert.match(requestCode, /If this email can receive a sign-in code, check your inbox shortly\./);

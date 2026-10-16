@@ -17,6 +17,10 @@ export interface AuthoritativeRaceProgress {
   readonly elapsedMs: number;
   readonly collisionAtMs: number | null;
   readonly state: "running" | "crashed";
+  readonly completedLaneChangeCount: number;
+  readonly distinctLaneCount: number;
+  readonly directionChanges: number;
+  readonly distinctTimingIntervalCount: number;
 }
 
 /** Pure server-safe replay: no browser, Three.js, DOM, or client metrics. */
@@ -37,12 +41,23 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
   for (let index = 0; index < inputs.length; index += 1) {
     const input = inputs[index]!;
     if (input.sequence !== index || !Number.isSafeInteger(input.atMs) || input.atMs < 0 || input.atMs < previousAtMs || input.atMs > elapsedCapMs || (input.direction !== -1 && input.direction !== 1)) return null;
-    if (!simulation.queueReplayInput(input)) return null;
+    // Browser input timestamps describe the rounded snapshot AFTER a tick.
+    // A queued browser action is consumed on the next tick, never on that
+    // already-completed tick. Move v7 replay scheduling past its timestamp;
+    // keep submitted evidence/digests and historical v6 replay unchanged.
+    if (!simulation.queueReplayInput(gameplayVersion === GAMEPLAY_VERSION ? { ...input, atMs: input.atMs + 1 } : input)) return null;
     previousAtMs = input.atMs;
   }
   simulation.start();
   const stepMs = DEFAULT_RACE_TO_WIN_CONFIG.fixedStepMs;
-  while (simulation.snapshot().state === "running" && simulation.snapshot().simulationTimeMs + stepMs <= elapsedCapMs) simulation.step(stepMs);
+  // Evidence timestamps are rounded milliseconds. Count fixed ticks instead
+  // of adding a fractional step to an already-rounded snapshot timestamp.
+  // This includes the collision tick when its rounded timestamp equals cap.
+  let ticks = 0;
+  while (simulation.snapshot().state === "running" && Math.round((ticks + 1) * stepMs) <= elapsedCapMs) {
+    simulation.step(stepMs);
+    ticks += 1;
+  }
   const snapshot = simulation.snapshot();
   if (snapshot.state !== "running" && snapshot.state !== "crashed") return null;
   return {
@@ -51,7 +66,28 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
     elapsedMs: snapshot.simulationTimeMs,
     collisionAtMs: snapshot.collision?.atMs ?? null,
     state: snapshot.state,
+    ...simulation.referralEngagementEvidence(),
   };
+}
+
+/**
+ * Referral-only evidence gate. Scores remain valid independently; runs earn
+ * referral progress only when replayed controls complete a varied path and
+ * materially improve the same seed's no-input outcome.
+ */
+export function hasMeaningfulReferralEvidence(
+  candidate: AuthoritativeRaceProgress,
+  noInputBaseline: AuthoritativeRaceProgress | null,
+): boolean {
+  if (!noInputBaseline || candidate.state !== "crashed" || noInputBaseline.state !== "crashed") return false;
+  const improvedOutcome = candidate.score > noInputBaseline.score ||
+    candidate.distanceMillimeters > noInputBaseline.distanceMillimeters ||
+    candidate.elapsedMs > noInputBaseline.elapsedMs;
+  return improvedOutcome &&
+    candidate.completedLaneChangeCount >= 4 &&
+    candidate.distinctLaneCount === 3 &&
+    candidate.directionChanges >= 2 &&
+    candidate.distinctTimingIntervalCount >= 2;
 }
 
 export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceResult | null {

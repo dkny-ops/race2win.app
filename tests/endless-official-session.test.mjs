@@ -83,7 +83,8 @@ test("server routes use per-session interval and canonical database lease renewa
   const finalize = await read("app/api/game-sessions/finalize/route.ts");
   const scene = await read("components/game/race-to-win/race-to-win-scene.tsx");
 
-  assert.match(start, /rtw_start_official_game_session_v3/);
+  assert.match(start, /rtw_start_official_game_session_v4/);
+  assert.match(start, /Idempotency-Key/);
   assert.match(start, /checkpointInterval/);
   assert.match(start, /activityLeaseExpiresAt/);
   assert.match(checkpoint, /rtw_record_game_session_checkpoint_with_lease/);

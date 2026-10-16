@@ -11,7 +11,17 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RaceToWinGamePage() {
-  const authenticated = Boolean(await getVerifiedUserContext());
+  const context = await getVerifiedUserContext();
+  let playerName = "GUEST";
+  if (context) {
+    const { data } = await context.supabase
+      .from("profiles")
+      .select("username")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (typeof data?.username === "string" && data.username.trim().length > 0) playerName = data.username.trim();
+    else playerName = "OFFICIAL";
+  }
   return (
     <main className="rtw-game-page">
       <nav className="rtw-game-page__navigation shell" aria-label="Game navigation">
@@ -20,7 +30,7 @@ export default async function RaceToWinGamePage() {
           CHANGE GAME <small>COMING SOON</small>
         </button>
       </nav>
-      <RaceToWinGame canStartOfficial={authenticated} />
+      <RaceToWinGame canStartOfficial={Boolean(context)} playerName={playerName} />
     </main>
   );
 }

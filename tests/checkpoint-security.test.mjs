@@ -100,5 +100,6 @@ test("scores read API has bounded allowlisted public queries and derives persona
   assert.match(scores, /page > 100/);
   assert.match(scores, /rank_position/);
   assert.doesNotMatch(scores, /individual_scores/);
-  assert.match(leaderboardRoute, /s-maxage=30/);
+  assert.match(leaderboardRoute, /Cache-Control": "no-store/);
+  assert.doesNotMatch(leaderboardRoute, /stale-while-revalidate|s-maxage=/);
 });

@@ -10,3 +10,4 @@ for (const item of manifest.migrations) {
 }
 console.log("PASS pinned SQL contents; target TEST " + manifest.projectRef);
 
+0
