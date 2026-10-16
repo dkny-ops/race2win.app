@@ -47,6 +47,7 @@ test("oversized or malformed Auth/Profile bodies fail before their sensitive pro
   const observability = { createSecurityRequestId: () => "server-request-id", logSecurityEvent() {} };
   const body = { readBoundedJson };
   const oversized = () => streamedRequest(new Uint8Array(COMPETITION_MUTATION_BODY_LIMIT_BYTES + 1));
+  const otpOversized = () => streamedRequest(new Uint8Array(8 * 1024 + 1));
 
   let requestCodeProviderCalls = 0;
   const requestCode = await loadRoute("app/api/auth/request-code/route.ts", {
@@ -55,8 +56,9 @@ test("oversized or malformed Auth/Profile bodies fail before their sensitive pro
     "@/lib/observability/security-event": observability,
     "@/lib/auth/post-auth-path": { safePostAuthPath: () => "/" },
     "@/lib/competition/request-body": body,
+    "@/lib/security/turnstile": { verifyTurnstileToken: async () => ({ status: "rejected", reason: "missing_token" }) },
   });
-  const requestCodeResponse = await requestCode.POST(oversized());
+  const requestCodeResponse = await requestCode.POST(otpOversized());
   assert.equal(requestCodeResponse.status, 202);
   assert.equal(requestCodeResponse.body.nextStep, false);
   assert.equal(requestCodeProviderCalls, 0);
