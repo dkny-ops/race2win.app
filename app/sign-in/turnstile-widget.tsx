@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import Script from "next/script";
+import type { TurnstileAction } from "@/lib/security/turnstile";
 
 type TurnstileApi = Readonly<{
   render: (container: HTMLElement, options: Readonly<{
     sitekey: string;
-    action: "otp_request";
+    action: TurnstileAction;
     size: "flexible";
     callback: (token: string) => void;
     "expired-callback": () => void;
@@ -24,42 +25,51 @@ declare global {
 
 const TURNSTILE_SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
+/** One loader per form: duplicate Next Script instances can miss onReady. */
+export function TurnstileScript({ onReady, onError }: { onReady: () => void; onError: () => void }) {
+  return <Script src={TURNSTILE_SCRIPT_URL} strategy="afterInteractive" onReady={onReady} onError={onError} />;
+}
+
 type TurnstileWidgetProps = Readonly<{
   siteKey: string;
   onTokenChange: (token: string | null) => void;
   resetNonce: number;
+  action?: TurnstileAction;
+  label?: string;
+  scriptReady: boolean;
 }>;
 
 /** Client-side collection only. The server remains the verifier and authority. */
-export function TurnstileWidget({ siteKey, onTokenChange, resetNonce }: TurnstileWidgetProps) {
+export function TurnstileWidget({ siteKey, onTokenChange, resetNonce, scriptReady, action = "otp_request", label = "Human verification" }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [scriptReady, setScriptReady] = useState(false);
   const clearTokenAndReset = useCallback(() => {
     onTokenChange(null);
     if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current);
   }, [onTokenChange]);
 
-  const renderWidget = useCallback(() => {
-    if (!containerRef.current || widgetIdRef.current || !window.turnstile) return;
-    widgetIdRef.current = window.turnstile.render(containerRef.current, {
-      sitekey: siteKey,
-      action: "otp_request",
-      size: "flexible",
-      callback: (token) => onTokenChange(token),
-      "expired-callback": clearTokenAndReset,
-      "error-callback": clearTokenAndReset,
-    });
-  }, [clearTokenAndReset, onTokenChange, siteKey]);
-
   useEffect(() => {
-    if (scriptReady) renderWidget();
-  }, [renderWidget, scriptReady]);
-
-  useEffect(() => () => {
-    if (widgetIdRef.current && window.turnstile) window.turnstile.remove(widgetIdRef.current);
-    widgetIdRef.current = null;
-  }, []);
+    if (!scriptReady || !containerRef.current || !window.turnstile) return;
+    const api = window.turnstile;
+    let active = true;
+    onTokenChange(null);
+    const widgetId = api.render(containerRef.current, {
+      sitekey: siteKey,
+      action,
+      size: "flexible",
+      callback: (token) => { if (active) onTokenChange(token); },
+      "expired-callback": () => { if (active) clearTokenAndReset(); },
+      "error-callback": () => { if (active) clearTokenAndReset(); },
+    });
+    widgetIdRef.current = widgetId;
+    // Pair setup/cleanup so Strict Mode and navigation recreate both widgets.
+    return () => {
+      active = false;
+      widgetIdRef.current = null;
+      onTokenChange(null);
+      api.remove(widgetId);
+    };
+  }, [action, clearTokenAndReset, onTokenChange, scriptReady, siteKey]);
 
   useEffect(() => {
     if (resetNonce > 0 && widgetIdRef.current && window.turnstile) {
@@ -68,8 +78,7 @@ export function TurnstileWidget({ siteKey, onTokenChange, resetNonce }: Turnstil
     }
   }, [onTokenChange, resetNonce]);
 
-  return <div className="turnstile-widget" aria-label="Human verification">
-    <Script src={TURNSTILE_SCRIPT_URL} strategy="afterInteractive" onReady={() => setScriptReady(true)} onError={() => onTokenChange(null)} />
+  return <div className="turnstile-widget" aria-label={label}>
     <div ref={containerRef} />
   </div>;
 }

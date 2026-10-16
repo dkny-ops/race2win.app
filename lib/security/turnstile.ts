@@ -7,6 +7,7 @@ import "server-only";
 export type TurnstileAction =
   | "otp_request"
   | "otp_verify_step_up"
+  | "weekly_leader_verification"
   | "prize_claim"
   | "balance_claim";
 
@@ -51,11 +52,15 @@ const VERIFY_TIMEOUT_MS = 8_000;
 const KNOWN_ACTIONS = new Set<TurnstileAction>([
   "otp_request",
   "otp_verify_step_up",
+  "weekly_leader_verification",
   "prize_claim",
   "balance_claim",
 ]);
 
 function isConfiguredHostname(value: string): boolean {
+  // The official local test host is allowed only in development. Provider
+  // success, exact hostname and action checks remain mandatory.
+  if (value === "localhost") return process.env.NODE_ENV === "development";
   // Exact hostnames only: no URL, port, wildcard, path, or userinfo.
   return /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i.test(value);
 }
@@ -95,11 +100,15 @@ function configuredSiteKey(): string | null {
  * The sign-in page consumes this server-derived value. There is deliberately
  * no independent browser enforcement flag that can drift from the server.
  */
-export function getTurnstileRequestWidgetConfiguration(): TurnstileRequestWidgetConfiguration | null {
+export function getTurnstileWidgetConfiguration(action: TurnstileAction): TurnstileRequestWidgetConfiguration | null {
   if (process.env.TURNSTILE_ENFORCEMENT_ENABLED !== "true") return null;
   const config = configuration();
   const siteKey = configuredSiteKey();
-  return config?.allowedActions.has("otp_request") && siteKey ? { siteKey } : null;
+  return config?.allowedActions.has(action) && siteKey ? { siteKey } : null;
+}
+
+export function getTurnstileRequestWidgetConfiguration(): TurnstileRequestWidgetConfiguration | null {
+  return getTurnstileWidgetConfiguration("otp_request");
 }
 
 function providerReportedReuse(body: SiteverifyResponse): boolean {

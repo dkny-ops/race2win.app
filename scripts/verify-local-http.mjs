@@ -1,6 +1,9 @@
 // Exercises a pre-built local server without credentials or database writes.
 import assert from 'node:assert/strict';
-const base='http://127.0.0.1:3111';
+const base='http://localhost:3000';
+// This negative check must never issue OTP against a configured TEST server.
+// The 503 guard corresponds to the missing admin configuration branch.
+assert.equal((await fetch(`${base}/api/leaderboard`)).status,503,'This check requires an unconfigured local server; no OTP test sent.');
 const post=(path,body={},headers={})=>fetch(`${base}${path}`,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(body)});
 for(const path of ['/api/game-sessions/start','/api/game-sessions/checkpoint','/api/game-sessions/finalize']) {
   const body=path.endsWith('/start') ? {} : {sessionId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',inputs:[],...(path.endsWith('/checkpoint') ? {checkpointIndex:1} : {})};

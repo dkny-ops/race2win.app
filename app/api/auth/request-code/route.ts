@@ -28,12 +28,15 @@ export async function POST(request: Request) {
   let email = "";
   let nextPath = "/";
   let turnstileToken: unknown;
+  let supabaseCaptchaToken: unknown;
   try {
-    const body: unknown = await readBoundedJson(request);
+    // Two independently consumed CAPTCHA tokens; other mutation limits stay unchanged.
+    const body: unknown = await readBoundedJson(request, 8 * 1024);
     if (body === null) throw new Error("Invalid request body");
     const candidate = typeof body === "object" && body !== null && "email" in body ? (body as { email?: unknown }).email : undefined;
     const nextCandidate = typeof body === "object" && body !== null && "next" in body ? (body as { next?: unknown }).next : undefined;
     turnstileToken = typeof body === "object" && body !== null && "turnstileToken" in body ? (body as { turnstileToken?: unknown }).turnstileToken : undefined;
+    supabaseCaptchaToken = typeof body === "object" && body !== null && "supabaseCaptchaToken" in body ? (body as { supabaseCaptchaToken?: unknown }).supabaseCaptchaToken : undefined;
     if (typeof candidate === "string") email = candidate.trim().toLowerCase();
     nextPath = safePostAuthPath(nextCandidate);
   } catch {
@@ -51,6 +54,11 @@ export async function POST(request: Request) {
     const turnstileDecision = await verifyTurnstileToken(turnstileToken, "otp_request");
     if (turnstileDecision.status !== "verified" && !(turnstileDecision.status === "unavailable" && turnstileDecision.reason === "disabled")) {
       logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: turnstileDecision.status === "unavailable" ? "missing_configuration" : "provider_rejected", status: 202 });
+    } else if (turnstileDecision.status === "verified" && (
+      typeof supabaseCaptchaToken !== "string" || !supabaseCaptchaToken.trim()
+      || supabaseCaptchaToken.length > 2048 || supabaseCaptchaToken === turnstileToken
+    )) {
+      logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: "invalid_request", status: 202 });
     } else {
       const abuseDecision = await consumeOtpAbuseLimit("otp_request", email);
       if (abuseDecision !== "allowed") {
@@ -60,7 +68,12 @@ export async function POST(request: Request) {
       } else {
         try {
           const supabase = await createClient();
-          const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+          // Supabase consumes this independent token. Never Siteverify it here,
+          // and never replace the public Auth client with an administrative one.
+          const { error } = await supabase.auth.signInWithOtp({ email, options: {
+            shouldCreateUser: true,
+            ...(turnstileDecision.status === "verified" ? { captchaToken: supabaseCaptchaToken as string } : {}),
+          } });
           requestAccepted = !error;
           if (error) {
             logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: authProviderFailureReason(error), status: 202 });

@@ -42,6 +42,13 @@ interface LaneTransition {
   from: LaneIndex;
   to: LaneIndex;
   elapsedMs: number;
+  startedAtMs: number;
+}
+
+interface CompletedLaneChange {
+  from: LaneIndex;
+  to: LaneIndex;
+  startedAtMs: number;
 }
 
 export interface RaceToWinSimulationOptions {
@@ -84,6 +91,7 @@ export class RaceToWinSimulation {
   private transition: LaneTransition | null = null;
   private pendingInputs: LaneInputEvent[] = [];
   private acceptedInputs: LaneInputEvent[] = [];
+  private completedLaneChanges: CompletedLaneChange[] = [];
   private nextInputSequence = 0;
   private nextSpawnAtSeconds = 0;
   private nextWaveId = 0;
@@ -92,6 +100,9 @@ export class RaceToWinSimulation {
   private pressurePhaseWaveIndex = 0;
   private pressureSafeLaneIndex = 0;
   private lastPressureSafeLane: LaneIndex | null = null;
+  private maxSpeedPressureActive = false;
+  private nextMaxSpeedPressureArrivalSeconds = 0;
+  private lastMaxSpeedPressureSafeLane: LaneIndex | null = null;
   private activeTraffic: TrafficVehicle[] = [];
   private recycledTraffic: TrafficVehicle[] = [];
   private activeWaves: TrafficWave[] = [];
@@ -119,6 +130,7 @@ export class RaceToWinSimulation {
     this.transition = null;
     this.pendingInputs = [];
     this.acceptedInputs = [];
+    this.completedLaneChanges = [];
     this.nextInputSequence = 0;
     this.nextSpawnAtSeconds = this.config.initialSpawnDelaySeconds;
     this.nextWaveId = 0;
@@ -126,6 +138,9 @@ export class RaceToWinSimulation {
     this.pressurePhaseWaveIndex = 0;
     this.pressureSafeLaneIndex = 0;
     this.lastPressureSafeLane = null;
+    this.maxSpeedPressureActive = false;
+    this.nextMaxSpeedPressureArrivalSeconds = 0;
+    this.lastMaxSpeedPressureSafeLane = null;
     this.collision = null;
     this.recycledTraffic.push(...this.activeTraffic);
     this.activeTraffic = [];
@@ -237,6 +252,27 @@ export class RaceToWinSimulation {
     };
   }
 
+  public referralEngagementEvidence() {
+    const visitedLanes = new Set<LaneIndex>([1]);
+    let directionChanges = 0;
+    const intervals: number[] = [];
+    for (let index = 0; index < this.completedLaneChanges.length; index += 1) {
+      const change = this.completedLaneChanges[index]!;
+      visitedLanes.add(change.to);
+      if (index > 0) {
+        const previous = this.completedLaneChanges[index - 1]!;
+        intervals.push(change.startedAtMs - previous.startedAtMs);
+        if (change.to - change.from !== previous.to - previous.from) directionChanges += 1;
+      }
+    }
+    return {
+      completedLaneChangeCount: this.completedLaneChanges.length,
+      distinctLaneCount: visitedLanes.size,
+      directionChanges,
+      distinctTimingIntervalCount: new Set(intervals.map(interval => Math.round(interval / 100))).size,
+    } as const;
+  }
+
   private tick(stepMs: number): void {
     const deltaSeconds = stepMs / 1000;
     this.simulationTimeMs += stepMs;
@@ -253,7 +289,7 @@ export class RaceToWinSimulation {
 
   private speedForElapsedTime(): number {
     const progress = clamp(this.elapsedSeconds / this.config.speedRampSeconds, 0, 1);
-    // The base curve stays continuous; the fixed, versioned 10% steps mirror
+    // The base curve stays continuous; the fixed, versioned 12% steps mirror
     // the previous game's pace increase without trusting client-reported speed.
     const easedProgress = 1 - (1 - progress) ** 2;
     const baseSpeed = this.config.initialSpeedMps +
@@ -284,6 +320,7 @@ export class RaceToWinSimulation {
         from: this.playerLane,
         to: desiredLane,
         elapsedMs: 0,
+        startedAtMs: this.simulationTimeMs,
       };
       this.acceptedInputs.push(input);
     }
@@ -301,6 +338,11 @@ export class RaceToWinSimulation {
     this.playerLaneX = fromX + (toX - fromX) * easeOutCubic(progress);
 
     if (progress === 1) {
+      this.completedLaneChanges.push({
+        from: this.transition.from,
+        to: this.transition.to,
+        startedAtMs: this.transition.startedAtMs,
+      });
       this.playerLane = this.transition.to;
       this.playerLaneX = this.config.lanes[this.playerLane];
       this.transition = null;
@@ -329,6 +371,11 @@ export class RaceToWinSimulation {
   }
 
   private spawnDueWaves(): void {
+    if (this.currentSpeedMps >= this.config.maxSpeedMps - 0.001) {
+      this.spawnMaxSpeedPressureWaves();
+      return;
+    }
+
     while (
       this.elapsedSeconds >= this.nextSpawnAtSeconds &&
       this.activeTraffic.length < this.config.maxTrafficVehicles
@@ -343,6 +390,65 @@ export class RaceToWinSimulation {
       // Deterministic, small cadence variation prevents an obvious metronome.
       this.nextSpawnAtSeconds += interval * this.lerp(0.9, 1.1, this.prng.next());
     }
+  }
+
+  /**
+   * At the speed cap we stop layering random cadence on top of the road and
+   * schedule a single, two-lane corridor every second instead. That produces
+   * a sustained concentration test without ever creating a three-lane wall or
+   * asking for an impossible double-lane transition.
+   */
+  private spawnMaxSpeedPressureWaves(): void {
+    if (!this.maxSpeedPressureActive) {
+      this.maxSpeedPressureActive = true;
+      this.nextMaxSpeedPressureArrivalSeconds = this.elapsedSeconds + this.config.maxSpeedPressureLeadSeconds;
+    }
+
+    while (
+      this.elapsedSeconds >= this.nextMaxSpeedPressureArrivalSeconds - this.config.maxSpeedPressureLeadSeconds &&
+      this.activeTraffic.length < this.config.maxTrafficVehicles
+    ) {
+      const leadSeconds = this.nextMaxSpeedPressureArrivalSeconds - this.elapsedSeconds;
+      const safeLane = this.nextMaxSpeedSafeLane();
+      const laneIndices = LANE_INDICES.filter((lane) => lane !== safeLane);
+      const speedMps = this.currentSpeedMps * this.config.maxSpeedPressureTrafficSpeedFactor;
+      const worldDistance = this.playerDistanceMeters + (this.currentSpeedMps - speedMps) * leadSeconds;
+
+      if (!this.hasTrafficSeparation(laneIndices, worldDistance, speedMps) || !this.hasReachablePath([...this.activeWaves, {
+        id: -1,
+        laneIndices,
+        worldDistance,
+        speedMps,
+      }])) {
+        // Do not advance the timetable into an unfair wall. The next fixed
+        // tick retries the same scheduled corridor after old traffic clears.
+        return;
+      }
+
+      const waveId = this.nextWaveId++;
+      this.activeWaves.push({ id: waveId, laneIndices, worldDistance, speedMps });
+      for (const selectedLane of laneIndices) {
+        const vehicle = this.acquireTrafficVehicle();
+        vehicle.waveId = waveId;
+        vehicle.laneIndex = selectedLane;
+        vehicle.worldDistance = worldDistance;
+        vehicle.speedMps = speedMps;
+        vehicle.variantIndex = this.prng.intInclusive(0, this.trafficVariantCount - 1);
+        vehicle.isDoubleObstacle = true;
+        vehicle.active = true;
+        this.activeTraffic.push(vehicle);
+      }
+      this.lastMaxSpeedPressureSafeLane = safeLane;
+      this.nextMaxSpeedPressureArrivalSeconds += this.config.maxSpeedPressureIntervalSeconds;
+    }
+  }
+
+  private nextMaxSpeedSafeLane(): LaneIndex {
+    // The PRNG is server/replay deterministic for a given session seed, but
+    // does not repeat a short visible left/right/centre script. Every new wave
+    // chooses one of the two lanes that differs from the previous corridor.
+    const candidates = LANE_INDICES.filter((lane) => lane !== this.lastMaxSpeedPressureSafeLane);
+    return candidates[this.prng.intInclusive(0, candidates.length - 1)]!;
   }
 
   private spawnWave(): void {

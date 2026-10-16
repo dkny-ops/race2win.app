@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { ROUTES } from "@/lib/routes";
 
-type ShareEntry = Readonly<{ rank: number; username: string; confirmedShares: number }>;
-
 function shareUrl(code: string) {
   const url = new URL(window.location.origin);
   if (url.protocol !== "https:" && url.hostname !== "localhost") throw new Error("unsupported_share_origin");
@@ -18,15 +16,9 @@ function shareUrl(code: string) {
 export function ShareCampaign({
   authenticated,
   referralCode,
-  tournamentWeek,
-  entries,
-  unavailable,
 }: Readonly<{
   authenticated: boolean;
   referralCode: string | null;
-  tournamentWeek: string | null;
-  entries: readonly ShareEntry[];
-  unavailable: boolean;
 }>) {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,13 +40,30 @@ export function ShareCampaign({
     } finally { setBusy(false); }
   }
 
+  async function shareVia(service: "whatsapp" | "facebook" | "x" | "telegram" | "copy") {
+    setBusy(true); setNotice("");
+    try {
+      const response = await fetch("/api/referrals/code", { cache: "no-store" });
+      const body: unknown = await response.json().catch(() => null);
+      const code = typeof body === "object" && body !== null && "code" in body && typeof (body as { code?: unknown }).code === "string" ? (body as { code: string }).code : null;
+      if (!response.ok || !code) throw new Error("share_unavailable");
+      const url = shareUrl(code);
+      if (service === "copy") { await navigator.clipboard?.writeText(url); setNotice("Your personal Share link was copied."); return; }
+      const encoded = encodeURIComponent(url);
+      const target = service === "whatsapp" ? `https://wa.me/?text=${encoded}` : service === "facebook" ? `https://www.facebook.com/sharer/sharer.php?u=${encoded}` : service === "x" ? `https://x.com/intent/post?url=${encoded}` : `https://t.me/share/url?url=${encoded}`;
+      window.open(target, "_blank", "noopener,noreferrer");
+      setNotice("Share window opened. Sharing is optional and does not award points or prizes.");
+    } catch { setNotice("Your Share link is temporarily unavailable. Please try again shortly."); }
+    finally { setBusy(false); }
+  }
+
   async function attachReferral() {
     if (!referralCode) return;
     setBusy(true); setNotice("");
     try {
-      const response = await fetch("/api/referrals/attach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: referralCode }) });
+      const response = await fetch("/api/referrals/attach", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: referralCode }) });
       if (!response.ok) throw new Error("referral_rejected");
-      setNotice("Referral attached. Only future server-validated activity can qualify it.");
+      setNotice("Invitation attached. Sharing is optional and does not create points, prizes, credits, or tournament eligibility.");
     } catch {
       setNotice("This referral could not be applied.");
     } finally { setBusy(false); }
@@ -62,11 +71,10 @@ export function ShareCampaign({
 
   const signInHref = referralCode ? `${ROUTES.signIn}?next=${encodeURIComponent(`/?ref=${referralCode}`)}` : `${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.home)}`;
   return <section className="section section-tint" aria-labelledby="share-title"><div className="shell share-campaign">
-    <div className="section-heading section-heading--row"><div><p className="eyebrow">WEEKLY SHARE CHALLENGE</p><h2 id="share-title">SHARE RACE TO WIN</h2></div>{authenticated ? <button className="button button--primary" type="button" disabled={busy} onClick={() => void sharePersonalLink()}>{busy ? "WORKING..." : "SHARE THE WEBSITE"}</button> : <Link className="button button--primary" href={signInHref}>SIGN IN TO SHARE</Link>}</div>
+    <div className="section-heading section-heading--row"><div><p className="eyebrow">SHARE RACE TO WIN</p><h2 id="share-title">INVITE YOUR FRIENDS</h2></div>{authenticated ? <button className="button button--primary" type="button" disabled={busy} onClick={() => void sharePersonalLink()}>{busy ? "WORKING..." : "SHARE THE WEBSITE"}</button> : <Link className="button button--primary" href={signInHref}>SIGN IN TO SHARE</Link>}</div>
     {referralCode ? <div className="share-campaign__invite"><h3>YOU WERE INVITED</h3>{authenticated ? <button className="button button--secondary" type="button" disabled={busy} onClick={() => void attachReferral()}>{busy ? "APPLYING..." : "JOIN WITH THIS INVITE"}</button> : <Link className="button button--secondary" href={signInHref}>SIGN IN TO JOIN</Link>}</div> : null}
     {notice ? <p className="sign-in-notice" role="status">{notice}</p> : null}
-    <div className="share-campaign__rules"><p><strong>HOW A SHARE COUNTS</strong> A link click alone does not count. The invited player must sign in, explicitly join through the link, confirm their email, and complete at least 3 server-validated official runs on 5 different New York days in one tournament week. Guest play, browser changes, and unvalidated runs never qualify.</p><p><strong>WEEKLY $10 POOL</strong> The highest server-confirmed Share count leads the week. If leaders tie, the fixed $10 pool is split by the server only after official award generation. Appearing in the Top 10 is not itself a prize award.</p></div>
-    <div className="share-campaign__board"><div><p className="eyebrow">CONFIRMED REFERRALS ONLY</p><h3>SHARE TOP 10</h3></div>{unavailable ? <p className="muted" role="status">Share standings are temporarily unavailable.</p> : entries.length === 0 ? <p className="muted">No confirmed Share standings for this week yet.</p> : <><p className="share-campaign__week">TOURNAMENT WEEK · {tournamentWeek} · NEW YORK TIME</p><div className="scores-table scores-table--leaderboard" role="table" aria-label="Weekly Share Top 10"><div className="scores-table__header" role="row"><span>POSITION</span><span>PLAYER</span><span>CONFIRMED SHARES</span></div>{entries.map((entry) => <div role="row" key={`${entry.rank}-${entry.username}`}><strong>#{entry.rank}</strong><span>{entry.username}</span><strong>{entry.confirmedShares}</strong></div>)}</div></>}</div>
-    <Link className="share-campaign__rules-link" href={ROUTES.rules}>READ SHARE RULES <span aria-hidden="true">→</span></Link>
+    <div className="share-campaign__rules"><p><strong>OPTIONAL SOCIAL SHARE</strong> Share your personal invitation link if you want. Sharing does not create points, prizes, credits, rankings, or tournament eligibility.</p><div className="share-campaign__services" aria-label="Share services"><button type="button" disabled={busy || !authenticated} onClick={() => void shareVia("whatsapp")}>WHATSAPP</button><button type="button" disabled={busy || !authenticated} onClick={() => void shareVia("facebook")}>FACEBOOK</button><button type="button" disabled={busy || !authenticated} onClick={() => void shareVia("x")}>X</button><button type="button" disabled={busy || !authenticated} onClick={() => void shareVia("telegram")}>TELEGRAM</button><button type="button" disabled={busy || !authenticated} onClick={() => void shareVia("copy")}>COPY LINK</button></div></div>
+    <Link className="share-campaign__rules-link" href={ROUTES.rules}>READ TOURNAMENT RULES <span aria-hidden="true">→</span></Link>
   </div></section>;
 }

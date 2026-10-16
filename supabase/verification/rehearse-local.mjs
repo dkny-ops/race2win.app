@@ -46,7 +46,7 @@ await db.exec(await readFile(new URL('supabase/verification/local-baseline.sql',
 const baseline = (await db.query('select id,status,final_score from public.game_sessions order by id')).rows;
 const preservedTables = ['profiles','games','validated_runs','daily_top_scores','weekly_tournament_totals'];
 const preserved = {};
-for (const table of preservedTables) preserved[table] = (await db.query(`select to_jsonb(row) payload from public.${table} row order by to_jsonb(row)::text`)).rows;
+for (const table of preservedTables) preserved[table] = (await db.query(`select to_jsonb(row) - 'referral_eligible' payload from public.${table} row order by (to_jsonb(row) - 'referral_eligible')::text`)).rows;
 const financialTables = ['provisional_winners','prize_ledger_entries','prize_balances','payouts'];
 for (const table of financialTables) assert.equal(await count(db, `public.${table}`), 0);
 await assert.rejects(apply(db, manifest[9], true), /controlled migration failure/);
@@ -64,15 +64,19 @@ for (const migration of manifest.slice(9)) {
   await apply(db, migration);
 }
 assert.deepEqual((await db.query('select id,status,final_score from public.game_sessions order by id')).rows, baseline);
-for (const table of preservedTables) assert.deepEqual((await db.query(`select to_jsonb(row) payload from public.${table} row order by to_jsonb(row)::text`)).rows, preserved[table]);
+for (const table of preservedTables) assert.deepEqual((await db.query(`select to_jsonb(row) - 'referral_eligible' payload from public.${table} row order by (to_jsonb(row) - 'referral_eligible')::text`)).rows, preserved[table]);
+assert.equal(Number((await db.query('select count(*) n from public.validated_runs where not referral_eligible')).rows[0].n), 0);
 results.push('PASS upgrade preserves existing active/finalized v6 sessions and profile');
 try {
   await db.exec(await readFile(new URL('supabase/verification/local-behavior.sql', root), 'utf8'));
+  await db.exec(await readFile(new URL('supabase/verification/antifraud-review-behavior.sql', root), 'utf8'));
+  await db.exec(await readFile(new URL('supabase/verification/weekly-leader-human-verification-behavior.sql', root), 'utf8'));
+  await db.exec(await readFile(new URL('supabase/verification/official-play-allowance-behavior.sql', root), 'utf8'));
 } catch (error) {
   await db.close();
   throw new Error(`${error.message} (${error.code}): ${error.where}`, { cause: error });
 }
-results.push('PASS SQL behavior: FINALIZE/checkpoint/Top7/week/RLS/ACL/OTP');
+results.push('PASS SQL behavior: FINALIZE/checkpoint/Top7/week/RLS/ACL/OTP/anti-fraud, weekly-leader verification, and five-play allowance gates');
 results.push(await verifyLocalApi(db));
 for (const table of financialTables) assert.equal(await count(db, `public.${table}`), 0);
 results.push('PASS no awards, payments or balances created');

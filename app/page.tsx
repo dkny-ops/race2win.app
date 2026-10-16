@@ -7,7 +7,6 @@ import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
 import { ShareCampaign } from "@/components/share/share-campaign";
 import { FAQS, GAMES } from "@/content/site";
 import { normalizeReferralCode } from "@/lib/competition/server";
-import { readWeeklyShareLeaderboard } from "@/lib/competition/shares";
 import { ROUTES } from "@/lib/routes";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 
@@ -25,8 +24,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       }
     } catch { username = null; }
   const referralCode = normalizeReferralCode((await searchParams).ref);
-  let shareLeaderboard: Awaited<ReturnType<typeof readWeeklyShareLeaderboard>> | null = null;
-  try { shareLeaderboard = await readWeeklyShareLeaderboard(); } catch { /* Render only a safe unavailable state. */ }
   return (
     <>
       <section className="hero">
@@ -62,7 +59,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </div>
       </section>
 
-      <ShareCampaign authenticated={authenticated} referralCode={referralCode} tournamentWeek={shareLeaderboard?.tournamentWeek ?? null} entries={shareLeaderboard?.entries ?? []} unavailable={shareLeaderboard === null} />
+      <ShareCampaign authenticated={authenticated} referralCode={referralCode} />
 
       <section className="section section-tint" aria-labelledby="games-title">
         <div className="shell">

@@ -33,6 +33,24 @@ function clone(value) {
   return copy;
 }
 
+function nextForcedCorridor(snapshot) {
+  const waves = new Map();
+  for (const traffic of snapshot.traffic) {
+    if (!traffic.isDoubleObstacle || traffic.relativeDistance <= 0) continue;
+    const wave = waves.get(traffic.waveId) ?? [];
+    wave.push(traffic);
+    waves.set(traffic.waveId, wave);
+  }
+  return [...waves.values()]
+    .filter(wave => wave.length === 2)
+    .map(wave => ({
+      safeLane: [0, 1, 2].find(lane => !wave.some(traffic => traffic.laneIndex === lane)),
+      arrivalSeconds: wave[0].relativeDistance / Math.max(1, snapshot.metrics.speedKph / 3.6 - wave[0].speedMps),
+    }))
+    .filter(wave => Number.isInteger(wave.safeLane))
+    .sort((left, right) => left.arrivalSeconds - right.arrivalSeconds)[0] ?? null;
+}
+
 test('v7 live input timestamps replay on the next tick across rounded boundaries', () => {
   for (let seed=1; seed<=10; seed++) {
     const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6 });
@@ -63,6 +81,13 @@ test('unchanged official simulation supports a twelve-minute run and determinist
     // A test-only predictive driver submits ordinary legal inputs. It never
     // changes the official configuration, traffic, elapsed time or score.
     if (ticks % 12 === 0) {
+      const forcedCorridor = snapshot.metrics.speedKph >= config.maxSpeedMps * 3.6 - 0.01
+        ? nextForcedCorridor(snapshot)
+        : null;
+      if (forcedCorridor) {
+        const direction = Math.sign(forcedCorridor.safeLane - snapshot.player.targetLaneIndex);
+        if (direction) simulation.requestLaneChange(direction);
+      } else {
       let beam = [{ trial: clone(simulation), first: 0, moves: 0 }];
       for (let depth=0; depth<7; depth++) {
         const next = [];
@@ -84,6 +109,7 @@ test('unchanged official simulation supports a twelve-minute run and determinist
         }).slice(0,12);
       }
       if (beam[0].first) simulation.requestLaneChange(beam[0].first);
+      }
     }
     snapshot = simulation.step(config.fixedStepMs);
     ticks++;

@@ -16,7 +16,7 @@ Eight overlapping identical FINALIZE calls formerly produced one 200 and seven 4
 - Live Cloudflare Siteverify with its publicly documented dummy keys: wrong action, invalid token and spent token rejected. Real widget credentials/host/action and browser challenges are not certified by this check. The script never loads real credentials and is opt-in, separate from npm test.
 - Lint, typecheck and production build checked locally. No dependencies added.
 
-Run `node scripts/verify-local-http.mjs` only against the local server on 127.0.0.1:3111 with Supabase variables absent, after `npm run build` and `npm run start -- --hostname 127.0.0.1 --port 3111`. This negative HTTP check is not a hosted login test.
+The official local environment is now documented in `docs/entorno-local-oficial.md`, URL http://localhost:3000. Do not start an alternative server on 3111. `scripts/verify-local-http.mjs` is only a negative check against an unconfigured server; its initial guard prevents OTP requests once admin configuration is active. It is not a hosted login test. Use the official launcher for configured TEST development.
 
 Run `node scripts/verify-turnstile-provider.mjs` for the free dummy-key provider check; this requires outbound network. Public test keys are synthesized in memory. They must never replace real deployment configuration.
 

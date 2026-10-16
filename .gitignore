@@ -5,5 +5,9 @@ node_modules/
 .tmp-race2win-chrome/
 .tmp-race2win-simulation/
 .tmp-racetowinwebsite-assets/
+.hourly-demo-db/
+supabase/.temp/
 *.tsbuildinfo
-.env*.local
+.env
+.env.*
+!.env.example

@@ -8,13 +8,13 @@ begin
  select id into g from public.games where slug='race-to-win';
  insert into public.profiles(user_id,username) values(b,'FixtureOther');
  -- Existing v6 session remains usable after the upgrade.
- perform public.rtw_finalize_game_session_with_checkpoints('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',a,repeat('a',64),0,100,100000,1000,1000,'[]');
+ perform public.rtw_finalize_game_session_with_checkpoints('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',a,repeat('a',64),0,100,100000,1000,1000,true,'verified','[]','[]');
  begin
-  perform public.rtw_finalize_game_session_with_checkpoints('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',b,repeat('a',64),0,100,100000,1000,1000,'[]');
+    perform public.rtw_finalize_game_session_with_checkpoints('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',b,repeat('a',64),0,100,100000,1000,1000,true,'verified','[]','[]');
   raise exception 'foreign owner accepted';
  exception when no_data_found then null; end;
  begin
-  perform public.rtw_finalize_game_session_with_checkpoints('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',a,repeat('a',64),0,100,100000,1000,1000,'[]');
+    perform public.rtw_finalize_game_session_with_checkpoints('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',a,repeat('a',64),0,100,100000,1000,1000,true,'verified','[]','[]');
   raise exception 'double finalize accepted';
  exception when check_violation then null; end;
  select id into sid from public.rtw_start_official_game_session_v3(b,'race-to-win','rtw-v7',42);
@@ -29,16 +29,25 @@ begin
  select activity_lease_expires_at into retry_lease from public.game_sessions where id=sid;
  if lease is distinct from retry_lease then raise exception 'retry renewed lease'; end if;
  begin
-  perform public.rtw_finalize_game_session_with_checkpoints(sid,a,repeat('b',64),1,1000,100000,1000,1000,'[{"checkpointIndex":1,"inputCount":1,"inputDigest":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]');
+    perform public.rtw_finalize_game_session_with_checkpoints(sid,a,repeat('b',64),1,1000,100000,1000,1000,true,'verified','[]','[{"checkpointIndex":1,"inputCount":1,"inputDigest":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}]');
   raise exception 'conflicting proof accepted';
  exception when check_violation then null; end;
- perform public.rtw_finalize_game_session_with_checkpoints(sid,a,repeat('a',64),0,1000,100000,1000,1000,'[{"checkpointIndex":1,"inputCount":0,"inputDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]');
+ perform public.rtw_finalize_game_session_with_checkpoints(sid,a,repeat('a',64),0,1000,100000,1000,1000,true,'verified','[]','[{"checkpointIndex":1,"inputCount":0,"inputDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]');
  if (select count(*) from public.validated_runs where game_session_id=sid)<>1 then raise exception 'duplicate validated run'; end if;
+ begin
+  update public.game_sessions set referral_eligible=false where id=sid;
+  raise exception 'finalized session referral evidence was mutable';
+ exception when check_violation then null; end;
+ begin
+  update public.validated_runs set referral_eligible=false where game_session_id=sid;
+  raise exception 'materialized referral evidence was mutable';
+ exception when check_violation then null; end;
+ if (select referral_eligible from public.validated_runs where game_session_id=sid) is not true then raise exception 'referral evidence changed'; end if;
  expired_id := gen_random_uuid();
  insert into public.game_sessions(id,user_id,game_id,gameplay_version,seed,started_at,expires_at,checkpoint_interval_score,activity_lease_expires_at)
  values(expired_id,a,g,'rtw-v7',1,now()-interval '20 minutes',now()-interval '10 minutes',1000,now()-interval '1 minute');
  begin
-  perform public.rtw_finalize_game_session_with_checkpoints(expired_id,a,repeat('a',64),0,0,0,0,0,'[]');
+    perform public.rtw_finalize_game_session_with_checkpoints(expired_id,a,repeat('a',64),0,0,0,0,0,true,'verified','[]','[]');
   raise exception 'expired finalize accepted';
  exception when check_violation then null; end;
  if (select status from public.game_sessions where id=expired_id)<>'active' then raise exception 'expired failure changed state'; end if;
@@ -74,6 +83,103 @@ begin
  if exists(select 1 from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace where ns.nspname in('private','public') and p.prosecdef and not ('search_path=""'=any(p.proconfig))) then raise exception 'definer path'; end if;
  if not public.rtw_consume_pre_auth_otp_rate_limit('otp_verify',repeat('a',64),repeat('b',64)) or not public.rtw_consume_pre_auth_otp_rate_limit('otp_verify',repeat('a',64),repeat('b',64)) or not public.rtw_consume_pre_auth_otp_rate_limit('otp_verify',repeat('a',64),repeat('b',64)) or public.rtw_consume_pre_auth_otp_rate_limit('otp_verify',repeat('a',64),repeat('b',64)) then raise exception 'OTP limit'; end if;
 end $test$;
+-- Attempt direct ranking and financial table writes as browser roles.
+set role anon;
+do $browser_dml$
+declare target text;
+begin
+ foreach target in array array[
+  'public.validated_runs','public.daily_top_scores','public.weekly_tournament_totals',
+  'public.provisional_winners','public.prize_ledger_entries','public.prize_balances','public.payouts'
+ ] loop
+  begin execute format('insert into %s default values',target); raise exception 'anon INSERT accepted: %',target;
+  exception when insufficient_privilege then null; end;
+  begin execute format('update %s set player_id=player_id where false',target); raise exception 'anon UPDATE accepted: %',target;
+  exception when insufficient_privilege then null; end;
+  begin execute format('delete from %s where false',target); raise exception 'anon DELETE accepted: %',target;
+  exception when insufficient_privilege then null; end;
+ end loop;
+end $browser_dml$;
+reset role;
+set role authenticated;
+do $browser_dml$
+declare target text;
+begin
+ foreach target in array array[
+  'public.validated_runs','public.daily_top_scores','public.weekly_tournament_totals',
+  'public.provisional_winners','public.prize_ledger_entries','public.prize_balances','public.payouts'
+ ] loop
+  begin execute format('insert into %s default values',target); raise exception 'authenticated INSERT accepted: %',target;
+  exception when insufficient_privilege then null; end;
+  begin execute format('update %s set player_id=player_id where false',target); raise exception 'authenticated UPDATE accepted: %',target;
+  exception when insufficient_privilege then null; end;
+  begin execute format('delete from %s where false',target); raise exception 'authenticated DELETE accepted: %',target;
+  exception when insufficient_privilege then null; end;
+ end loop;
+end $browser_dml$;
+reset role;
+set role anon;
+do $referral_dml$
+begin
+ begin update public.referrals set qualified_day_count=qualified_day_count where false;
+  raise exception 'anon changed referral qualification';
+ exception when insufficient_privilege then null; end;
+ begin update public.referral_qualification_days set status=status where false;
+  raise exception 'anon changed referral days';
+ exception when insufficient_privilege then null; end;
+ begin update public.validated_runs set referral_eligible=true where false;
+  raise exception 'anon changed referral evidence';
+ exception when insufficient_privilege then null; end;
+ begin update public.game_sessions set referral_eligible=true where false;
+  raise exception 'anon changed session referral evidence';
+ exception when insufficient_privilege then null; end;
+end $referral_dml$;
+reset role;
+set role authenticated;
+do $referral_dml$
+begin
+ begin update public.referrals set qualified_day_count=qualified_day_count where false;
+  raise exception 'authenticated changed referral qualification';
+ exception when insufficient_privilege then null; end;
+ begin update public.referral_qualification_days set status=status where false;
+  raise exception 'authenticated changed referral days';
+ exception when insufficient_privilege then null; end;
+ begin update public.validated_runs set referral_eligible=true where false;
+  raise exception 'authenticated changed referral evidence';
+ exception when insufficient_privilege then null; end;
+ begin update public.game_sessions set referral_eligible=true where false;
+  raise exception 'authenticated changed session referral evidence';
+ exception when insufficient_privilege then null; end;
+end $referral_dml$;
+reset role;
+set role anon;
+do $admin_rpc_attack$
+begin
+ begin
+  perform public.rtw_admin_transition_winner(
+   '22222222-2222-4222-8222-222222222222',
+   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   'approved_for_payment',
+   'unauthorized local test'
+  );
+  raise exception 'anon invoked administrator winner transition';
+ exception when insufficient_privilege then null; end;
+end $admin_rpc_attack$;
+reset role;
+set role authenticated;
+do $admin_rpc_attack$
+begin
+ begin
+  perform public.rtw_admin_transition_winner(
+   '22222222-2222-4222-8222-222222222222',
+   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   'approved_for_payment',
+   'unauthorized local test'
+  );
+  raise exception 'authenticated invoked administrator winner transition';
+ exception when insufficient_privilege then null; end;
+end $admin_rpc_attack$;
+reset role;
 -- Owner, foreign owner and revoked session exercise real RLS.
 insert into auth.sessions values('44444444-4444-4444-8444-444444444444','11111111-1111-4111-8111-111111111111',null);
 select set_config('request.jwt.claims','{"sub":"11111111-1111-4111-8111-111111111111","session_id":"44444444-4444-4444-8444-444444444444"}',false);

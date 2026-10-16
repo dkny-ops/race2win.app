@@ -13,6 +13,14 @@ import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/s
 
 export const runtime = "nodejs";
 
+function isSameOrigin(request: Request): boolean {
+  try {
+    return request.headers.get("origin") === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
 function parseCode(value: unknown): string | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
@@ -23,6 +31,10 @@ function parseCode(value: unknown): string | null {
 export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   try {
+    if (!isSameOrigin(request)) {
+      logSecurityEvent({ eventType: "referral.attach.rejected", route: "/api/referrals/attach", requestId, reason: "invalid_request", status: 403 });
+      return NextResponse.json({ message: "Referral could not be applied." }, { status: 403, headers: NO_STORE_HEADERS });
+    }
     const code = parseCode(await readBoundedJson(request));
     if (!code) {
       logSecurityEvent({ eventType: "referral.attach.rejected", route: "/api/referrals/attach", requestId, reason: "invalid_request", status: 400 });

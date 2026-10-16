@@ -41,6 +41,12 @@ export interface RaceToWinConfig {
   readonly pressureWaveCycleLengths: readonly number[];
   /** The corridor to leave clear for successive forced two-lane waves. */
   readonly pressureSafeLanePattern: readonly (0 | 1 | 2)[];
+  /** Once the versioned speed cap is reached, competitive waves arrive at this cadence. */
+  readonly maxSpeedPressureIntervalSeconds: number;
+  /** Readable lead time for a max-speed forced corridor before it reaches the player. */
+  readonly maxSpeedPressureLeadSeconds: number;
+  /** Traffic speed factor used for max-speed forced corridors. */
+  readonly maxSpeedPressureTrafficSpeedFactor: number;
   readonly wavePlanningHorizonSeconds: number;
   readonly minimumTrafficSeparationMeters: number;
   readonly maxTrafficVehicles: number;
@@ -57,40 +63,38 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   fixedStepMs: 1000 / 60,
   // Avoid simulating a huge catch-up jump when a browser tab resumes.
   maxFrameDeltaMs: 100,
-  laneChangeDurationMs: 190,
+  // A quicker but still readable lateral response for the late high-speed
+  // phase. A double-lane correction takes 300 ms.
+  laneChangeDurationMs: 150,
   // Short enough to demand a quick read, but still leaves one full lane move
   // whenever the reachability planner accepts a changing safe corridor.
-  reactionBufferSeconds: 0.42,
+  reactionBufferSeconds: 0.28,
   initialSpeedMps: 34,
-  // The base curve is immediately active; the versioned 10% pace steps below
-  // bring the run to its 480 km/h cap shortly after the 70-second mark.
-  maxSpeedMps: 480 / 3.6,
-  speedRampSeconds: 180,
-  // Preserves the old game's escalation cadence in the current deterministic
-  // metres/second model: 10% faster every 20 seconds, capped at ten steps.
-  speedIncreaseIntervalSeconds: 20,
-  speedIncreaseMultiplier: 1.1,
+  // The speed curve reaches a sharper 540 km/h cap early enough that a run
+  // becomes a sustained concentration test rather than a long warm-up.
+  maxSpeedMps: 540 / 3.6,
+  speedRampSeconds: 90,
+  speedIncreaseIntervalSeconds: 12,
+  speedIncreaseMultiplier: 1.12,
   maxSpeedIncreaseSteps: 10,
-  // Spawn cadence reaches its full pressure at one minute, so 60–90 seconds
-  // already demand continuous lane reading rather than a warm-up cruise.
-  trafficDifficultyRampSeconds: 60,
+  // The normal-road pressure reaches its full cadence well before the cap.
+  trafficDifficultyRampSeconds: 35,
   collisionLongitudinalMeters: 4.6,
   collisionLateralMeters: 2.1,
   despawnBehindMeters: 18,
   initialSpawnDelaySeconds: 0.3,
-  // At the v6 cap these produce roughly 0.7–2.4 seconds of approach time,
-  // depending on traffic speed. The planner rejects any chain that is not
-  // physically reachable from the current lane.
-  spawnAheadMinMeters: 70,
-  spawnAheadMaxMeters: 160,
+  // Normal traffic is visibly closer as speed rises. The planner rejects any
+  // chain that is not physically reachable from the current lane.
+  spawnAheadMinMeters: 52,
+  spawnAheadMaxMeters: 104,
   // More obstacle groups throughout the run. The controlled lane pattern,
   // rather than random spam, keeps this denser cadence physically fair.
-  spawnIntervalStartSeconds: 0.52,
-  spawnIntervalEndSeconds: 0.32,
+  spawnIntervalStartSeconds: 0.48,
+  spawnIntervalEndSeconds: 0.25,
   // Traffic travels in the same direction as the player. This gives every
   // wave a readable approach time instead of spawning static walls.
-  trafficSpeedMinFactor: 0.22,
-  trafficSpeedMaxFactor: 0.5,
+  trafficSpeedMinFactor: 0.3,
+  trafficSpeedMaxFactor: 0.52,
   // Dense, deterministic pressure by phase: 2/3, 3/4, 4/5, 5/6, then 6/7
   // waves are doubles. A single wave remains in every cycle as a fair reset.
   pressurePhaseEndSeconds: Object.freeze([20, 45, 70, 100]),
@@ -100,6 +104,13 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   // time. This produces rapid, repeatable decisions without requiring an
   // impossible right-to-left jump between adjacent obstacle groups.
   pressureSafeLanePattern: Object.freeze([2, 2, 1, 1, 0, 0, 1, 1]) as readonly (0 | 1 | 2)[],
+  // At the 540 km/h cap, every scheduled group blocks two lanes. The next
+  // corridor arrives once per second and always differs from the previous one.
+  // A two-lane correction takes 300 ms; the 0.7-second visible lead and the
+  // reachability planner preserve a narrow but real human reaction window.
+  maxSpeedPressureIntervalSeconds: 1,
+  maxSpeedPressureLeadSeconds: 0.7,
+  maxSpeedPressureTrafficSpeedFactor: 0.4,
   wavePlanningHorizonSeconds: 10,
   // Vehicle instances are about 5.25 m long, so this leaves more than 2 m
   // between same-lane cars while allowing denser, non-overlapping groups.

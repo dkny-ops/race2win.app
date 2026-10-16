@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import {
   MAX_OFFICIAL_INPUTS,
   isAuthoritativeGameplayVersion,
-  replayAuthoritativeRace,
+  hasMeaningfulReferralEvidence,
+  replayAuthoritativeProgress,
   type LaneInputEvent,
 } from "@/lib/game/race-to-win";
 import { checkpointCountForScore, digestOfficialInputs, isCheckpointInterval, proofMatchesInputs, type StoredCheckpointProof } from "@/lib/game/race-to-win/checkpoints";
@@ -10,11 +11,12 @@ import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } f
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
+import { assessAntiAutomationRisk, parseControlTelemetry, type ControlTelemetry } from "@/lib/security/anti-automation";
 
 export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
 
-type FinalizeBody = { sessionId: string; inputs: LaneInputEvent[] };
+type FinalizeBody = { sessionId: string; inputs: LaneInputEvent[]; telemetry: ControlTelemetry | null };
 
 type StoredOfficialOutcome = {
   readonly final_score: number | null;
@@ -30,10 +32,15 @@ async function verifiedUserId(): Promise<string | null> {
 function parseBody(value: unknown): FinalizeBody | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const body = value as Record<string, unknown>;
-  if (Object.keys(body).length !== 2 || typeof body.sessionId !== "string" || !OFFICIAL_SESSION_UUID.test(body.sessionId)) return null;
+  const keys = Object.keys(body);
+  if (keys.length < 2 || keys.length > 3 || typeof body.sessionId !== "string" || !OFFICIAL_SESSION_UUID.test(body.sessionId)) return null;
+  if (keys.some((key) => key !== "sessionId" && key !== "inputs" && key !== "telemetry")) return null;
   const inputs = parseOfficialInputs(body.inputs, MAX_OFFICIAL_INPUTS);
   if (!inputs) return null;
-  return { sessionId: body.sessionId, inputs };
+  const telemetry = "telemetry" in body ? parseControlTelemetry(body.telemetry) : null;
+  // Malformed telemetry is discarded. It cannot make a replay valid, grant
+  // eligibility, or clear a future server-side review decision.
+  return { sessionId: body.sessionId, inputs, telemetry };
 }
 
 function officialOutcome(session: StoredOfficialOutcome) {
@@ -91,11 +98,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
     }
     const elapsedCapMs = Math.max(0, Math.floor(Date.now() - Date.parse(session.started_at)));
-    const replay = replayAuthoritativeRace(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs);
-    if (!replay) {
+    const replay = replayAuthoritativeProgress(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs);
+    if (!replay || replay.state !== "crashed" || replay.collisionAtMs === null) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "replay_rejected", status: 409 });
       return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: CACHE });
     }
+    const risk = assessAntiAutomationRisk(body.inputs.map((input) => input.atMs), body.telemetry);
+    if (risk.status === "review_required") {
+      // The browser never receives this classification. The database records
+      // the bounded, allowlisted signals in the same transaction that creates
+      // the authoritative run, and holds that run for a human decision.
+      logSecurityEvent({ eventType: "game_session.risk_review_required", route: "/api/game-sessions/finalize", requestId, reason: "risk_signals_observed", status: 202 });
+    }
+    const noInputBaseline = replayAuthoritativeProgress(session.gameplay_version, Number(session.seed), [], replay.elapsedMs);
+    const referralEligible = hasMeaningfulReferralEvidence(replay, noInputBaseline);
     const checkpointInterval = Number(session.checkpoint_interval_score);
     const expectedCheckpointCount = checkpointCountForScore(replay.score, checkpointInterval);
     const { data: existingCheckpoints, error: checkpointReadError } = await admin.rpc("rtw_read_game_session_checkpoint_proofs", {
@@ -129,6 +145,9 @@ export async function POST(request: Request) {
       p_final_distance_millimeters: replay.distanceMillimeters,
       p_final_elapsed_ms: replay.elapsedMs,
       p_final_collision_at_ms: replay.collisionAtMs,
+      p_referral_eligible: referralEligible,
+      p_antifraud_status: risk.status === "review_required" ? "under_review" : "verified",
+      p_antifraud_signals: risk.status === "review_required" ? risk.signals : [],
       p_checkpoint_proofs: checkpointProofs,
     });
     if (finalizeError) {

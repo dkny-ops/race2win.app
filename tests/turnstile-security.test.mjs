@@ -40,6 +40,18 @@ function providerResponse(body, status = 200) {
   });
 }
 
+test("localhost Turnstile configuration works only in development and still requires exact provider host/action", async () => {
+  const local = await loadTurnstile(enabledEnv({ NODE_ENV: "development", TURNSTILE_ALLOWED_HOSTNAMES: "localhost" }));
+  assert.deepEqual(await local.verifyTurnstileToken("opaque-token", "otp_request", {
+    fetchImpl: async () => providerResponse({ success: true, action: "otp_request", hostname: "localhost" }),
+  }), { status: "verified" });
+  assert.deepEqual(await local.verifyTurnstileToken("opaque-token", "otp_request", {
+    fetchImpl: async () => providerResponse({ success: true, action: "otp_request", hostname: "other.example" }),
+  }), { status: "rejected", reason: "hostname_mismatch" });
+  const production = await loadTurnstile(enabledEnv({ NODE_ENV: "production", TURNSTILE_ALLOWED_HOSTNAMES: "localhost" }));
+  assert.deepEqual(await production.verifyTurnstileToken("opaque-token", "otp_request"), { status: "unavailable", reason: "missing_configuration" });
+});
+
 test("Turnstile accepts only a provider-verified token for its configured action and hostname", async () => {
   const { verifyTurnstileToken } = await loadTurnstile(enabledEnv());
   let request;
