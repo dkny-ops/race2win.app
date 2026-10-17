@@ -6,7 +6,7 @@ import Script from "next/script";
 type TurnstileApi = Readonly<{
   render: (container: HTMLElement, options: Readonly<{
     sitekey: string;
-    action: "otp_request";
+    action: "otp_request" | "weekly_leader_verification";
     size: "flexible";
     callback: (token: string) => void;
     "expired-callback": () => void;
@@ -25,7 +25,8 @@ export function TurnstileScript({ onReady, onError }: Readonly<{ onReady: () => 
 }
 
 /** Collects a token only. The server verifies it and controls authorization. */
-export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange }: Readonly<{
+export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange, action = "otp_request" }: Readonly<{
+  action?: "otp_request" | "weekly_leader_verification";
   siteKey: string;
   scriptReady: boolean;
   resetNonce: number;
@@ -45,14 +46,14 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     let active = true;
     onTokenChange(null);
     const id = api.render(containerRef.current, {
-      sitekey: siteKey, action: "otp_request", size: "flexible",
+      sitekey: siteKey, action, size: "flexible",
       callback: (token) => { if (active) onTokenChange(token); },
       "expired-callback": () => { if (active) clearAndReset(); },
       "error-callback": () => { if (active) clearAndReset(); },
     });
     widgetIdRef.current = id;
     return () => { active = false; widgetIdRef.current = null; onTokenChange(null); api.remove(id); };
-  }, [clearAndReset, onTokenChange, scriptReady, siteKey]);
+  }, [action, clearAndReset, onTokenChange, scriptReady, siteKey]);
 
   useEffect(() => {
     if (resetNonce > 0 && widgetIdRef.current && window.turnstile) {
