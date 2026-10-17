@@ -279,3 +279,32 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
     box-shadow: none;
   }
 }
+
+/* Home hero: framed, oversized arcade-style panel matching the scores UI.
+   Decorative container only; PLAY and PROFILE retain independent actions. */
+.hero .hero-copy {
+  position: relative;
+  width: 100%;
+  max-width: 850px;
+  padding: clamp(1.35rem, 4vw, 3rem);
+  border: 1px solid rgba(71, 191, 255, .6);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(4, 17, 34, .91), rgba(2, 11, 25, .8));
+  box-shadow: 0 20px 65px rgba(0, 0, 0, .4), 0 0 38px rgba(39, 169, 255, .13), inset 0 1px rgba(215, 242, 255, .14);
+  backdrop-filter: blur(10px);
+}
+.hero .hero-copy .button-row .button {
+  border-radius: 10px;
+  border: 1px solid rgba(100, 208, 255, .85);
+  box-shadow: 0 8px 25px rgba(12, 119, 219, .22);
+}
+@media (max-width: 720px) {
+  .hero .hero-grid { padding-inline: clamp(12px, 3vw, 22px); }
+  .hero .hero-copy {
+    padding: clamp(1.2rem, 4vw, 1.75rem);
+    border-radius: 17px;
+  }
+  .hero .hero-copy h1 { font-size: clamp(2.8rem, 12vw, 5.4rem); }
+  .hero .hero-copy .button-row { gap: .65rem; }
+  .hero .hero-copy .button-row .button { min-height: 52px; }
+}
