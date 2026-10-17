@@ -7,10 +7,9 @@ import { getVerifiedUserContext } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Profile" };
 
-export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+export default async function ProfilePage() {
   const context = await getVerifiedUserContext();
   if (!context) redirect(ROUTES.signIn);
-  const next = (await searchParams).next === ROUTES.raceToWinGame ? ROUTES.raceToWinGame : ROUTES.raceToWinGame;
 
-  return <section className="page-section"><div className="narrow"><p className="eyebrow">RACE CONTROL</p><h1>PLAYER PROFILE</h1><p className="page-lede">Manage your public player identity and private payout email.</p><div className="profile-stack"><ProfileForm nextPath={next} /><ClaimablePrizes /></div></div></section>;
+  return <section className="page-section"><div className="narrow"><p className="eyebrow">RACE CONTROL</p><h1>PLAYER PROFILE</h1><p className="page-lede">Manage your public player identity and private payout email.</p><div className="profile-stack"><ProfileForm nextPath={ROUTES.raceToWinGame} /><ClaimablePrizes /></div></div></section>;
 }
