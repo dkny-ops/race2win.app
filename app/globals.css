@@ -56,3 +56,16 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .rtw-game-page:has(.rtw-stage--running) .rtw-game-section--dedicated{padding:0}
 .rtw-game-page:has(.rtw-stage--running) .rtw-game-frame{width:100%;max-width:none;border:0;box-shadow:none}
 .rtw-game-page:has(.rtw-stage--running) .rtw-stage{height:100svh;min-height:100svh}
+
+/* Visual changes only: existing button geometry, labels and actions stay intact. */
+.button:not(.button--text),.logout-button{border-radius:999px;border-color:#48baff;background-color:#0765d9;color:#f6fbff;box-shadow:inset 0 1px 0 #ffffff40,0 0 18px #279bff66}
+.button:not(.button--text):hover,.logout-button:hover{background-color:#117de9;box-shadow:inset 0 1px 0 #ffffff55,0 0 26px #279bff88}
+.button:disabled{opacity:.4;box-shadow:none}
+/* Pearl rows in the existing weekly leaderboard; no additional sections. */
+.scores-table--leaderboard{border:0;display:grid;gap:12px}
+.scores-table--leaderboard>.ranking-row{border:1px solid #d1dff445;border-radius:18px;background:linear-gradient(120deg,#e3edff26,#c4b4eb19 50%,#a1e2e91c);box-shadow:inset 0 1px 0 #ffffff45,0 7px 17px #0004;backdrop-filter:blur(10px)}
+.scores-table--leaderboard>.ranking-row:nth-child(odd){background:linear-gradient(120deg,#a5eceb26,#b4c7f51c 55%,#eacaf021);border-color:#a9e5ec44}
+.scores-table--leaderboard>.ranking-row--1{border-color:#f1d180;box-shadow:inset 3px 0 #f1d180,0 7px 17px #0004}
+.scores-table--leaderboard>.ranking-row--2{border-color:#d9e5f5;box-shadow:inset 3px 0 #d9e5f5,0 7px 17px #0004}
+.scores-table--leaderboard>.ranking-row--3{border-color:#d5a488;box-shadow:inset 3px 0 #d5a488,0 7px 17px #0004}
+.ranking-row>span{overflow-wrap:anywhere;min-width:0}

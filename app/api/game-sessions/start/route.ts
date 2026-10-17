@@ -38,6 +38,10 @@ export async function POST() {
       p_seed: seedFromServer(),
     });
     if (error) {
+      if (error.code === "P0001" && error.message === "Hourly official opportunities exhausted.") {
+        logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "rate_limited", status: 429 });
+        return NextResponse.json({ message: "Usaste tus 5 oportunidades de esta hora. Se renuevan al inicio de la próxima hora; no se acumulan." }, { status: 429, headers: CACHE });
+      }
       if (error.code === "P0001" && error.message === "Official session start rate limit exceeded.") {
         logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "rate_limited", status: 429 });
         return NextResponse.json({ message: "Please wait before starting another session." }, { status: 429, headers: CACHE });

@@ -35,7 +35,7 @@ export function parseLeaderboardRequest(searchParams: URLSearchParams): {
   const gameSlug = searchParams.get("game") ?? RACE_TO_WIN_GAME_SLUG;
   const requestedWeek = searchParams.get("week") ?? currentNewYorkTournamentWeek();
   const rawPage = searchParams.get("page") ?? "1";
-  const rawPageSize = searchParams.get("pageSize") ?? "25";
+  const rawPageSize = searchParams.get("pageSize") ?? "50";
   if (!GAME_SLUG.test(gameSlug) || !WEEK.test(requestedWeek) || !/^\d+$/.test(rawPage) || !/^\d+$/.test(rawPageSize)) return null;
   const parsedWeek = new Date(`${requestedWeek}T00:00:00.000Z`);
   if (Number.isNaN(parsedWeek.valueOf()) || parsedWeek.getUTCDay() !== 1) return null;
@@ -121,6 +121,7 @@ export type LeaderboardResponse = Readonly<{
   page: number;
   pageSize: number;
   entries: readonly { rank: number; username: string; weeklyTotal: number }[];
+  hasNextPage: boolean;
 }>;
 
 export async function readLeaderboard(params: NonNullable<ReturnType<typeof parseLeaderboardRequest>>): Promise<LeaderboardResponse> {
@@ -129,15 +130,15 @@ export async function readLeaderboard(params: NonNullable<ReturnType<typeof pars
   const from = (params.page - 1) * params.pageSize;
   const to = from + params.pageSize - 1;
   const admin = createAdminClient();
-  const { data: totals, error: totalError } = await admin
+  const query = () => admin
     .from("weekly_tournament_totals")
     .select("player_id, weekly_total_score, rank_position")
     .eq("game_id", game.id)
     .eq("tournament_week_start", params.week)
-    .order("rank_position", { ascending: true })
-    .range(from, to);
+    .order("rank_position", { ascending: true });
+  const { data: totals, error: totalError } = await query().range(from, to + 1);
   if (totalError) throw totalError;
-  const playerIds = (totals ?? []).map((row) => row.player_id);
+  const playerIds = (totals ?? []).slice(0, params.pageSize).map((row) => row.player_id);
   const { data: profiles, error: profileError } = playerIds.length === 0
     ? { data: [], error: null }
     : await admin.from("profiles").select("user_id, username").in("user_id", playerIds);
@@ -147,7 +148,7 @@ export async function readLeaderboard(params: NonNullable<ReturnType<typeof pars
   ));
   // A public board only presents users who chose a public game username; raw
   // UUIDs are never exposed as a fallback identity.
-  const entries = (totals ?? []).flatMap((total) => {
+  const publicEntries = (rows: NonNullable<typeof totals>) => rows.flatMap((total) => {
     const username = usernames.get(total.player_id);
     return username ? [{ rank: total.rank_position, username, weeklyTotal: Number(total.weekly_total_score) }] : [];
   });
@@ -156,6 +157,7 @@ export async function readLeaderboard(params: NonNullable<ReturnType<typeof pars
     tournamentWeek: params.week,
     page: params.page,
     pageSize: params.pageSize,
-    entries,
+    entries: publicEntries((totals ?? []).slice(0, params.pageSize)),
+    hasNextPage: (totals?.length ?? 0) > params.pageSize && params.page < 100,
   };
 }
