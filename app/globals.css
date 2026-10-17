@@ -348,3 +348,71 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
   border-color: #ff4444;
   box-shadow: 0 0 14px rgba(255, 55, 55, .42), inset 0 0 8px rgba(255, 55, 55, .1);
 }
+
+
+/* PLAYER PROFILE — same translucent neon arcade design as game and scores. */
+.player-profile-page {
+  background: radial-gradient(ellipse at 50% 10%, rgba(22, 102, 193, .18), transparent 58%), #030b17;
+}
+.player-profile-page .narrow { max-width: 780px; }
+.player-profile-heading {
+  margin-bottom: clamp(1.4rem, 4vw, 2.2rem);
+  padding: clamp(1.3rem, 4vw, 2.2rem);
+  border: 1px solid rgba(78, 186, 255, .52);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(6, 27, 51, .78), rgba(3, 12, 28, .58));
+  box-shadow: 0 15px 45px rgba(0, 0, 0, .22), 0 0 26px rgba(32, 153, 255, .1);
+}
+.player-profile-heading h1 { margin: .55rem 0 .7rem; line-height: 1.08; }
+.player-profile-heading .page-lede { margin: 0; }
+.player-profile-page .profile-card {
+  border: 1px solid rgba(83, 193, 255, .58);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(7, 28, 51, .83), rgba(2, 12, 27, .75));
+  box-shadow: 0 14px 42px rgba(0, 0, 0, .25), 0 0 25px rgba(29, 149, 255, .09), inset 0 1px rgba(205, 237, 255, .12);
+}
+.player-profile-page .profile-card h2 { color: #f4faff; letter-spacing: .025em; }
+.player-profile-page .profile-form input:not([type="checkbox"]) {
+  border: 1px solid rgba(110, 194, 247, .55);
+  border-radius: 10px;
+  background: rgba(3, 17, 36, .7);
+  color: #f3faff;
+}
+.player-profile-page .profile-form input:not([type="checkbox"]):focus-visible {
+  outline: 2px solid #42b8ff;
+  outline-offset: 2px;
+}
+.player-profile-page .button {
+  min-height: 52px;
+  border: 1px solid rgba(104, 207, 255, .78);
+  border-radius: 10px;
+  background: linear-gradient(160deg, rgba(28, 142, 237, .72), rgba(9, 79, 173, .7));
+  color: #fff;
+  box-shadow: 0 7px 25px rgba(11, 111, 213, .18);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-align: center;
+}
+.player-profile-page .button:hover { background: linear-gradient(160deg, rgba(46, 172, 255, .85), rgba(12, 97, 204, .82)); }
+.player-profile-page .button:focus-visible { outline: 3px solid #b1e8ff; outline-offset: 3px; }
+.player-profile-page .profile-player-name {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: .55rem 1.15rem;
+  border: 1px solid #ff4444;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(35, 15, 35, .52), rgba(5, 26, 53, .38));
+  color: #d2f4ff;
+  font: 900 clamp(1.1rem, 4vw, 1.55rem)/1.3 Arial, Helvetica, sans-serif;
+  letter-spacing: .12em;
+  text-shadow: 0 0 12px rgba(48, 178, 255, .65);
+  box-shadow: 0 0 15px rgba(255, 55, 55, .36);
+}
+@media (max-width: 600px) {
+  .player-profile-page .narrow { width: min(100% - 1.5rem, 780px); }
+  .player-profile-heading { padding: 1.2rem; }
+  .player-profile-page .profile-card { padding: 1.2rem; }
+  .player-profile-page .profile-form .button,
+  .player-profile-page .profile-stack > .button { width: 100%; justify-self: stretch; justify-content: center; }
+}
