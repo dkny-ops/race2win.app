@@ -12,18 +12,20 @@ function seedFromServer(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0]!;
 }
 
-async function verifiedUserId(): Promise<string | null> {
-  return (await getVerifiedUserContext())?.userId ?? null;
-}
+
 
 export async function POST() {
   const requestId = createSecurityRequestId();
   try {
-    const userId = await verifiedUserId();
+    const context = await getVerifiedUserContext();
+    const userId = context?.userId ?? null;
     if (!userId) {
       logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "unauthenticated", status: 401 });
       return NextResponse.json({ message: "Sign in to start an official session." }, { status: 401, headers: CACHE });
     }
+    const { data: profile, error: profileError } = await context!.supabase.from("profiles").select("username").eq("user_id", userId).maybeSingle<{ username: string | null }>();
+    if (profileError) throw profileError;
+    if (!profile?.username) return NextResponse.json({ message: "Choose your player name before starting." }, { status: 403, headers: CACHE });
     if (!isAdminConfigured()) {
       logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "missing_configuration", status: 503 });
       return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
