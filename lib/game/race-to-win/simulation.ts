@@ -406,7 +406,9 @@ export class RaceToWinSimulation {
 
     const orderedCandidates = wantsDouble
       ? this.orderDoubleCandidates(candidates, preferredSafeLane)
-      : this.rotateCandidates(candidates);
+      : this.config.gameplayVersion === "rtw-v8"
+        ? [[1], [0], [2]] as readonly LaneIndex[][]
+        : this.rotateCandidates(candidates);
 
     for (const candidate of orderedCandidates) {
       if (!this.hasTrafficSeparation(candidate, worldDistance, speedMps)) continue;
@@ -528,7 +530,10 @@ export class RaceToWinSimulation {
       .filter((wave) => wave.arrivalSeconds > 0 && wave.arrivalSeconds <= this.config.wavePlanningHorizonSeconds)
       .sort((left, right) => left.arrivalSeconds - right.arrivalSeconds);
 
-    let reachable = new Set<LaneIndex>([this.playerLane]);
+    // v8 traffic is independent of player input: everyone gets the same track.
+    let reachable = this.config.gameplayVersion === "rtw-v8"
+      ? new Set<LaneIndex>(LANE_INDICES)
+      : new Set<LaneIndex>([this.playerLane]);
     let previousArrival = 0;
     for (const wave of futureWaves) {
       const movementWindow = Math.max(
