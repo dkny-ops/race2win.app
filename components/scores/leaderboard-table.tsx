@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
+import { PendingRun } from "@/components/scores/pending-run";
 
 type Entry = { rank: number; username: string; weeklyTotal: number };
 type Board = { game: { name: string }; tournamentWeek: string; page: number; hasNextPage: boolean; entries: Entry[] };
-type Personal = { tournamentWeek: string; weeklyTotal: number; dailyTop7: { day: string; rank: number; score: number }[] };
+type Personal = { tournamentWeek: string; weeklyTotal: number; dailyTop7: { day: string; rank: number; score: number }[]; pendingRuns?: { sessionId: string; score: number; tournamentDay: string }[] };
 const weekdays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
 function weekDays(week: string): string[] {
@@ -80,6 +81,7 @@ export function LeaderboardTable() {
     <section className="scores-panel scores-ranking-panel" aria-label="My weekly score">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">TOP 7 VERIFIED RUNS PER DAY</p><h2>MY WEEKLY SCORE</h2></div></div>
       <p className="scores-ranking-subtitle">{week ? `WEEK OF ${week} · NEW YORK TIME` : "MONDAY — SUNDAY"}</p>
+      {(personal?.pendingRuns ?? []).map((run) => <PendingRun key={run.sessionId} sessionId={run.sessionId} score={run.score} day={run.tournamentDay} />)}
       {personalStatus === "loading" ? <p className="scores-message" role="status">LOADING WEEKLY SCORES…</p>
         : personalStatus === "sign-in" ? <p className="scores-message" role="status">Sign in to see your seven daily totals and weekly score.</p>
         : personalStatus === "unavailable" ? <p className="scores-message" role="status">Your weekly scores are temporarily unavailable.</p>

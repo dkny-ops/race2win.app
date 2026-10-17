@@ -61,6 +61,7 @@ export type PersonalScoresResponse = Readonly<{
   game: { slug: string; name: string };
   weeklyTotal: number;
   rank: number | null;
+  pendingRuns: readonly { sessionId: string; score: number; tournamentDay: string }[];
   dailyTop7: readonly { day: string; rank: number; score: number }[];
   recentValidatedRuns: readonly { score: number; distanceMillimeters: number; elapsedMs: number; completedAt: string; tournamentDay: string }[];
 }>;
@@ -70,7 +71,7 @@ export async function readPersonalScores(playerId: string): Promise<PersonalScor
   if (!game) throw new Error("Race To Win is unavailable.");
   const tournamentWeek = currentNewYorkTournamentWeek();
   const admin = createAdminClient();
-  const [totalResult, dailyResult, recentResult] = await Promise.all([
+  const [totalResult, dailyResult, recentResult, pendingResult] = await Promise.all([
     admin.from("weekly_tournament_totals")
       .select("weekly_total_score, rank_position")
       .eq("game_id", game.id)
@@ -91,15 +92,25 @@ export async function readPersonalScores(playerId: string): Promise<PersonalScor
       .eq("eligibility_status", "valid")
       .order("completed_at", { ascending: false })
       .limit(10),
+    admin.from("validated_runs")
+      .select("game_session_id, score, tournament_day")
+      .eq("game_id", game.id)
+      .eq("player_id", playerId)
+      .eq("tournament_week_start", tournamentWeek)
+      .eq("eligibility_status", "under_review")
+      .order("completed_at", { ascending: false })
+      .limit(50),
   ]);
   if (totalResult.error) throw totalResult.error;
   if (dailyResult.error) throw dailyResult.error;
   if (recentResult.error) throw recentResult.error;
+  if (pendingResult.error) throw pendingResult.error;
   return {
     tournamentWeek,
     game: { slug: game.slug, name: game.display_name },
     weeklyTotal: Number(totalResult.data?.weekly_total_score ?? 0),
     rank: totalResult.data?.rank_position ?? null,
+    pendingRuns: (pendingResult.data ?? []).map((row) => ({ sessionId: row.game_session_id, score: row.score, tournamentDay: row.tournament_day })),
     dailyTop7: (dailyResult.data ?? []).map((row) => ({
       day: row.tournament_day,
       rank: row.daily_rank,
