@@ -64,7 +64,7 @@ export function LeaderboardTable() {
       finally { inFlight = false; }
     };
     void loadLeaderboard();
-    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadLeaderboard(); }, 10_000);
+    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadLeaderboard(); }, 60_000);
     const onFocus = () => { void loadLeaderboard(); };
     const onVisibility = () => { if (document.visibilityState === "visible") void loadLeaderboard(); };
     const onScoreVerified = () => { void loadLeaderboard(); };
@@ -85,6 +85,7 @@ export function LeaderboardTable() {
     <section className="scores-panel scores-ranking-panel scores-ranking-panel--world" aria-label="World ranking">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">GLOBAL WEEKLY LEADERBOARD</p><h2>RANKING MUNDIAL</h2></div></div>
       <p className="scores-ranking-subtitle">BEST 7 VERIFIED RUNS EACH DAY · WEEKLY SUM</p>
+      <p className="muted" style={{ fontSize: "0.75rem" }}>El ranking se consulta cada minuto. Los resultados verificados en este dispositivo se actualizan al instante; en otros dispositivos pueden tardar hasta un minuto.</p>
       {error ? <p className="scores-message" role="status">The world leaderboard is temporarily unavailable.</p>
         : !data ? <p className="scores-message" role="status">LOADING WORLD RANKING…</p>
         : data.entries.length === 0 ? <p className="scores-message">No public ranked scores for this week yet.</p>
