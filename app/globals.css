@@ -105,3 +105,59 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-pagination .button:not(:disabled):hover{background:linear-gradient(135deg,#1092e9,#28d7ff);box-shadow:inset 0 1px 0 #ffffff88,0 0 24px #24cfff8c}
 .scores-page .scores-message{border-color:#42d0ff68;border-radius:18px;background:#06172ae8;color:#ccedff;box-shadow:0 0 20px #1ac5ff1f}
 @media(max-width:600px){.scores-page .scores-summary{border-radius:18px}.scores-page .scores-summary__metric{padding:1rem 1.05rem}.scores-page .scores-summary__metric::after{right:8%;bottom:0;width:84%;height:1px;background:linear-gradient(90deg,transparent,#48d8ff88,transparent)}.scores-page .scores-panel{padding:1.05rem;border-radius:18px}.scores-page .scores-table{gap:.5rem}.scores-page .scores-table__header{padding:.28rem .65rem;font-size:.57rem;letter-spacing:.08em}.scores-page .scores-table__row{min-height:50px!important;padding:.64rem .7rem!important;border-radius:13px}.scores-page .scores-table__row strong{font-size:.87rem}.scores-page .scores-table--leaderboard>.scores-table__row{grid-template-columns:.5fr 1.22fr 1fr}.scores-page .scores-pagination .button{min-height:42px;padding:.58rem .8rem;font-size:.68rem}}
+
+
+/* Premium leaderboard finish: presentation only; keep all server data and placement. */
+.scores-page{background:radial-gradient(ellipse 75% 28% at 78% 2%,#09509b24,transparent 75%),radial-gradient(ellipse 70% 38% at 5% 52%,#07397624,transparent 80%),#040a15}
+.scores-page .shell{max-width:1120px}
+.scores-page>.shell>.eyebrow{color:#58d9ff;text-shadow:0 0 14px #18bbff70}
+.scores-page>.shell>h1{color:#f7fbff;text-shadow:0 2px 24px #0e9aff55;letter-spacing:-.055em}
+.scores-page .scores-layout{gap:1.55rem}
+.scores-page .scores-summary{position:relative;isolation:isolate;border-color:#4acbff91;background:linear-gradient(110deg,#0a2b53 0%,#07172e 49%,#0b2c53 100%);box-shadow:inset 0 1px #e4faff66,inset 0 -18px 30px #0004,0 15px 40px #0009,0 0 0 1px #082c51,0 0 32px #0b9ffb36}
+.scores-page .scores-summary:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,transparent,#a8f4ffb3,transparent);pointer-events:none}
+.scores-page .scores-summary__metric{align-content:center;gap:.55rem;padding:1.45rem 1.35rem}
+.scores-page .scores-summary__metric span{color:#a8d8f6}
+.scores-page .scores-summary__metric strong{font-size:clamp(1.2rem,2.8vw,2.05rem);font-variant-numeric:tabular-nums}
+.scores-page .scores-summary__metric--total{background:radial-gradient(ellipse at center,#b7842522,transparent 76%)}
+.scores-page .scores-summary__metric--total strong{color:#ffdc79;text-shadow:0 0 20px #ffc13b70}
+.scores-page .scores-panel{position:relative;isolation:isolate;overflow:hidden;border-color:#3fc5ff8a;background:radial-gradient(ellipse at 88% 0%,#1476bc27,transparent 48%),linear-gradient(145deg,#0a2548 0%,#06162e 42%,#030d1e 100%);box-shadow:inset 0 1px #d9f8ff54,inset 0 -1px #11548755,0 18px 38px #0009,0 0 0 1px #061c36,0 0 28px #078cfa2e}
+.scores-page .scores-panel:before{content:"";position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,#8beaffb8,transparent);pointer-events:none}
+.scores-page .scores-panel h2{font-size:clamp(1.55rem,3.1vw,2.65rem);line-height:1.1;letter-spacing:-.035em;margin:.25rem 0 1.5rem}
+.scores-page .scores-panel__heading h2{margin-bottom:1.2rem}
+.scores-page .scores-table{gap:.7rem}
+.scores-page .scores-table__header{min-height:32px!important;border-bottom:1px solid #4db8ef2a!important;padding:.4rem 1rem .65rem;color:#a7d7f4}
+.scores-page .scores-table__row{position:relative;isolation:isolate;min-height:56px!important;padding:.8rem 1.05rem!important;border:1px solid #8cdeff51!important;border-radius:16px;background:linear-gradient(110deg,#c6eaff24,#2e629355 44%,#0a2445dc 100%);box-shadow:inset 0 1px #e3f8ff4d,inset 0 -1px #092342b3,0 7px 18px #0007,0 0 15px #21baff12;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.scores-page .scores-table__row:nth-child(even){background:linear-gradient(110deg,#c3e8ff16,#1b4d7b62 48%,#061c38ed)}
+.scores-page .scores-table__row:hover{transform:translateY(-1px);border-color:#72dfff9e!important;box-shadow:inset 0 1px #effcff69,0 9px 20px #0009,0 0 20px #22c6ff2d}
+.scores-page .scores-table__row>*{position:relative;z-index:1}
+.scores-page .scores-table__row strong{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.scores-page .scores-table__row>*:last-child{color:#e9f7ff;text-shadow:0 0 10px #51bfff38;font-weight:850;font-variant-numeric:tabular-nums}
+.scores-page .scores-table__row--top-1,.scores-page .ranking-row--1{border-color:#ffcd5ca8!important;background:linear-gradient(105deg,#a777264f,#173e66a6 48%,#091b34ed)!important;box-shadow:inset 4px 0 #ffce64,inset 0 1px #fff0bd50,0 8px 20px #0009,0 0 22px #f9b72d24!important}
+.scores-page .scores-table__row--top-2,.scores-page .ranking-row--2{border-color:#cce4f4a3!important;background:linear-gradient(105deg,#b6d3ec36,#22466ba6 48%,#091b34ed)!important;box-shadow:inset 4px 0 #dceaf6,inset 0 1px #f0faff50,0 8px 20px #0008!important}
+.scores-page .scores-table__row--top-3,.scores-page .ranking-row--3{border-color:#df9f7a9c!important;background:linear-gradient(105deg,#a65d3e3d,#22466ba6 48%,#091b34ed)!important;box-shadow:inset 4px 0 #e0a07c,inset 0 1px #ffe1cb40,0 8px 20px #0008!important}
+.scores-page .scores-table__row--top-1>*:last-child,.scores-page .ranking-row--1>*:last-child{color:#ffdd80;text-shadow:0 0 12px #ffc13d72}
+.scores-page .scores-table__row--top-2>*:last-child,.scores-page .ranking-row--2>*:last-child{color:#edf6ff;text-shadow:0 0 12px #b8dfff68}
+.scores-page .scores-table__row--top-3>*:last-child,.scores-page .ranking-row--3>*:last-child{color:#efb28f;text-shadow:0 0 12px #f19e6670}
+.scores-page .scores-table--leaderboard .ranking-row>strong:first-child{font-size:1.12rem;font-weight:950}
+.scores-page .scores-table--leaderboard .ranking-row--1>strong:first-child:before{content:"★ ";font-size:.9em}
+.scores-page .scores-table--leaderboard .ranking-row--2>strong:first-child:before,.scores-page .scores-table--leaderboard .ranking-row--3>strong:first-child:before{content:"◆ ";font-size:.7em}
+.scores-page .scores-pagination{color:#b3ddf7}
+.scores-page .scores-pagination .button{min-width:100px;min-height:44px;border:1px solid #5cdbffb8;background:linear-gradient(135deg,#0863bd,#0a98e2);box-shadow:inset 0 1px #ddfaff6e,0 5px 15px #0007,0 0 17px #19baff4b}
+.scores-page .scores-pagination .button:disabled{opacity:.4;box-shadow:none;transform:none}
+@media(max-width:600px){
+.scores-page .scores-layout{gap:1.1rem}
+.scores-page .scores-summary__metric{padding:1.05rem 1.1rem;gap:.3rem}
+.scores-page .scores-summary__metric strong{font-size:clamp(1.2rem,5.4vw,1.65rem)}
+.scores-page .scores-panel{padding:1rem;border-radius:18px}
+.scores-page .scores-panel h2{font-size:clamp(1.45rem,6vw,2rem)}
+.scores-page .scores-table{gap:.5rem}
+.scores-page .scores-table__header{font-size:.55rem;letter-spacing:.04em;padding:.4rem .5rem .55rem}
+.scores-page .scores-table__row{min-height:50px!important;padding:.65rem .55rem!important;gap:.35rem;border-radius:12px}
+.scores-page .scores-table__row strong{font-size:.84rem}
+.scores-page .scores-table__row>*{font-size:.75rem;line-height:1.35}
+.scores-page .scores-table--leaderboard>.scores-table__row{grid-template-columns:.5fr 1.15fr 1fr}
+.scores-page .scores-table--leaderboard .ranking-row>strong:first-child{font-size:.9rem}
+.scores-page .scores-pagination{gap:.45rem;font-size:.6rem;letter-spacing:.03em}
+.scores-page .scores-pagination .button{min-width:0;min-height:42px;padding:.55rem .65rem;font-size:.62rem}
+}
+@media(prefers-reduced-motion:reduce){.scores-page .scores-table__row{transition:none}.scores-page .scores-table__row:hover{transform:none}}
