@@ -11,5 +11,5 @@ export default async function ProfilePage() {
   const context = await getVerifiedUserContext();
   if (!context) redirect(ROUTES.signIn);
 
-  return <section className="page-section player-profile-page"><div className="narrow"><div className="player-profile-heading"><p className="eyebrow">RACE CONTROL</p><h1>PLAYER PROFILE</h1><p className="page-lede">Manage your public player identity and private payout email.</p></div><div className="profile-stack"><ProfileForm nextPath={ROUTES.raceToWinGame} /><ClaimablePrizes /></div></div></section>;
+  return <section className="page-section player-profile-page"><div className="narrow"><div className="profile-stack"><ProfileForm nextPath={ROUTES.raceToWinGame} /><ClaimablePrizes /></div></div></section>;
 }
