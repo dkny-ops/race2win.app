@@ -161,3 +161,25 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-pagination .button{min-width:0;min-height:42px;padding:.55rem .65rem;font-size:.62rem}
 }
 @media(prefers-reduced-motion:reduce){.scores-page .scores-table__row{transition:none}.scores-page .scores-table__row:hover{transform:none}}
+
+/* Two-column weekly + world ranking, using only verified server-backed scores. */
+.scores-page .shell{max-width:1320px}
+.scores-page .scores-ranking-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.35rem;align-items:start}
+.scores-page .scores-ranking-panel{min-width:0;padding:clamp(1.1rem,2vw,1.75rem);border:1px solid #34c7ffb8;border-radius:25px;background:radial-gradient(ellipse at 50% 0%,#1471b83b,transparent 54%),linear-gradient(145deg,#0b2446,#04142d 58%,#030c1c);box-shadow:inset 0 2px 0 #c0f6ff4d,0 0 0 1px #084a78,0 0 34px #098dff48,0 22px 44px #0009}
+.scores-page .scores-ranking-title{display:flex;align-items:center;gap:.8rem;margin-bottom:.45rem}
+.scores-page .scores-ranking-title h2{margin:0;font-size:clamp(1.35rem,2.3vw,2.3rem);font-weight:950;font-style:italic;letter-spacing:-.04em;color:#f6fcff;text-shadow:0 0 20px #2bbfff88}
+.scores-page .scores-ranking-title .eyebrow{margin:0 0 .35rem;font-size:.6rem;letter-spacing:.13em}
+.scores-page .scores-ranking-symbol{display:grid;place-items:center;flex:none;width:48px;height:48px;border:1px solid #63dbffb8;border-radius:14px;color:#ffdc7a;font-size:1.6rem;background:linear-gradient(140deg,#205b9a,#051a38);box-shadow:inset 0 1px #e7faff55,0 0 18px #2dbdff60}
+.scores-page .scores-ranking-subtitle{min-height:1.3rem;margin:.6rem 0 1.3rem;color:#a4d8fa;font-size:.65rem;font-weight:850;letter-spacing:.12em}
+.scores-page .scores-ranking-table{gap:.72rem}
+.scores-page .scores-ranking-table>.scores-table__header,.scores-page .scores-ranking-table>.scores-table__row{grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr) minmax(0,1.1fr)}
+.scores-page .scores-ranking-table>.scores-table__row{min-height:58px!important;border-radius:18px;background:linear-gradient(105deg,#b4e6fa32,#28619460 50%,#0a2548e6);box-shadow:inset 0 1px #e8faff66,0 8px 20px #0007,0 0 12px #22bfff18}
+.scores-page .scores-ranking-table>.scores-table__row:nth-child(even){background:linear-gradient(105deg,#a8c4e72e,#14467688 55%,#071d3ae8)}
+.scores-page .scores-ranking-table>.scores-table__row>strong:last-child{color:#f2d17a;font-size:1rem;text-shadow:0 0 12px #ffc24760}
+.scores-page .scores-ranking-table .scores-rank-position{display:flex;align-items:center;gap:.25rem;white-space:nowrap}
+.scores-page .scores-ranking-table .ranking-medal{font-size:1.2rem;line-height:1}
+.scores-page .scores-ranking-total{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.2rem;padding:1rem 1.2rem;border:1px solid #ffd66a8c;border-radius:16px;background:linear-gradient(110deg,#80602345,#16345b88);box-shadow:0 0 18px #ffc13c24}
+.scores-page .scores-ranking-total span{color:#d9eaff;font-size:.72rem;font-weight:900;letter-spacing:.1em}
+.scores-page .scores-ranking-total strong{color:#ffdc7a;font-size:clamp(1.3rem,2.3vw,1.8rem);text-shadow:0 0 15px #ffc24775;font-variant-numeric:tabular-nums}
+@media(max-width:850px){.scores-page .scores-ranking-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.scores-page .scores-ranking-panel{padding:1rem;border-radius:20px}.scores-page .scores-ranking-title h2{font-size:clamp(1.35rem,6vw,1.85rem)}.scores-page .scores-ranking-symbol{width:40px;height:40px;font-size:1.3rem}.scores-page .scores-ranking-subtitle{font-size:.58rem;letter-spacing:.06em}.scores-page .scores-ranking-table>.scores-table__row{min-height:50px!important}.scores-page .scores-ranking-table .ranking-medal{font-size:1rem}.scores-page .scores-ranking-total{padding:.85rem}}
