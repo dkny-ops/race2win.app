@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { GAMEPLAY_VERSION } from "@/lib/game/race-to-win";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
@@ -9,7 +10,11 @@ export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
 
 function seedFromServer(): number {
-  return crypto.getRandomValues(new Uint32Array(1))[0]!;
+  // Shared deterministic track for every official start in the same UTC hour.
+  // The session stores this seed, so a run crossing the hour remains unchanged.
+  const hour = Math.floor(Date.now() / 3_600_000);
+  const digest = createHash("sha256").update(`race-to-win:rtw-v8:utc-hour:${hour}`).digest();
+  return digest.readUInt32BE(0);
 }
 
 
