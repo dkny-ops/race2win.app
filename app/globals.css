@@ -203,3 +203,53 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-day-run:last-child{border-bottom:0}
 .scores-page .scores-day-run strong{color:#ffdc7a;font-variant-numeric:tabular-nums}
 .scores-page .scores-day-run span:last-child{color:#6ee7b7;text-align:right;font-size:.68rem;font-weight:800}
+
+
+/* Race To Win mobile start screen: compact, readable, premium game-menu treatment. */
+@media (max-width: 600px) {
+  .rtw-overlay--ready {
+    width: min(92%, 420px);
+    padding: clamp(1.15rem, 4.5vw, 1.65rem);
+    border: 1px solid rgba(71, 191, 255, .56);
+    border-radius: 18px;
+    background: linear-gradient(155deg, rgba(4, 18, 36, .94), rgba(1, 9, 23, .91));
+    box-shadow: 0 20px 65px rgba(0, 0, 0, .56), 0 0 34px rgba(35, 154, 255, .13), inset 0 1px rgba(204, 239, 255, .14);
+    backdrop-filter: blur(12px);
+  }
+  .rtw-overlay--ready h3 {
+    font-size: clamp(2.15rem, 9vw, 3.4rem);
+    line-height: 1;
+    letter-spacing: -.055em;
+    margin: .35rem 0 .85rem;
+    text-wrap: balance;
+  }
+  .rtw-overlay--ready > p:not(.rtw-kicker) {
+    font-size: clamp(.78rem, 3.3vw, .95rem);
+    line-height: 1.5;
+    letter-spacing: .025em;
+    margin-bottom: 1.25rem;
+  }
+  .rtw-overlay--ready .rtw-menu-actions { gap: .7rem; }
+  .rtw-overlay--ready .rtw-action {
+    min-height: 56px;
+    border-radius: 9px;
+    font-size: .88rem;
+    letter-spacing: .16em;
+  }
+  .rtw-overlay--ready .rtw-action--primary {
+    background: linear-gradient(180deg, #55c9ff, #168ff0);
+    border-color: #78d8ff;
+    box-shadow: 0 8px 30px rgba(26, 151, 245, .28);
+  }
+  .rtw-overlay--ready .rtw-action--placeholder {
+    border-color: rgba(125, 196, 242, .55);
+    background: rgba(16, 48, 78, .48);
+  }
+  .rtw-overlay--ready .rtw-control-hints {
+    margin-top: 1.3rem;
+    gap: .45rem;
+    font-size: .62rem;
+    letter-spacing: .04em;
+  }
+  .rtw-overlay--ready .rtw-control-hints span { width: 100%; }
+}
