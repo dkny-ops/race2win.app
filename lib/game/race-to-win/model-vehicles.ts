@@ -109,6 +109,61 @@ function centerAndScale(model: THREE.Object3D, targetLength: number): void {
   model.position.y -= bounds.min.y;
 }
 
+/**
+ * Rear-facing color accents based on the approved player-car reference.
+ * Purely decorative meshes: no physics, collider, or source GLB changes.
+ */
+function addPlayerPaintAccents(chassis: THREE.Group, model: THREE.Object3D): void {
+  const bounds = new THREE.Box3().setFromObject(model);
+  const size = bounds.getSize(new THREE.Vector3());
+  const width = size.x;
+  const length = size.z;
+  const top = bounds.max.y;
+  const rear = bounds.max.z;
+
+  const silver = new THREE.MeshPhysicalMaterial({
+    color: "#f5f8ff", metalness: 0.66, roughness: 0.12,
+    clearcoat: 1, clearcoatRoughness: 0.06,
+  });
+  const amber = new THREE.MeshStandardMaterial({
+    color: "#ffc234", emissive: "#ffad00", emissiveIntensity: 2.8,
+    metalness: 0.3, roughness: 0.22,
+  });
+  const whiteLight = new THREE.MeshStandardMaterial({
+    color: "#fff8f5", emissive: "#ffe9eb", emissiveIntensity: 1.65,
+    metalness: 0.12, roughness: 0.2,
+  });
+
+  const accent = (name: string, geometry: THREE.BufferGeometry, material: THREE.Material,
+    x: number, y: number, z: number): void => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = name;
+    mesh.position.set(x, y, z);
+    mesh.userData.rtwRuntimeGeometry = true;
+    chassis.add(mesh);
+  };
+
+  // Slim white/silver center stripe, above the engine cover and behind the cockpit.
+  accent("player-silver-center-stripe",
+    new THREE.BoxGeometry(width * 0.16, 0.035, length * 0.38), silver,
+    0, top * 0.84, rear - length * 0.46);
+
+  // Two illuminated white rear shoulder blocks, symmetric around the center.
+  for (const side of [-1, 1]) {
+    accent("player-white-rear-shoulder",
+      new THREE.BoxGeometry(width * 0.12, 0.14, length * 0.12), whiteLight,
+      side * width * 0.34, top * 0.72, rear - length * 0.35);
+  }
+
+  // Amber center brake-light panel and the silver lower rear bumper.
+  accent("player-amber-rear-panel",
+    new THREE.BoxGeometry(width * 0.39, 0.16, 0.085), amber,
+    0, top * 0.45, rear + 0.045);
+  accent("player-silver-rear-bumper",
+    new THREE.BoxGeometry(width * 0.83, 0.075, 0.08), silver,
+    0, bounds.min.y + 0.29, rear + 0.07);
+}
+
 function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
   const blueGlow = new THREE.PointLight("#269dff", player ? 23 : 2.4, player ? 16 : 7, 2);
   blueGlow.position.set(0, 0.65, -1.8);
@@ -180,6 +235,7 @@ export function createModelVehicleVisual(template: THREE.Group, player: boolean)
   });
 
   chassis.add(model);
+  if (player) addPlayerPaintAccents(chassis, model);
   addRuntimeLights(chassis, player);
   root.add(chassis);
   root.userData.rtwModelVehicle = true;
