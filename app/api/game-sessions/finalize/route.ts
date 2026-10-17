@@ -129,6 +129,11 @@ export async function POST(request: Request) {
       p_final_distance_millimeters: replay.distanceMillimeters,
       p_final_elapsed_ms: replay.elapsedMs,
       p_final_collision_at_ms: replay.collisionAtMs,
+      // Keep referral credit disabled until its independent eligibility checks
+      // are wired in. The RPC requires explicit server-owned fraud metadata.
+      p_referral_eligible: false,
+      p_antifraud_status: "verified",
+      p_antifraud_signals: [],
       p_checkpoint_proofs: checkpointProofs,
     });
     if (finalizeError) {
