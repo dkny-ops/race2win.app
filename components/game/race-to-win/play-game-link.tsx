@@ -18,9 +18,12 @@ export async function PlayGameLink({
   variant = "primary",
   className = "",
 }: PlayGameLinkProps) {
-  const href = (await getVerifiedUserContext())
-    ? ROUTES.play
-    : `${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`;
+  const context = await getVerifiedUserContext();
+  let href: string = `${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`;
+  if (context) {
+    const { data: profile } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
+    href = profile?.username ? ROUTES.play : ROUTES.profile;
+  }
   return (
     <Link className={`button button--${variant} ${className}`.trim()} href={href}>
       {children}
