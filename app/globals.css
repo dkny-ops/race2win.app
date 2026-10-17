@@ -189,3 +189,17 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-history-details>summary{cursor:pointer;color:#bfeeff;font-size:.82rem;font-weight:900;letter-spacing:.11em;padding:.45rem .2rem}
 .scores-page .scores-history-details[open]>summary{margin-bottom:1.4rem;border-bottom:1px solid #4db8ef55;padding-bottom:1rem}
 .scores-page .scores-history-details>summary:focus-visible{outline:2px solid #3fc5ff;outline-offset:4px}
+
+/* Expandable seven-run details for each verified tournament day. */
+.scores-page .scores-day-group{min-width:0}
+.scores-page .scores-day-button{width:100%;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.5fr) minmax(0,1.1fr);align-items:center;gap:.5rem;text-align:left;color:#f0f8ff;font:inherit;cursor:pointer}
+.scores-page .scores-day-button>strong:last-child{text-align:right;color:#ffdc7a;font-variant-numeric:tabular-nums}
+.scores-page .scores-day-button--active{border-color:#00c9ff!important;box-shadow:0 0 20px #03b8ff66,inset 0 1px #e8faff66!important}
+.scores-page .scores-day-button:focus-visible{outline:2px solid #4bdcff;outline-offset:3px}
+.scores-page .scores-day-chevron{color:#4bdcff;margin-left:.35rem}
+.scores-page .scores-day-runs{margin:.4rem .25rem 1rem;padding:.8rem;border:1px solid #238cd2a0;border-radius:15px;background:#05162de8;box-shadow:inset 0 1px #60cfff40}
+.scores-page .scores-day-runs__title{color:#d9efff;font-size:.75rem;font-weight:900;letter-spacing:.05em;margin:0 0 .65rem}
+.scores-page .scores-day-run{display:grid;grid-template-columns:.65fr 1.3fr 1fr;align-items:center;gap:.5rem;padding:.55rem .7rem;border-bottom:1px solid #2e84bb45;font-size:.84rem}
+.scores-page .scores-day-run:last-child{border-bottom:0}
+.scores-page .scores-day-run strong{color:#ffdc7a;font-variant-numeric:tabular-nums}
+.scores-page .scores-day-run span:last-child{color:#6ee7b7;text-align:right;font-size:.68rem;font-weight:800}
