@@ -47,20 +47,21 @@ function officialOutcome(session: StoredOfficialOutcome) {
 
 export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
+  const responseHeaders = { ...CACHE, "X-Request-ID": requestId };
   try {
     const body = parseBody(await readOfficialSessionJson(request));
     if (!body) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "invalid_request", status: 400 });
-      return NextResponse.json({ message: "Invalid run record." }, { status: 400, headers: CACHE });
+      return NextResponse.json({ message: "Invalid run record." }, { status: 400, headers: responseHeaders });
     }
     const userId = await verifiedUserId();
     if (!userId) {
       logSecurityEvent({ eventType: "game_session.finalize.rejected", route: "/api/game-sessions/finalize", requestId, reason: "unauthenticated", status: 401 });
-      return NextResponse.json({ message: "Sign in to finalize an official session." }, { status: 401, headers: CACHE });
+      return NextResponse.json({ message: "Sign in to finalize an official session." }, { status: 401, headers: responseHeaders });
     }
     if (!isAdminConfigured()) {
       logSecurityEvent({ eventType: "game_session.finalize.failed", route: "/api/game-sessions/finalize", requestId, reason: "missing_configuration", status: 503 });
-      return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
+      return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: responseHeaders });
     }
 
     const admin = createAdminClient();
@@ -71,30 +72,30 @@ export async function POST(request: Request) {
     if (error) throw error;
     if (!session) {
       logSecurityEvent({ eventType: "game_session.finalize.rejected", route: "/api/game-sessions/finalize", requestId, reason: "session_not_found", status: 404 });
-      return NextResponse.json({ message: "Session unavailable." }, { status: 404, headers: CACHE });
+      return NextResponse.json({ message: "Session unavailable." }, { status: 404, headers: responseHeaders });
     }
     if (!isAuthoritativeGameplayVersion(session.gameplay_version)) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "gameplay_version_rejected", status: 409 });
-      return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
+      return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: responseHeaders });
     }
 
     const digest = digestOfficialInputs(body.inputs);
     if (session.status === "finalized") {
       if (session.input_digest !== digest) {
         logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
-        return NextResponse.json({ message: "Session already finalized." }, { status: 409, headers: CACHE });
+        return NextResponse.json({ message: "Session already finalized." }, { status: 409, headers: responseHeaders });
       }
-      return NextResponse.json(officialOutcome(session), { headers: CACHE });
+      return NextResponse.json(officialOutcome(session), { headers: responseHeaders });
     }
     if (session.status !== "active" || !isCheckpointInterval(session.checkpoint_interval_score)) {
       logSecurityEvent({ eventType: "game_session.finalize.rejected", route: "/api/game-sessions/finalize", requestId, reason: "session_not_active", status: 409 });
-      return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
+      return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: responseHeaders });
     }
     const elapsedCapMs = Math.max(0, Math.floor(Date.now() - Date.parse(session.started_at)));
     const replay = replayAuthoritativeRace(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs);
     if (!replay) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "replay_rejected", status: 409 });
-      return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: CACHE });
+      return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: responseHeaders });
     }
     const checkpointInterval = Number(session.checkpoint_interval_score);
     const expectedCheckpointCount = checkpointCountForScore(replay.score, checkpointInterval);
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
       proofs.some((proof) => proof.checkpoint_index > expectedCheckpointCount)
     ) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
-      return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: CACHE });
+      return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: responseHeaders });
     }
     const checkpointProofs = proofs.map((proof) => ({
       checkpointIndex: proof.checkpoint_index,
@@ -139,12 +140,12 @@ export async function POST(request: Request) {
     if (finalizeError) {
       if (finalizeError.code === "23514" || finalizeError.code === "P0002") {
         logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
-        return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: CACHE });
+        return NextResponse.json({ message: "Run record conflicts with checkpoint evidence." }, { status: 409, headers: responseHeaders });
       }
       throw finalizeError;
     }
     const finalizedSession = finalizedRows?.[0] ?? null;
-    if (finalizedSession) return NextResponse.json(officialOutcome(finalizedSession), { headers: CACHE });
+    if (finalizedSession) return NextResponse.json(officialOutcome(finalizedSession), { headers: responseHeaders });
 
     // The conditional status transition is the database-level arbiter. If a
     // concurrent request won, return only the stored canonical result for an
@@ -157,12 +158,12 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (canonicalError) throw canonicalError;
     if (canonicalSession?.status === "finalized" && canonicalSession.input_digest === digest) {
-      return NextResponse.json(officialOutcome(canonicalSession), { headers: CACHE });
+      return NextResponse.json(officialOutcome(canonicalSession), { headers: responseHeaders });
     }
     logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "finalize_conflict", status: 409 });
-    return NextResponse.json({ message: "Session already finalized." }, { status: 409, headers: CACHE });
+    return NextResponse.json({ message: "Session already finalized." }, { status: 409, headers: responseHeaders });
   } catch {
     logSecurityEvent({ eventType: "game_session.finalize.failed", route: "/api/game-sessions/finalize", requestId, reason: "database_operation_failed", status: 500 });
-    return NextResponse.json({ message: "Official session could not be finalized." }, { status: 500, headers: CACHE });
+    return NextResponse.json({ message: "Official session could not be finalized." }, { status: 500, headers: responseHeaders });
   }
 }
