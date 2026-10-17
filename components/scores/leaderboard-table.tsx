@@ -55,8 +55,8 @@ export function LeaderboardTable() {
   for (const entry of personal?.dailyTop7 ?? []) totals.set(entry.day, (totals.get(entry.day) ?? 0) + entry.score);
 
   return <div className="scores-ranking-grid">
-    <section className="scores-panel scores-ranking-panel" aria-label="Weekly ranking">
-      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">TOP 7 VERIFIED RUNS PER DAY</p><h2>RANKING SEMANAL</h2></div></div>
+    <section className="scores-panel scores-ranking-panel" aria-label="My weekly score">
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">TOP 7 VERIFIED RUNS PER DAY</p><h2>MY WEEKLY SCORE</h2></div></div>
       <p className="scores-ranking-subtitle">{week ? `WEEK OF ${week} · NEW YORK TIME` : "MONDAY — SUNDAY"}</p>
       {personalStatus === "loading" ? <p className="scores-message" role="status">LOADING WEEKLY SCORES…</p>
         : personalStatus === "sign-in" ? <p className="scores-message" role="status">Sign in to see your seven daily totals and weekly score.</p>
