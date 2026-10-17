@@ -342,3 +342,9 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .hero .hero-copy .button-row .button:hover {
   background: rgba(18, 129, 228, .58);
 }
+
+/* Red accent for the player's name only. */
+.hero .hero-player-name {
+  border-color: #ff4444;
+  box-shadow: 0 0 14px rgba(255, 55, 55, .42), inset 0 0 8px rgba(255, 55, 55, .1);
+}
