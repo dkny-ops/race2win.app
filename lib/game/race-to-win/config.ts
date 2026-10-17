@@ -125,5 +125,5 @@ export const LEGACY_V7_CONFIG: RaceToWinConfig = Object.freeze({
   gameplayVersion: "rtw-v7",
   pressureDoubleWavesPerCycle: Object.freeze([2, 3, 4, 5, 6]),
   pressureWaveCycleLengths: Object.freeze([3, 4, 5, 6, 7]),
-  pressureSafeLanePattern: Object.freeze([2, 2, 1, 1, 0, 0, 1, 1]),
+  pressureSafeLanePattern: Object.freeze([2, 2, 1, 1, 0, 0, 1, 1]) as readonly (0 | 1 | 2)[],
 });
