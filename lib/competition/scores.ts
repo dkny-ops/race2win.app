@@ -138,37 +138,27 @@ export type LeaderboardResponse = Readonly<{
 export async function readLeaderboard(params: NonNullable<ReturnType<typeof parseLeaderboardRequest>>): Promise<LeaderboardResponse> {
   const game = await gameForSlug(params.gameSlug);
   if (!game) throw new Error("Game unavailable.");
-  const from = (params.page - 1) * params.pageSize;
-  const to = from + params.pageSize - 1;
   const admin = createAdminClient();
-  const query = () => admin
-    .from("weekly_tournament_totals")
-    .select("player_id, weekly_total_score, rank_position")
-    .eq("game_id", game.id)
-    .eq("tournament_week_start", params.week)
-    .order("rank_position", { ascending: true });
-  const { data: totals, error: totalError } = await query().range(from, to + 1);
-  if (totalError) throw totalError;
-  const playerIds = (totals ?? []).slice(0, params.pageSize).map((row) => row.player_id);
-  const { data: profiles, error: profileError } = playerIds.length === 0
-    ? { data: [], error: null }
-    : await admin.from("profiles").select("user_id, username").in("user_id", playerIds);
-  if (profileError) throw profileError;
-  const usernames = new Map((profiles ?? []).flatMap((profile) =>
-    typeof profile.username === "string" && profile.username.length > 0 ? [[profile.user_id, profile.username] as const] : [],
-  ));
-  // A public board only presents users who chose a public game username; raw
-  // UUIDs are never exposed as a fallback identity.
-  const publicEntries = (rows: NonNullable<typeof totals>) => rows.flatMap((total) => {
-    const username = usernames.get(total.player_id);
-    return username ? [{ rank: total.rank_position, username, weeklyTotal: Number(total.weekly_total_score) }] : [];
+  // Profiles include private payout data and deliberately deny service-role
+  // table reads. This existing restricted RPC exposes only public ranked rows
+  // and counts public entries before pagination, including empty pages.
+  const { data, error } = await admin.rpc("rtw_read_public_leaderboard_page_metadata", {
+    p_game_id: game.id,
+    p_tournament_week_start: params.week,
+    p_page: params.page,
+    p_page_size: params.pageSize,
   });
+  if (error) throw error;
+  const board = data as { total_public_entries: number; entries: { rank_position: number; username: string; weekly_total_score: number | string }[] } | null;
+  if (!board || !Array.isArray(board.entries) || !Number.isSafeInteger(Number(board.total_public_entries))) {
+    throw new Error("Invalid public leaderboard response.");
+  }
   return {
     game: { slug: game.slug, name: game.display_name },
     tournamentWeek: params.week,
     page: params.page,
     pageSize: params.pageSize,
-    entries: publicEntries((totals ?? []).slice(0, params.pageSize)),
-    hasNextPage: (totals?.length ?? 0) > params.pageSize && params.page < 100,
+    entries: board.entries.map((row) => ({ rank: row.rank_position, username: row.username, weeklyTotal: Number(row.weekly_total_score) })),
+    hasNextPage: Number(board.total_public_entries) > params.page * params.pageSize && params.page < 100,
   };
 }
