@@ -27,7 +27,7 @@ test("rtw-v7 checkpoint cadence is reachable before its server activity lease ex
   const worstCaseSeconds = checkpoints.SCORE_CHECKPOINT_INTERVAL /
     (config.DEFAULT_RACE_TO_WIN_CONFIG.initialSpeedMps * config.DEFAULT_RACE_TO_WIN_CONFIG.scorePerMeter);
 
-  assert.equal(config.GAMEPLAY_VERSION, "rtw-v7");
+  assert.equal(config.GAMEPLAY_VERSION, "rtw-v8");
   assert.equal(checkpoints.SCORE_CHECKPOINT_INTERVAL, 1_000);
   assert.equal(checkpoints.OFFICIAL_ACTIVITY_LEASE_SECONDS, 360);
   // The minimum velocity is a conservative bound because the versioned speed
