@@ -94,12 +94,12 @@ export const DEFAULT_RACE_TO_WIN_CONFIG: RaceToWinConfig = Object.freeze({
   // Dense, deterministic pressure by phase: 2/3, 3/4, 4/5, 5/6, then 6/7
   // waves are doubles. A single wave remains in every cycle as a fair reset.
   pressurePhaseEndSeconds: Object.freeze([20, 45, 70, 100]),
-  pressureDoubleWavesPerCycle: Object.freeze([2, 3, 4, 5, 6]),
-  pressureWaveCycleLengths: Object.freeze([3, 4, 5, 6, 7]),
+  pressureDoubleWavesPerCycle: Object.freeze([1, 1, 1, 1, 1]),
+  pressureWaveCycleLengths: Object.freeze([2, 2, 2, 2, 2]),
   // Two consecutive doubles share one corridor, then it moves one lane at a
   // time. This produces rapid, repeatable decisions without requiring an
   // impossible right-to-left jump between adjacent obstacle groups.
-  pressureSafeLanePattern: Object.freeze([2, 2, 1, 1, 0, 0, 1, 1]) as readonly (0 | 1 | 2)[],
+  pressureSafeLanePattern: Object.freeze([1, 0, 1, 2, 1, 0, 1, 2]) as readonly (0 | 1 | 2)[],
   wavePlanningHorizonSeconds: 10,
   // Vehicle instances are about 5.25 m long, so this leaves more than 2 m
   // between same-lane cars while allowing denser, non-overlapping groups.
@@ -119,3 +119,11 @@ export function mergeRaceToWinConfig(
     lanes: overrides.lanes ?? DEFAULT_RACE_TO_WIN_CONFIG.lanes,
   });
 }
+
+export const LEGACY_V7_CONFIG: RaceToWinConfig = Object.freeze({
+  ...DEFAULT_RACE_TO_WIN_CONFIG,
+  gameplayVersion: "rtw-v7",
+  pressureDoubleWavesPerCycle: Object.freeze([2, 3, 4, 5, 6]),
+  pressureWaveCycleLengths: Object.freeze([3, 4, 5, 6, 7]),
+  pressureSafeLanePattern: Object.freeze([2, 2, 1, 1, 0, 0, 1, 1]),
+});
