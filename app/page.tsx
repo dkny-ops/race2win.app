@@ -2,7 +2,6 @@ import { ButtonLink } from "@/components/ui/button-link";
 import Image from "next/image";
 import { FaqList } from "@/components/marketing/faq-list";
 import { GameCard } from "@/components/marketing/game-card";
-import { GameplayPreview } from "@/components/marketing/gameplay-preview";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
 import { FAQS, GAMES } from "@/content/site";
 import { ROUTES } from "@/lib/routes";
@@ -44,15 +43,6 @@ export default async function HomePage() {
             </div>
             <p className="play-note">PLAY opens the Race To Win game.</p>
           </div>
-        </div>
-      </section>
-
-      <GameplayPreview />
-
-      <section className="section shell" aria-labelledby="how-title">
-        <p className="eyebrow">THE FIRST DROP</p><div className="section-heading"><h2 id="how-title">Built for the players who never lift.</h2><p>Race To Win starts with one focused racing experience. Rules and access details will be published before launch.</p></div>
-        <div className="steps">
-        <article><span>01</span><h3>GET READY</h3><p>Explore the first local playable foundation and public information.</p></article><article><span>02</span><h3>GET ACCESS</h3><p>Player access details will be shared when the next phase is ready.</p></article><article><span>03</span><h3>RUN THE TRACK</h3><p>Official game rules and conditions will be visible before competition goes live.</p></article>
         </div>
       </section>
 
