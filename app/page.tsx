@@ -12,9 +12,11 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let username: string | null = null;
+  let authenticated = false;
   try {
       const context = await getVerifiedUserContext();
       if (context) {
+        authenticated = true;
         const { data: profile } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
         username = profile?.username ?? null;
       }
@@ -38,7 +40,7 @@ export default async function HomePage() {
             <h1>RACE <em>TO WIN</em></h1>
             <p className="hero-lede">A new competitive racing experience is in development. One track. One chance to own the run.</p>
             <div className="button-row">
-              <PlayGameLink>PLAY</PlayGameLink>{username ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>}
+              <PlayGameLink>PLAY</PlayGameLink>{authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>}
             </div>
             <p className="play-note">PLAY opens the Race To Win game.</p>
           </div>
