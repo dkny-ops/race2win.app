@@ -208,6 +208,11 @@ export class RaceToWinWorld {
     const lateralVelocity = clamp((nextX - this.previousPlayerX) / Math.max(deltaSeconds, 0.001), -12, 12);
     this.previousPlayerX = nextX;
     this.player.root.position.x = nextX;
+    // Rendering only: slightly smaller once racing so lane gaps read clearly.
+    // Collision bounds and the authoritative simulation are unchanged.
+    const visualScale = snapshot.state === "running" ? 0.88 : 1;
+    const nextScale = damp(this.player.root.scale.x, visualScale, deltaSeconds, 5);
+    this.player.root.scale.setScalar(nextScale);
     this.player.chassis.rotation.z = damp(this.player.chassis.rotation.z, -lateralVelocity * 0.014, deltaSeconds, 9);
     this.player.chassis.rotation.y = damp(this.player.chassis.rotation.y, lateralVelocity * 0.007, deltaSeconds, 8);
     this.player.chassis.position.y = Math.sin(snapshot.metrics.elapsedSeconds * 7.5) * 0.025;
