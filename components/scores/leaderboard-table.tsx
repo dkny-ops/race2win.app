@@ -64,10 +64,14 @@ export function LeaderboardTable() {
       finally { inFlight = false; }
     };
     void loadLeaderboard();
-    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadLeaderboard(); }, 30_000);
+    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadLeaderboard(); }, 10_000);
     const onFocus = () => { void loadLeaderboard(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") void loadLeaderboard(); };
+    const onScoreVerified = () => { void loadLeaderboard(); };
     window.addEventListener("focus", onFocus);
-    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", onFocus); };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("rtw:score-verified", onScoreVerified);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onVisibility); window.removeEventListener("rtw:score-verified", onScoreVerified); };
   }, [page]);
 
   function changePage(next: number) { setData(null); setError(false); setPage(next); }
