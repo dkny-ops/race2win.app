@@ -253,3 +253,29 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
   }
   .rtw-overlay--ready .rtw-control-hints span { width: 100%; }
 }
+
+/* Matching mobile navigation controls above the Race To Win start panel. */
+@media (max-width: 720px) {
+  .rtw-game-page__navigation {
+    padding-inline: max(14px, env(safe-area-inset-left)) max(14px, env(safe-area-inset-right));
+    gap: .7rem;
+  }
+  .rtw-game-page__navigation .rtw-page-control {
+    min-height: 46px;
+    padding: .7rem .85rem;
+    border-radius: 10px;
+    border-color: rgba(103, 201, 255, .6);
+    background: linear-gradient(150deg, rgba(12, 47, 77, .94), rgba(3, 18, 36, .94));
+    box-shadow: inset 0 1px rgba(213, 240, 255, .12), 0 6px 22px rgba(0, 0, 0, .2);
+    color: #f2faff;
+    font-size: clamp(.58rem, 2.2vw, .7rem);
+    letter-spacing: .07em;
+    text-align: center;
+  }
+  .rtw-game-page__navigation .rtw-page-control--placeholder {
+    border-color: rgba(124, 155, 177, .25);
+    color: #8499aa;
+    background: rgba(6, 19, 35, .68);
+    box-shadow: none;
+  }
+}
