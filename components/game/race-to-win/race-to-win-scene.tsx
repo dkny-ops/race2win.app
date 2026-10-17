@@ -146,6 +146,8 @@ export function RaceToWinScene() {
         }
       }
       if (!outcome) throw new Error(failureStatus ? `finalize_http_${failureStatus}` : "finalize_network_or_response");
+      // Notify any ranking visible in this tab; server responses remain authoritative.
+      window.dispatchEvent(new Event("rtw:score-verified"));
       setOfficialOutcome(outcome); setRunNotice(null); setState("crashed");
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown";
