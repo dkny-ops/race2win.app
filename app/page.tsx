@@ -1,9 +1,8 @@
 import { ButtonLink } from "@/components/ui/button-link";
 import Image from "next/image";
 import { FaqList } from "@/components/marketing/faq-list";
-import { GameCard } from "@/components/marketing/game-card";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
-import { FAQS, GAMES } from "@/content/site";
+import { FAQS } from "@/content/site";
 import { ROUTES } from "@/lib/routes";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 
@@ -43,13 +42,6 @@ export default async function HomePage() {
             </div>
             <p className="play-note">PLAY opens the Race To Win game.</p>
           </div>
-        </div>
-      </section>
-
-      <section className="section section-tint" aria-labelledby="games-title">
-        <div className="shell">
-          <div className="section-heading section-heading--row"><div><p className="eyebrow">GAME 01</p><h2 id="games-title">One game. Full focus.</h2></div><ButtonLink href={ROUTES.games} variant="text">VIEW GAME <span aria-hidden="true">→</span></ButtonLink></div>
-          <div className="game-grid">{GAMES.map((game) => <GameCard key={game.slug} game={game} />)}</div>
         </div>
       </section>
 
