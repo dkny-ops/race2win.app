@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LeaderboardTable } from "@/components/scores/leaderboard-table";
-import { MyRaceStats } from "@/components/scores/my-race-stats";
 import { ROUTES } from "@/lib/routes";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 
@@ -15,10 +14,6 @@ export default async function ScoresPage() {
       <h1>RACE RANKINGS</h1>
       <p className="page-lede">Your seven best verified runs per day count toward the weekly total. The world ranking uses the same verified weekly totals.</p>
       <LeaderboardTable />
-      <details className="scores-history-details">
-        <summary>VIEW MY RACE STATS &amp; VERIFIED RUN HISTORY</summary>
-        <MyRaceStats />
-      </details>
     </div>
   </section>;
 }
