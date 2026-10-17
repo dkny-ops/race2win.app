@@ -149,7 +149,7 @@ export function RaceToWinScene() {
       setOfficialOutcome(outcome); setRunNotice(null); setState("crashed");
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown";
-      setOfficialOutcome(null); setRunNotice(`Official score not recorded (\${reason}). Please check your connection and try another race.`); setState("finalize-failed");
+      setOfficialOutcome(null); setRunNotice(`Official score not recorded (${reason}). Please check your connection and try another race.`); setState("finalize-failed");
     } finally { finalizingRef.current = false; scheduleGameOverReturn(); }
   }, [cancelCheckpointRetries, scheduleGameOverReturn, setState]);
 
