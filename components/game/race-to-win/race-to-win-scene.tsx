@@ -162,8 +162,14 @@ export function RaceToWinScene() {
       if (response.status === 401) { router.push(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`); return; }
       const session = response.ok ? parseOfficialSession(await readJson(response)) : null;
       if (!session || session.gameplayVersion !== GAMEPLAY_VERSION) throw new Error("session_rejected");
-      const startsAtMs = Date.parse(session.startsAt);
-      if (startsAtMs <= Date.now() || startsAtMs >= Date.parse(session.expiresAt)) throw new Error("session_timing_rejected");
+      // The database returns started_at as the time the session was created,
+      // not a future countdown deadline. By the time HTTP returns it is
+      // normally already in the past. Reject expired sessions instead, and
+      // schedule the three-second visual countdown on the client.
+      const serverStartedAtMs = Date.parse(session.startsAt);
+      const expiresAtMs = Date.parse(session.expiresAt);
+      if (!Number.isFinite(serverStartedAtMs) || !Number.isFinite(expiresAtMs) || serverStartedAtMs >= expiresAtMs || expiresAtMs <= Date.now() + 3_000) throw new Error("session_timing_rejected");
+      const startsAtMs = Date.now() + 3_000;
       officialSessionRef.current = session; nextCheckpointRef.current = 1; simulation.reset(session.seed); setMetrics(simulation.snapshot().metrics); audioRef.current?.play("countdown", { volume: 0.4 }); setState("countdown");
       const tick = () => {
         const remainingMs = startsAtMs - Date.now();
