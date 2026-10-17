@@ -406,7 +406,9 @@ export class RaceToWinSimulation {
 
     const orderedCandidates = wantsDouble
       ? this.orderDoubleCandidates(candidates, preferredSafeLane)
-      : this.rotateCandidates(candidates);
+      : this.config.gameplayVersion === "rtw-v8"
+        ? [[1], [0], [2]] as readonly LaneIndex[][]
+        : this.rotateCandidates(candidates);
 
     for (const candidate of orderedCandidates) {
       if (!this.hasTrafficSeparation(candidate, worldDistance, speedMps)) continue;
@@ -528,7 +530,11 @@ export class RaceToWinSimulation {
       .filter((wave) => wave.arrivalSeconds > 0 && wave.arrivalSeconds <= this.config.wavePlanningHorizonSeconds)
       .sort((left, right) => left.arrivalSeconds - right.arrivalSeconds);
 
-    let reachable = new Set<LaneIndex>([this.playerLane]);
+    // Shared hourly traffic cannot depend on the player's steering history.
+    // Older versions retain their exact original replay behavior.
+    let reachable = this.config.gameplayVersion === "rtw-v8"
+      ? new Set<LaneIndex>(LANE_INDICES)
+      : new Set<LaneIndex>([this.playerLane]);
     let previousArrival = 0;
     for (const wave of futureWaves) {
       const movementWindow = Math.max(
