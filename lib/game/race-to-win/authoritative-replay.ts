@@ -1,4 +1,4 @@
-import { GAMEPLAY_VERSION, DEFAULT_RACE_TO_WIN_CONFIG } from "./config";
+import { GAMEPLAY_VERSION, DEFAULT_RACE_TO_WIN_CONFIG, LEGACY_V7_CONFIG } from "./config";
 import { RaceToWinSimulation } from "./simulation";
 import type { LaneInputEvent } from "./types";
 
@@ -25,14 +25,14 @@ export interface AuthoritativeRaceProgress {
  * exists. New sessions are rtw-v7 and use the renewable activity lease.
  */
 export function isAuthoritativeGameplayVersion(value: unknown): value is string {
-  return value === "rtw-v6" || value === GAMEPLAY_VERSION;
+  return value === "rtw-v6" || value === "rtw-v7" || value === GAMEPLAY_VERSION;
 }
 
 export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceProgress | null {
   if (!isAuthoritativeGameplayVersion(gameplayVersion)) return null;
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff || !Number.isSafeInteger(elapsedCapMs) || elapsedCapMs < 0) return null;
   if (inputs.length > MAX_OFFICIAL_INPUTS) return null;
-  const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6 });
+  const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6, config: gameplayVersion === GAMEPLAY_VERSION ? undefined : LEGACY_V7_CONFIG });
   let previousAtMs = -1;
   for (let index = 0; index < inputs.length; index += 1) {
     const input = inputs[index]!;
