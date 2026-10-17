@@ -37,6 +37,7 @@ export function PendingRun({ sessionId, score, day }: { sessionId: string; score
       setVerification(body);
       if (body.status === "verified") {
         setNotice("Verification completed. Rankings will refresh automatically.");
+        window.dispatchEvent(new Event("rtw:score-verified"));
         window.dispatchEvent(new Event("focus"));
       }
     } catch (error) {
