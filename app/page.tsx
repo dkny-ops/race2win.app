@@ -33,8 +33,7 @@ export default async function HomePage() {
         </div>
         <div className="shell hero-grid">
           <div className="hero-copy">
-            <p className="eyebrow">THE RACE IS BUILDING</p>
-            {username ? <p className="welcome-player">WELCOME, {username}</p> : null}
+            {username ? <p className="hero-player-name">{username}</p> : null}
             <h1>RACE <em>TO WIN</em></h1>
             <p className="hero-lede">A new competitive racing experience is in development. One track. One chance to own the run.</p>
             <div className="button-row">
