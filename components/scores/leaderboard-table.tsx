@@ -78,6 +78,21 @@ export function LeaderboardTable() {
   for (const entry of personal?.dailyTop7 ?? []) totals.set(entry.day, (totals.get(entry.day) ?? 0) + entry.score);
 
   return <div className="scores-ranking-grid">
+    <section className="scores-panel scores-ranking-panel scores-ranking-panel--world" aria-label="World ranking">
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">GLOBAL WEEKLY LEADERBOARD</p><h2>RANKING MUNDIAL</h2></div></div>
+      <p className="scores-ranking-subtitle">BEST 7 VERIFIED RUNS EACH DAY · WEEKLY SUM</p>
+      {error ? <p className="scores-message" role="status">The world leaderboard is temporarily unavailable.</p>
+        : !data ? <p className="scores-message" role="status">LOADING WORLD RANKING…</p>
+        : data.entries.length === 0 ? <p className="scores-message">No public ranked scores for this week yet.</p>
+        : <div className="scores-table scores-ranking-table scores-table--leaderboard" role="table" aria-label="Race To Win world ranking">
+          <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
+          {data.entries.map(entry => <div className={`scores-table__row ranking-row${entry.rank <= 3 ? ` ranking-row--${entry.rank}` : ""}`} role="row" key={entry.rank}>
+            <strong role="cell" className="scores-rank-position">{entry.rank <= 3 ? <span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span> : null}<span>#{entry.rank}</span></strong>
+            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
+          </div>)}
+        </div>}
+      <div className="scores-pagination"><button className="button button--secondary" type="button" disabled={page === 1 || !data} onClick={() => changePage(page - 1)}>PREVIOUS</button><span aria-live="polite">PAGE {data?.page ?? page}</span><button className="button button--secondary" type="button" disabled={!data?.hasNextPage} onClick={() => changePage(page + 1)}>NEXT</button></div>
+    </section>
     <section className="scores-panel scores-ranking-panel" aria-label="My weekly score">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">TOP 7 VERIFIED RUNS PER DAY</p><h2>MY WEEKLY SCORE</h2></div></div>
       <p className="scores-ranking-subtitle">{week ? `WEEK OF ${week} · NEW YORK TIME` : "MONDAY — SUNDAY"}</p>
@@ -97,21 +112,6 @@ export function LeaderboardTable() {
             </div> : null}
           </div>)}
         </div><div className="scores-ranking-total"><span>WEEKLY TOTAL</span><strong>{(personal?.weeklyTotal ?? 0).toLocaleString()}</strong></div></>}
-    </section>
-    <section className="scores-panel scores-ranking-panel scores-ranking-panel--world" aria-label="World ranking">
-      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">GLOBAL WEEKLY LEADERBOARD</p><h2>RANKING MUNDIAL</h2></div></div>
-      <p className="scores-ranking-subtitle">BEST 7 VERIFIED RUNS EACH DAY · WEEKLY SUM</p>
-      {error ? <p className="scores-message" role="status">The world leaderboard is temporarily unavailable.</p>
-        : !data ? <p className="scores-message" role="status">LOADING WORLD RANKING…</p>
-        : data.entries.length === 0 ? <p className="scores-message">No public ranked scores for this week yet.</p>
-        : <div className="scores-table scores-ranking-table scores-table--leaderboard" role="table" aria-label="Race To Win world ranking">
-          <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
-          {data.entries.map(entry => <div className={`scores-table__row ranking-row${entry.rank <= 3 ? ` ranking-row--${entry.rank}` : ""}`} role="row" key={entry.rank}>
-            <strong role="cell" className="scores-rank-position">{entry.rank <= 3 ? <span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span> : null}<span>#{entry.rank}</span></strong>
-            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
-          </div>)}
-        </div>}
-      <div className="scores-pagination"><button className="button button--secondary" type="button" disabled={page === 1 || !data} onClick={() => changePage(page - 1)}>PREVIOUS</button><span aria-live="polite">PAGE {data?.page ?? page}</span><button className="button button--secondary" type="button" disabled={!data?.hasNextPage} onClick={() => changePage(page + 1)}>NEXT</button></div>
     </section>
   </div>;
 }
