@@ -25,28 +25,48 @@ export function LeaderboardTable() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void fetch("/api/scores/me", { cache: "no-store", signal: controller.signal })
-      .then(async response => {
-        if (response.status === 401) { setPersonalStatus("sign-in"); return; }
+    let active = true;
+    let inFlight = false;
+    const loadPersonal = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await fetch("/api/scores/me", { cache: "no-store", credentials: "same-origin" });
+        if (!active) return;
+        if (response.status === 401) { setPersonal(null); setPersonalStatus("sign-in"); return; }
         if (!response.ok) throw new Error("Unavailable");
         const body = await response.json() as Personal;
-        if (!controller.signal.aborted) { setPersonal(body); setPersonalStatus("ready"); }
-      })
-      .catch(() => { if (!controller.signal.aborted) setPersonalStatus("unavailable"); });
-    return () => controller.abort();
+        if (active) { setPersonal(body); setPersonalStatus("ready"); }
+      } catch {
+        if (active) setPersonalStatus("unavailable");
+      } finally { inFlight = false; }
+    };
+    void loadPersonal();
+    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadPersonal(); }, 30_000);
+    const onFocus = () => { void loadPersonal(); };
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", onFocus); };
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void fetch(`/api/leaderboard?page=${page}&pageSize=50`, { cache: "no-store", signal: controller.signal })
-      .then(async response => {
+    let active = true;
+    let inFlight = false;
+    const loadLeaderboard = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const response = await fetch(`/api/leaderboard?page=${page}&pageSize=50`, { cache: "no-store" });
         if (!response.ok) throw new Error("Unavailable");
         const body = await response.json() as Board;
-        if (!controller.signal.aborted) setData(body);
-      })
-      .catch(() => { if (!controller.signal.aborted) setError(true); });
-    return () => controller.abort();
+        if (active) { setData(body); setError(false); }
+      } catch { if (active) setError(true); }
+      finally { inFlight = false; }
+    };
+    void loadLeaderboard();
+    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadLeaderboard(); }, 30_000);
+    const onFocus = () => { void loadLeaderboard(); };
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", onFocus); };
   }, [page]);
 
   function changePage(next: number) { setData(null); setError(false); setPage(next); }
