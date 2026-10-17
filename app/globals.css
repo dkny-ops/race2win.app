@@ -183,3 +183,9 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-ranking-total strong{color:#ffdc7a;font-size:clamp(1.3rem,2.3vw,1.8rem);text-shadow:0 0 15px #ffc24775;font-variant-numeric:tabular-nums}
 @media(max-width:850px){.scores-page .scores-ranking-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.scores-page .scores-ranking-panel{padding:1rem;border-radius:20px}.scores-page .scores-ranking-title h2{font-size:clamp(1.35rem,6vw,1.85rem)}.scores-page .scores-ranking-symbol{width:40px;height:40px;font-size:1.3rem}.scores-page .scores-ranking-subtitle{font-size:.58rem;letter-spacing:.06em}.scores-page .scores-ranking-table>.scores-table__row{min-height:50px!important}.scores-page .scores-ranking-table .ranking-medal{font-size:1rem}.scores-page .scores-ranking-total{padding:.85rem}}
+
+/* Preserve the existing verified run history without crowding the gameplay rankings. */
+.scores-page .scores-history-details{margin-top:2rem;border:1px solid #3fc5ff8a;border-radius:20px;background:#06162c;padding:1rem clamp(1rem,2.5vw,1.5rem)}
+.scores-page .scores-history-details>summary{cursor:pointer;color:#bfeeff;font-size:.82rem;font-weight:900;letter-spacing:.11em;padding:.45rem .2rem}
+.scores-page .scores-history-details[open]>summary{margin-bottom:1.4rem;border-bottom:1px solid #4db8ef55;padding-bottom:1rem}
+.scores-page .scores-history-details>summary:focus-visible{outline:2px solid #3fc5ff;outline-offset:4px}
