@@ -127,12 +127,29 @@ export function RaceToWinScene() {
     if (!session || !simulation || finalizingRef.current) return;
     finalizingRef.current = true; cancelCheckpointRetries(); setState("finalizing");
     try {
-      const response = await fetch("/api/game-sessions/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ sessionId: session.sessionId, inputs: simulation.runRecord().inputs }) });
-      const outcome = response.ok ? parseOfficialOutcome(await readJson(response)) : null;
-      if (!outcome) throw new Error("finalize_rejected");
+      // The server treats an identical finalize request as idempotent. Retry only
+      // transient network/server failures; never bypass an anti-cheat rejection.
+      const payload = JSON.stringify({ sessionId: session.sessionId, inputs: simulation.runRecord().inputs });
+      let outcome: OfficialOutcome | null = null;
+      let failureStatus: number | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response = await fetch("/api/game-sessions/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: payload });
+          if (response.ok) {
+            outcome = parseOfficialOutcome(await readJson(response));
+            break;
+          }
+          failureStatus = response.status;
+          if (![502, 503, 504].includes(response.status)) break;
+        } catch {
+          failureStatus = null;
+        }
+      }
+      if (!outcome) throw new Error(failureStatus ? `finalize_http_${failureStatus}` : "finalize_network_or_response");
       setOfficialOutcome(outcome); setRunNotice(null); setState("crashed");
-    } catch {
-      setOfficialOutcome(null); setRunNotice("This run could not be validated by the server. No official score was recorded."); setState("finalize-failed");
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "unknown";
+      setOfficialOutcome(null); setRunNotice(`Official score not recorded (\${reason}). Please check your connection and try another race.`); setState("finalize-failed");
     } finally { finalizingRef.current = false; scheduleGameOverReturn(); }
   }, [cancelCheckpointRetries, scheduleGameOverReturn, setState]);
 
