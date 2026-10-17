@@ -6,15 +6,15 @@ import ts from "typescript";
 const root = new URL("../", import.meta.url);
 const read = (file) => readFile(new URL(file, root), "utf8");
 
-async function loadRoute(turnstileDecision) {
+async function loadRoute(turnstileDecision, signInResult = { error: null }) {
   const source = await read("app/api/auth/request-code/route.ts");
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const calls = { auth: [], verified: 0 };
+  const calls = { auth: [], events: [], verified: 0 };
   const compiledModule = { exports: {} };
   new Function("exports", "module", "require", output)(compiledModule.exports, compiledModule, (name) => {
     if (name === "next/server") return { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200, cookies: { set() {} } }) } };
-    if (name === "@/lib/supabase/server") return { isSupabaseConfigured: () => true, createClient: async () => ({ auth: { signInWithOtp: async (arguments_) => { calls.auth.push(arguments_); return { error: null }; } } }) };
-    if (name === "@/lib/observability/security-event") return { createSecurityRequestId: () => "server-request-id", logSecurityEvent() {} };
+    if (name === "@/lib/supabase/server") return { isSupabaseConfigured: () => true, createClient: async () => ({ auth: { signInWithOtp: async (arguments_) => { calls.auth.push(arguments_); return signInResult; } } }) };
+    if (name === "@/lib/observability/security-event") return { createSecurityRequestId: () => "server-request-id", logSecurityEvent: (event) => calls.events.push(event) };
     if (name === "@/lib/auth/post-auth-path") return { safePostAuthPath: () => "/" };
     if (name === "@/lib/competition/request-body") return { readBoundedJson: async (request) => request.json() };
     if (name === "@/lib/security/turnstile") return { verifyTurnstileToken: async () => { calls.verified += 1; return turnstileDecision; } };
@@ -56,6 +56,18 @@ test("missing, reused, or rejected Turnstile tokens never invoke Supabase Auth",
   const invalidResponse = await invalid.POST(request({ turnstileToken: "invalid", supabaseCaptchaToken: "fresh" }));
   assert.equal(invalidResponse.body.nextStep, false);
   assert.equal(invalid.calls.auth.length, 0);
+});
+
+test("OTP security events distinguish Siteverify rejection from Supabase Auth rejection without logging tokens", async () => {
+  const siteverify = await loadRoute({ status: "rejected", reason: "hostname_mismatch" });
+  await siteverify.POST(request({ turnstileToken: "app-token", supabaseCaptchaToken: "auth-token" }));
+  assert.equal(siteverify.calls.events.at(-1).reason, "turnstile_hostname_mismatch");
+  assert.doesNotMatch(JSON.stringify(siteverify.calls.events), /app-token|auth-token/);
+
+  const supabase = await loadRoute({ status: "verified" }, { error: { message: "provider failure" } });
+  await supabase.POST(request({ turnstileToken: "app-token", supabaseCaptchaToken: "auth-token" }));
+  assert.equal(supabase.calls.events.at(-1).reason, "supabase_otp_rejected");
+  assert.doesNotMatch(JSON.stringify(supabase.calls.events), /provider failure|app-token|auth-token/);
 });
 
 test("Turnstile verifier rejects action, hostname, and provider reuse", async () => {

@@ -8,6 +8,23 @@ import { verifyTurnstileToken } from "@/lib/security/turnstile";
 const GENERIC_MESSAGE = "If this email can receive a sign-in code, check your inbox shortly.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function turnstileSecurityReason(turnstile: Awaited<ReturnType<typeof verifyTurnstileToken>>) {
+  if (turnstile.status === "unavailable") {
+    return turnstile.reason === "missing_configuration"
+      ? "missing_configuration" as const
+      : "turnstile_provider_unavailable" as const;
+  }
+  if (turnstile.status === "verified") return null;
+  switch (turnstile.reason) {
+    case "missing_token": return "turnstile_missing_token" as const;
+    case "invalid_token": return "turnstile_invalid_token" as const;
+    case "expired_or_reused": return "turnstile_token_reused" as const;
+    case "action_mismatch": return "turnstile_action_mismatch" as const;
+    case "hostname_mismatch": return "turnstile_hostname_mismatch" as const;
+    default: return "turnstile_provider_rejected" as const;
+  }
+}
+
 export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   let email = "";
@@ -41,9 +58,11 @@ export async function POST(request: Request) {
       && supabaseCaptchaToken.length <= 2048
       && supabaseCaptchaToken !== turnstileToken;
     if (!captchaDisabled && (turnstile.status !== "verified" || !hasIndependentSupabaseToken)) {
-      const reason = turnstile.status === "unavailable"
-        ? turnstile.reason === "missing_configuration" ? "missing_configuration" : "provider_rejected"
-        : "provider_rejected";
+      // A missing second token is distinct from a failed Siteverify decision.
+      // Only these fixed categories reach server logs; opaque token values do not.
+      const reason = !hasIndependentSupabaseToken
+        ? "turnstile_missing_token"
+        : turnstileSecurityReason(turnstile) ?? "turnstile_provider_rejected";
       logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason, status: 202 });
     } else if (!isSupabaseConfigured()) {
       logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "missing_configuration", status: 202 });
@@ -58,10 +77,10 @@ export async function POST(request: Request) {
           },
         });
         requestAccepted = !error;
-        if (error) logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "provider_rejected", status: 202 });
+        if (error) logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "supabase_otp_rejected", status: 202 });
       } catch {
         // Provider details and recipient state stay private.
-        logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "provider_rejected", status: 202 });
+        logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "supabase_otp_rejected", status: 202 });
       }
     }
   }
