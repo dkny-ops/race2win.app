@@ -21,6 +21,7 @@ export function LeaderboardTable() {
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [personalStatus, setPersonalStatus] = useState<"loading" | "sign-in" | "unavailable" | "ready">("loading");
   const [page, setPage] = useState(1);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ export function LeaderboardTable() {
   const week = personal?.tournamentWeek ?? data?.tournamentWeek;
   const days = week ? weekDays(week) : [];
   const totals = new Map<string, number>();
+  const runsForDay = (day: string) => (personal?.dailyTop7 ?? []).filter(e => e.day === day).sort((a,b) => a.rank - b.rank);
   for (const entry of personal?.dailyTop7 ?? []) totals.set(entry.day, (totals.get(entry.day) ?? 0) + entry.score);
 
   return <div className="scores-ranking-grid">
@@ -63,7 +65,15 @@ export function LeaderboardTable() {
         : personalStatus === "unavailable" ? <p className="scores-message" role="status">Your weekly scores are temporarily unavailable.</p>
         : <><div className="scores-table scores-ranking-table" role="table" aria-label="Your daily top seven totals">
           <div className="scores-table__header" role="row"><span role="columnheader">DAY</span><span role="columnheader">TOP 7 RUNS</span><span role="columnheader">TOTAL</span></div>
-          {days.map((day, i) => <div className="scores-table__row" role="row" key={day}><strong role="cell">{weekdays[i]}</strong><span role="cell">{(personal?.dailyTop7 ?? []).filter(e => e.day === day).length} / 7</span><strong role="cell">{(totals.get(day) ?? 0).toLocaleString()}</strong></div>)}
+          {days.map((day, i) => <div className="scores-day-group" key={day}>
+            <button className={`scores-day-button scores-table__row${selectedDay === day ? " scores-day-button--active" : ""}`} type="button" aria-expanded={selectedDay === day} aria-controls={`daily-runs-${i}`} onClick={() => setSelectedDay(selectedDay === day ? null : day)}>
+              <strong>{weekdays[i]} <span className="scores-day-chevron" aria-hidden="true">{selectedDay === day ? "▴" : "▾"}</span></strong><span>{runsForDay(day).length} / 7</span><strong>{(totals.get(day) ?? 0).toLocaleString()}</strong>
+            </button>
+            {selectedDay === day ? <div className="scores-day-runs" id={`daily-runs-${i}`}>
+              <p className="scores-day-runs__title">{day} · TOP 7 VERIFIED SCORES</p>
+              {runsForDay(day).length ? runsForDay(day).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span>VERIFIED</span></div>) : <p className="muted">No verified scores for this day.</p>}
+            </div> : null}
+          </div>)}
         </div><div className="scores-ranking-total"><span>WEEKLY TOTAL</span><strong>{(personal?.weeklyTotal ?? 0).toLocaleString()}</strong></div></>}
     </section>
     <section className="scores-panel scores-ranking-panel scores-ranking-panel--world" aria-label="World ranking">
