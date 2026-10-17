@@ -38,8 +38,7 @@ export async function SiteHeader() {
           ))}
         </nav>
         <div className="header-actions">{authenticated ? <><Link className="profile-link" href={ROUTES.profile} aria-label="Open player profile"><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <ButtonLink href={ROUTES.signIn} variant="text">SIGN IN</ButtonLink>}<PlayGameLink className="header-play">PLAY</PlayGameLink></div>
-        <details className="mobile-menu">
-          <summary aria-label="Open menu">MENU</summary>
+        <MobileMenu>
           <nav aria-label="Mobile navigation">
             {PRIMARY_NAVIGATION.map((item) => (
               <Link key={item.href} href={item.href}>{item.label}</Link>
