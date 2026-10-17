@@ -22,9 +22,6 @@ export default async function RaceToWinGamePage() {
     <main className="rtw-game-page">
       <nav className="rtw-game-page__navigation shell" aria-label="Game navigation">
         <Link className="rtw-page-control" href={ROUTES.home}>← BACK TO HOME</Link>
-        <button type="button" className="rtw-page-control rtw-page-control--placeholder" disabled title="More games are not available yet">
-          CHANGE GAME <small>COMING SOON</small>
-        </button>
       </nav>
       <RaceToWinGame canStartOfficial={authenticated} />
     </main>
