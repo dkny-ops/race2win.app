@@ -132,6 +132,7 @@ export function RaceToWinScene() {
       const payload = JSON.stringify({ sessionId: session.sessionId, inputs: simulation.runRecord().inputs });
       let outcome: OfficialOutcome | null = null;
       let failureStatus: number | null = null;
+      let failureRequestId: string | null = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const response = await fetch("/api/game-sessions/finalize", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: payload });
@@ -140,12 +141,13 @@ export function RaceToWinScene() {
             break;
           }
           failureStatus = response.status;
+          failureRequestId = response.headers.get("X-Request-ID");
           if (![502, 503, 504].includes(response.status)) break;
         } catch {
           failureStatus = null;
         }
       }
-      if (!outcome) throw new Error(failureStatus ? `finalize_http_${failureStatus}` : "finalize_network_or_response");
+      if (!outcome) throw new Error(failureStatus ? `finalize_http_${failureStatus}${failureRequestId ? ` [Ref: ${failureRequestId}]` : ""}` : "finalize_network_or_response");
       // Notify any ranking visible in this tab; server responses remain authoritative.
       window.dispatchEvent(new Event("rtw:score-verified"));
       setOfficialOutcome(outcome); setRunNotice(null); setState("crashed");
