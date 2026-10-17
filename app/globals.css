@@ -416,3 +416,6 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
   .player-profile-page .profile-form .button,
   .player-profile-page .profile-stack > .button { width: 100%; justify-self: stretch; justify-content: center; }
 }
+
+/* Compact live race HUD: SCORE and TIME only, one row on all screen sizes. */
+.rtw-stage .rtw-hud{grid-template-columns:repeat(2,minmax(0,1fr));max-width:760px}
