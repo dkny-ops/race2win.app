@@ -406,7 +406,7 @@ export class RaceToWinSimulation {
 
     const orderedCandidates = wantsDouble
       ? this.orderDoubleCandidates(candidates, preferredSafeLane)
-      : this.config.gameplayVersion === "rtw-v8"
+      : (this.config.gameplayVersion === "rtw-v8" || this.config.gameplayVersion === "rtw-v9")
         ? [[1], [0], [2]] as readonly LaneIndex[][]
         : this.rotateCandidates(candidates);
 
@@ -531,7 +531,7 @@ export class RaceToWinSimulation {
       .sort((left, right) => left.arrivalSeconds - right.arrivalSeconds);
 
     // v8 traffic is independent of player input: everyone gets the same track.
-    let reachable = this.config.gameplayVersion === "rtw-v8"
+    let reachable = (this.config.gameplayVersion === "rtw-v8" || this.config.gameplayVersion === "rtw-v9")
       ? new Set<LaneIndex>(LANE_INDICES)
       : new Set<LaneIndex>([this.playerLane]);
     let previousArrival = 0;
@@ -546,7 +546,13 @@ export class RaceToWinSimulation {
 
       for (const fromLane of reachable) {
         for (const freeLane of freeLanes) {
-          if (Math.abs(freeLane - fromLane) <= possibleMoves) {
+          const requiredMoves = Math.abs(freeLane - fromLane);
+          // At top speed, a forced two-lane crossing receives a longer
+          // closing-distance window than a one-lane dodge (70m vs 52m).
+          const v9TopSpeed = this.config.gameplayVersion === "rtw-v9" && this.currentSpeedMps >= this.config.maxSpeedMps - 0.001;
+          const closingMeters = movementWindow * Math.max(1, this.currentSpeedMps - wave.speedMps);
+          const requiredMeters = requiredMoves === 2 ? 70 : requiredMoves === 1 ? 52 : 0;
+          if (requiredMoves <= possibleMoves && (!v9TopSpeed || closingMeters >= requiredMeters)) {
             nextReachable.add(freeLane);
           }
         }
