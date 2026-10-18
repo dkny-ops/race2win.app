@@ -20,6 +20,8 @@ function weekDays(week: string): string[] {
 export function LeaderboardTable() {
   const [data, setData] = useState<Board | null>(null);
   const [personal, setPersonal] = useState<Personal | null>(null);
+  const [previousWeek, setPreviousWeek] = useState<Board | null>(null);
+  const [previousWeekError, setPreviousWeekError] = useState(false);
   const [personalStatus, setPersonalStatus] = useState<"loading" | "sign-in" | "unavailable" | "ready">("loading");
   const [page, setPage] = useState(1);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -74,6 +76,32 @@ export function LeaderboardTable() {
     return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onVisibility); window.removeEventListener("rtw:score-verified", onScoreVerified); };
   }, [page]);
 
+  useEffect(() => {
+    let active = true;
+    const loadPreviousWeek = async () => {
+      try {
+        const currentResponse = await fetch("/api/leaderboard?page=1&pageSize=1", { cache: "no-store" });
+        if (!currentResponse.ok) throw new Error("Current week unavailable");
+        const current = await currentResponse.json() as Board;
+        const monday = new Date(current.tournamentWeek + "T12:00:00Z");
+        if (Number.isNaN(monday.getTime())) throw new Error("Invalid tournament week");
+        monday.setUTCDate(monday.getUTCDate() - 7);
+        const week = monday.toISOString().slice(0, 10);
+        const response = await fetch(`/api/leaderboard?week=${encodeURIComponent(week)}&page=1&pageSize=3`, { cache: "no-store" });
+        if (!response.ok) throw new Error("Previous week unavailable");
+        const previous = await response.json() as Board;
+        if (active) { setPreviousWeek(previous); setPreviousWeekError(false); }
+      } catch {
+        if (active) setPreviousWeekError(true);
+      }
+    };
+    void loadPreviousWeek();
+    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void loadPreviousWeek(); }, 60_000);
+    const onFocus = () => { void loadPreviousWeek(); };
+    window.addEventListener("focus", onFocus);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener("focus", onFocus); };
+  }, []);
+
   function changePage(next: number) { setData(null); setError(false); setPage(next); }
   const week = personal?.tournamentWeek ?? data?.tournamentWeek;
   const days = week ? weekDays(week) : [];
@@ -97,6 +125,21 @@ export function LeaderboardTable() {
           </div>)}
         </div>}
       <div className="scores-pagination"><button className="button button--secondary" type="button" disabled={page === 1 || !data} onClick={() => changePage(page - 1)}>PREVIOUS</button><span aria-live="polite">PAGE {data?.page ?? page}</span><button className="button button--secondary" type="button" disabled={!data?.hasNextPage} onClick={() => changePage(page + 1)}>NEXT</button></div>
+    </section>
+    <section className="scores-panel scores-ranking-panel" aria-label="Last week winners">
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">PREVIOUS WEEK · NEW YORK TIME</p><h2>LAST WEEK WINNERS</h2></div></div>
+      <p className="scores-ranking-subtitle">{previousWeek ? `WEEK OF ${previousWeek.tournamentWeek}` : "LAST COMPLETED WEEK"}</p>
+      <p className="muted" style={{ fontSize: "0.75rem" }}>Provisional TOP 3. Results and prize eligibility remain subject to antifraud review and manual approval. No automatic payouts.</p>
+      {previousWeekError ? <p className="scores-message" role="status">Previous week's results are temporarily unavailable.</p>
+        : !previousWeek ? <p className="scores-message" role="status">LOADING LAST WEEK…</p>
+        : previousWeek.entries.length === 0 ? <p className="scores-message">No verified public scores for last week.</p>
+        : <div className="scores-table scores-ranking-table scores-table--leaderboard" role="table" aria-label="Previous week provisional top three">
+          <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
+          {previousWeek.entries.map(entry => <div className={`scores-table__row ranking-row ranking-row--${entry.rank}`} role="row" key={entry.rank}>
+            <strong role="cell" className="scores-rank-position"><span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
+            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
+          </div>)}
+        </div>}
     </section>
     <section className="scores-panel scores-ranking-panel" aria-label="My weekly score">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">TOP 7 VERIFIED RUNS PER DAY</p><h2>MY WEEKLY SCORE</h2></div></div>
