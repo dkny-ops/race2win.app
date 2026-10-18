@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v9";
+export const GAMEPLAY_VERSION = "rtw-v10";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
@@ -136,4 +136,10 @@ export const LEGACY_V8_CONFIG: RaceToWinConfig = Object.freeze({
   pressureDoubleWavesPerCycle: Object.freeze([1, 1, 1, 1, 1]),
   pressureWaveCycleLengths: Object.freeze([2, 2, 2, 2, 2]),
   pressureSafeLanePattern: Object.freeze([1, 0, 1, 2, 1, 0, 1, 2]) as readonly (0 | 1 | 2)[],
+});
+
+/** Historical v9 replay keeps the previous wave-spawn configuration. */
+export const LEGACY_V9_CONFIG: RaceToWinConfig = Object.freeze({
+  ...DEFAULT_RACE_TO_WIN_CONFIG,
+  gameplayVersion: "rtw-v9",
 });
