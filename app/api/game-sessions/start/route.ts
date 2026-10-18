@@ -11,7 +11,7 @@ const CACHE = { "Cache-Control": "no-store" };
 
 function seedFromServer(): number {
   const hour = Math.floor(Date.now() / 3_600_000);
-  return createHash("sha256").update(`race-to-win:rtw-v8:utc:${hour}`).digest().readUInt32BE(0);
+  return createHash("sha256").update(`race-to-win:${GAMEPLAY_VERSION}:utc:${hour}`).digest().readUInt32BE(0);
 }
 
 
