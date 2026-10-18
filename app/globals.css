@@ -419,3 +419,89 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 
 /* Compact live race HUD: SCORE and TIME only, one row on all screen sizes. */
 .rtw-stage .rtw-hud{grid-template-columns:repeat(2,minmax(0,1fr));max-width:760px}
+
+
+/* Weekly verified scores: compact 3 / 3 / 1 cards, with Sunday centered. */
+.scores-page .scores-weekly-days{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:clamp(.45rem,1.6vw,1rem);
+  align-items:start;
+}
+.scores-page .scores-weekly-days>.scores-table__header{display:none}
+.scores-page .scores-weekly-days>.scores-day-group{min-width:0;width:100%}
+.scores-page .scores-weekly-days>.scores-day-group--sunday{grid-column:2}
+.scores-page .scores-weekly-days .scores-day-button{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:auto auto auto;
+  align-content:center;
+  gap:.45rem .2rem;
+  width:100%;
+  min-width:0;
+  min-height:clamp(112px,17vw,168px)!important;
+  padding:clamp(.55rem,1.8vw,1.1rem)!important;
+  border:1px solid #279bda99;
+  border-radius:18px;
+  background:linear-gradient(145deg,#17446a,#082444 78%);
+  box-shadow:inset 0 1px #a3dfff55,0 9px 22px #0005;
+  text-align:left;
+}
+.scores-page .scores-weekly-days .scores-day-label{
+  grid-column:1/-1;
+  font-size:clamp(.82rem,1.8vw,1.2rem);
+  line-height:1.15;
+  font-style:italic;
+  font-weight:900;
+  letter-spacing:.025em;
+  white-space:nowrap;
+  overflow:visible;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+.scores-page .scores-weekly-days .scores-day-count{
+  grid-column:1/-1;
+  font-size:clamp(.7rem,1.6vw,.95rem);
+  white-space:nowrap;
+}
+.scores-page .scores-weekly-days .scores-day-points{
+  grid-column:2;
+  grid-row:3;
+  justify-self:end;
+  align-self:center;
+  min-width:0;
+  font-size:clamp(.76rem,1.8vw,1.15rem);
+  overflow-wrap:anywhere;
+}
+.scores-page .scores-weekly-days .scores-day-chevron{
+  grid-column:1;
+  grid-row:3;
+  align-self:center;
+  margin:0;
+}
+.scores-page .scores-weekly-days .scores-day-runs{
+  margin:.45rem 0 .2rem;
+  padding:.55rem .35rem;
+  overflow-wrap:anywhere;
+}
+.scores-page .scores-weekly-days .scores-day-run{
+  grid-template-columns:minmax(0,.5fr) minmax(0,1fr);
+  padding:.4rem .2rem;
+  gap:.2rem;
+  font-size:.72rem;
+}
+.scores-page .scores-weekly-days .scores-day-run span:last-child{
+  grid-column:1/-1;
+  text-align:left;
+}
+@media(max-width:600px){
+  .scores-page .scores-weekly-days{gap:.55rem}
+  .scores-page .scores-weekly-days .scores-day-button{
+    min-height:118px!important;
+    padding:.65rem .5rem!important;
+    border-radius:15px;
+  }
+  .scores-page .scores-weekly-days .scores-day-label{font-size:.85rem}
+  .scores-page .scores-weekly-days .scores-day-count{font-size:.72rem}
+  .scores-page .scores-weekly-days .scores-day-points{font-size:.78rem}
+}
