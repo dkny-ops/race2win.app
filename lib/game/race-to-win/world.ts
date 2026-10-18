@@ -123,7 +123,7 @@ export class RaceToWinWorld {
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
-    for (let index = 0; index < 20; index += 1) {
+    for (let index = 0; index < 30; index += 1) {
       const coin = new THREE.Mesh(this.coinGeometry, this.coinMaterial);
       coin.rotation.x = Math.PI / 2;
       this.cosmeticCoins.push(coin);
@@ -278,17 +278,35 @@ export class RaceToWinWorld {
   }
 
   private updateCosmeticCoins(snapshot: RaceToWinSnapshot): void {
+    // Visual-only Subway Surfers-style chains: ten close coins in one lane,
+    // with long empty stretches between groups. Never alter simulation or score.
     const distance = snapshot.metrics.distanceMeters;
-    const firstSlot = Math.floor(distance / 24);
-    for (let index = 0; index < this.cosmeticCoins.length; index += 1) {
-      const slot = firstSlot + index + 1;
-      const relative = slot * 24 - distance;
-      const coin = this.cosmeticCoins[index]!;
-      coin.visible = snapshot.state === "running" && relative > 3 && relative < 205;
-      if (!coin.visible) continue;
-      const lane = ((slot * 7 + Math.floor(slot / 4)) % 3) - 1;
-      coin.position.set(lane * 3.4, 1.25 + Math.sin(distance * 0.05 + slot) * 0.1, -relative);
-      coin.rotation.y = distance * 0.07 + slot * 0.6;
+    const groupSpacing = 185;
+    const coinSpacing = 2.6;
+    const firstGroup = Math.floor(distance / groupSpacing);
+    const laneXs = [-5, 0, 5] as const;
+    for (let groupIndex = 0; groupIndex < 3; groupIndex += 1) {
+      const groupNumber = firstGroup + groupIndex + 1;
+      const startDistance = groupNumber * groupSpacing + 20;
+      const firstRelative = startDistance - distance;
+      const preferredLane = ((groupNumber * 7 + 1) % 3);
+      // Choose a lane where the full ten-coin corridor is free of visible traffic.
+      // If none fits, skip this group rather than place coins through a car.
+      const lane = [preferredLane, (preferredLane + 1) % 3, (preferredLane + 2) % 3].find(candidate =>
+        !snapshot.traffic.some(vehicle =>
+          Math.abs(vehicle.laneX - laneXs[candidate]!) < 1.5 &&
+          vehicle.relativeDistance >= firstRelative - 7 &&
+          vehicle.relativeDistance <= firstRelative + 9 * coinSpacing + 7
+        )
+      );
+      for (let coinIndex = 0; coinIndex < 10; coinIndex += 1) {
+        const coin = this.cosmeticCoins[groupIndex * 10 + coinIndex]!;
+        const relative = firstRelative + coinIndex * coinSpacing;
+        coin.visible = snapshot.state === "running" && lane !== undefined && relative > 3 && relative < 205;
+        if (!coin.visible) continue;
+        coin.position.set(laneXs[lane]!, 1.25 + Math.sin(distance * 0.05 + coinIndex) * 0.08, -relative);
+        coin.rotation.y = distance * 0.07 + coinIndex * 0.15;
+      }
     }
   }
 
