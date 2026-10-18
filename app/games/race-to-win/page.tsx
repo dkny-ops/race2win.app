@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { RaceToWinGame } from "@/components/game/race-to-win/race-to-win-game";
 import { ROUTES } from "@/lib/routes";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
   title: "Race To Win",
@@ -17,6 +18,9 @@ export default async function RaceToWinGamePage() {
   const { data: profile, error } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
   if (error) throw new Error("Unable to verify player profile.");
   if (!profile?.username) redirect(ROUTES.profile);
+  const { data: consent, error: consentError } = await createAdminClient().from("player_terms_acceptances").select("terms_version").eq("player_id", context.userId).maybeSingle();
+  if (consentError) throw new Error("Unable to verify tournament eligibility.");
+  if (consent?.terms_version !== "2026-10-18") redirect("/terms/accept");
   const authenticated = true;
   return (
     <main className="rtw-game-page">
