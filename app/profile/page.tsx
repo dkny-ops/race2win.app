@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { ClaimablePrizes } from "@/components/prizes/claimable-prizes";
 import { ProfileForm } from "./profile-form";
 import { ROUTES } from "@/lib/routes";
@@ -11,5 +12,5 @@ export default async function ProfilePage() {
   const context = await getVerifiedUserContext();
   if (!context) redirect(ROUTES.signIn);
 
-  return <section className="page-section player-profile-page"><div className="narrow"><div className="profile-stack"><ProfileForm nextPath={ROUTES.raceToWinGame} /><ClaimablePrizes /></div></div></section>;
+  return <section className="page-section player-profile-page"><div className="narrow"><nav aria-label="Profile navigation" style={{ marginBottom: "1.25rem" }}><Link className="rtw-page-control" href={ROUTES.home}>← BACK TO HOME</Link></nav><div className="profile-stack"><ProfileForm nextPath={ROUTES.raceToWinGame} /><ClaimablePrizes /></div></div></section>;
 }
