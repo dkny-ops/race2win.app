@@ -111,12 +111,12 @@ export function LeaderboardTable() {
             <button className={`scores-day-button scores-table__row${selectedDay === day ? " scores-day-button--active" : ""}`} type="button" aria-expanded={selectedDay === day} aria-controls={`daily-runs-${i}`} onClick={() => setSelectedDay(selectedDay === day ? null : day)}>
               <strong className="scores-day-label">{weekdays[i]}</strong><span className="scores-day-count">{runsForDay(day).length} / 7</span><strong className="scores-day-points">{(totals.get(day) ?? 0).toLocaleString()}</strong><span className="scores-day-chevron" aria-hidden="true">{selectedDay === day ? "▴" : "▾"}</span>
             </button>
-            {selectedDay === day ? <div className="scores-day-runs" id={`daily-runs-${i}`}>
-              <p className="scores-day-runs__title">{day} · TOP 7 VERIFIED SCORES</p>
-              {runsForDay(day).length ? runsForDay(day).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span>VERIFIED</span></div>) : <p className="muted">No verified scores for this day.</p>}
-            </div> : null}
+
           </div>)}
-        </div><div className="scores-ranking-total"><span>WEEKLY TOTAL</span><strong>{(personal?.weeklyTotal ?? 0).toLocaleString()}</strong></div></>}
+        </div>{selectedDay && days.includes(selectedDay) ? <div className="scores-day-runs scores-weekly-expanded" id={`daily-runs-${days.indexOf(selectedDay)}`}>
+          <p className="scores-day-runs__title">{selectedDay} · TOP 7 VERIFIED SCORES</p>
+          {runsForDay(selectedDay).length ? runsForDay(selectedDay).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span>VERIFIED</span></div>) : <p className="muted">No verified scores for this day.</p>}
+        </div> : null}<div className="scores-ranking-total"><span>WEEKLY TOTAL</span><strong>{(personal?.weeklyTotal ?? 0).toLocaleString()}</strong></div></>}
     </section>
   </div>;
 }
