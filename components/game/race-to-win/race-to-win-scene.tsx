@@ -65,6 +65,26 @@ export function RaceToWinScene() {
   const [officialOutcome, setOfficialOutcome] = useState<OfficialOutcome | null>(null);
   const [runNotice, setRunNotice] = useState<string | null>(null);
 
+  const [opportunities, setOpportunities] = useState<{remaining:number;resetAt:string} | null>(null);
+  const [opportunitiesError, setOpportunitiesError] = useState(false);
+  const refreshOpportunities = useCallback(async () => {
+    try {
+      const response = await fetch("/api/game-sessions/opportunities", { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) throw new Error("unavailable");
+      const data = await response.json() as { remaining: number; resetAt: string };
+      if (!Number.isInteger(data.remaining) || data.remaining < 0 || data.remaining > 5 || !Number.isFinite(Date.parse(data.resetAt))) throw new Error("invalid");
+      setOpportunities({ remaining: data.remaining, resetAt: data.resetAt });
+      setOpportunitiesError(false);
+    } catch { setOpportunitiesError(true); }
+  }, []);
+  useEffect(() => {
+    void refreshOpportunities();
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void refreshOpportunities(); }, 15000);
+    const focus = () => { void refreshOpportunities(); };
+    window.addEventListener("focus", focus);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", focus); };
+  }, [refreshOpportunities]);
+
   const setState = useCallback((next: ScreenState) => { screenStateRef.current = next; setScreenState(next); }, []);
   const cancelCountdown = useCallback(() => { if (countdownTimerRef.current !== null) { window.clearTimeout(countdownTimerRef.current); countdownTimerRef.current = null; } }, []);
   const cancelGameOverReturn = useCallback(() => { if (gameOverTimerRef.current !== null) { window.clearTimeout(gameOverTimerRef.current); gameOverTimerRef.current = null; } }, []);
@@ -164,6 +184,8 @@ export function RaceToWinScene() {
     try {
       const response = await fetch("/api/game-sessions/start", { method: "POST", credentials: "same-origin" });
       if (response.status === 401) { router.push(`${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`); return; }
+      if (response.status === 429) { await refreshOpportunities(); setRunNotice("No official races left this hour. Come back after the hourly reset."); setState("ready"); return; }
+      if (response.status === 403) { router.push("/terms/accept"); return; }
       const session = response.ok ? parseOfficialSession(await readJson(response)) : null;
       if (!session || session.gameplayVersion !== GAMEPLAY_VERSION) throw new Error("session_rejected");
       // The database returns started_at as the time the session was created,
@@ -173,6 +195,7 @@ export function RaceToWinScene() {
       const serverStartedAtMs = Date.parse(session.startsAt);
       const expiresAtMs = Date.parse(session.expiresAt);
       if (!Number.isFinite(serverStartedAtMs) || !Number.isFinite(expiresAtMs) || serverStartedAtMs >= expiresAtMs || expiresAtMs <= Date.now() + 3_000) throw new Error("session_timing_rejected");
+      void refreshOpportunities();
       const startsAtMs = Date.now() + 3_000;
       officialSessionRef.current = session; nextCheckpointRef.current = 1; simulation.reset(session.seed); setMetrics(simulation.snapshot().metrics); audioRef.current?.play("countdown", { volume: 0.4 }); setState("countdown");
       const tick = () => {
@@ -189,7 +212,7 @@ export function RaceToWinScene() {
     } catch {
       officialSessionRef.current = null; setRunNotice("Official play is unavailable right now. Please try again shortly."); setState("ready");
     }
-  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, router, setState]);
+  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, router, setState, refreshOpportunities]);
 
   const selectExtraLife = useCallback(() => { cancelCountdown(); cancelGameOverReturn(); setState("extra-life"); }, [cancelCountdown, cancelGameOverReturn, setState]);
 
@@ -235,7 +258,14 @@ export function RaceToWinScene() {
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
     <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
     {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div></div> : null}
-    {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><button type="button" className="rtw-action rtw-action--primary" onClick={() => void beginOfficialRun()}>PLAY</button><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
+    {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><button type="button" className="rtw-action rtw-action--primary" disabled={opportunitiesError || !opportunities || opportunities.remaining === 0} onClick={() => void beginOfficialRun()}>PLAY</button><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div><div className="rtw-opportunities" aria-live="polite">
+        <p className="rtw-opportunities__label">HOURLY RACES · {opportunitiesError ? "UNAVAILABLE" : opportunities ? `${opportunities.remaining} / 5 LEFT` : "CHECKING..."}</p>
+        <div className="rtw-opportunities__wheels" aria-label={opportunities ? `${opportunities.remaining} of 5 official races remaining` : "Checking remaining races"}>
+          {Array.from({length:5},(_,i)=><span key={i} className={`rtw-opportunities__wheel${opportunities && i >= opportunities.remaining ? " rtw-opportunities__wheel--spent" : ""}`} aria-hidden="true">◉</span>)}
+        </div>
+        <p className="rtw-opportunities__reset">{opportunities ? `RESETS AT ${new Date(opportunities.resetAt).toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/New_York"})} NEW YORK` : "SERVER-VERIFIED LIMIT"}</p>
+        <button className="rtw-opportunities__ad" type="button" disabled title="Rewarded ads are not connected yet">▶ WATCH AD · +1 RACE <small>COMING SOON</small></button>
+      </div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
     {screenState === "starting" ? <div className="rtw-loading" role="status">PREPARING OFFICIAL SESSION…</div> : null}
     {(screenState === "countdown" || (screenState === "running" && countdown === "GO")) && countdown ? <div className="rtw-countdown" aria-live="assertive">{countdown}</div> : null}
     {screenState === "finalizing" ? <div className="rtw-loading" role="status">VALIDATING RUN…</div> : null}
