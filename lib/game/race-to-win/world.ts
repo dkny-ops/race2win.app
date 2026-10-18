@@ -304,6 +304,7 @@ export class RaceToWinWorld {
         const relative = firstRelative + coinIndex * coinSpacing;
         coin.visible = snapshot.state === "running" && lane !== undefined && relative > 3 && relative < 205;
         if (!coin.visible) continue;
+        if (lane === undefined) continue;
         coin.position.set(laneXs[lane]!, 1.25 + Math.sin(distance * 0.05 + coinIndex) * 0.08, -relative);
         coin.rotation.y = distance * 0.07 + coinIndex * 0.15;
       }
