@@ -105,11 +105,11 @@ export function LeaderboardTable() {
       {personalStatus === "loading" ? <p className="scores-message" role="status">LOADING WEEKLY SCORES…</p>
         : personalStatus === "sign-in" ? <p className="scores-message" role="status">Sign in to see your seven daily totals and weekly score.</p>
         : personalStatus === "unavailable" ? <p className="scores-message" role="status">Your weekly scores are temporarily unavailable.</p>
-        : <><div className="scores-table scores-ranking-table" role="table" aria-label="Your daily top seven totals">
+        : <><div className="scores-table scores-ranking-table scores-weekly-days" role="group" aria-label="Your daily top seven totals">
           <div className="scores-table__header" role="row"><span role="columnheader">DAY</span><span role="columnheader">TOP 7 RUNS</span><span role="columnheader">TOTAL</span></div>
-          {days.map((day, i) => <div className="scores-day-group" key={day}>
+          {days.map((day, i) => <div className={`scores-day-group${i === 6 ? " scores-day-group--sunday" : ""}`} key={day}>
             <button className={`scores-day-button scores-table__row${selectedDay === day ? " scores-day-button--active" : ""}`} type="button" aria-expanded={selectedDay === day} aria-controls={`daily-runs-${i}`} onClick={() => setSelectedDay(selectedDay === day ? null : day)}>
-              <strong>{weekdays[i]} <span className="scores-day-chevron" aria-hidden="true">{selectedDay === day ? "▴" : "▾"}</span></strong><span>{runsForDay(day).length} / 7</span><strong>{(totals.get(day) ?? 0).toLocaleString()}</strong>
+              <strong className="scores-day-label">{weekdays[i]}</strong><span className="scores-day-count">{runsForDay(day).length} / 7</span><strong className="scores-day-points">{(totals.get(day) ?? 0).toLocaleString()}</strong><span className="scores-day-chevron" aria-hidden="true">{selectedDay === day ? "▴" : "▾"}</span>
             </button>
             {selectedDay === day ? <div className="scores-day-runs" id={`daily-runs-${i}`}>
               <p className="scores-day-runs__title">{day} · TOP 7 VERIFIED SCORES</p>
