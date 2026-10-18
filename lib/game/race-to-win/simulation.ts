@@ -5,6 +5,7 @@ import {
   mergeRaceToWinConfig,
 } from "./config";
 import { RaceToWinPrng } from "./prng";
+import { MANUAL_OBSTACLE_PATTERN, MANUAL_TRACK_LENGTH } from "./manual-obstacle-pattern";
 import type {
   CollisionSnapshot,
   DisplayMetrics,
@@ -87,6 +88,7 @@ export class RaceToWinSimulation {
   private nextInputSequence = 0;
   private nextSpawnAtSeconds = 0;
   private nextWaveId = 0;
+  private nextManualObstacleIndex = 0;
   private nextPoolId = 0;
   private activePressurePhase = -1;
   private pressurePhaseWaveIndex = 0;
@@ -122,6 +124,7 @@ export class RaceToWinSimulation {
     this.nextInputSequence = 0;
     this.nextSpawnAtSeconds = this.config.initialSpawnDelaySeconds;
     this.nextWaveId = 0;
+    this.nextManualObstacleIndex = 0;
     this.activePressurePhase = -1;
     this.pressurePhaseWaveIndex = 0;
     this.pressureSafeLaneIndex = 0;
@@ -247,7 +250,8 @@ export class RaceToWinSimulation {
     this.processInputs();
     this.updateLaneTransition(stepMs);
     this.updateTraffic(deltaSeconds);
-    this.spawnDueWaves();
+    if (this.config.gameplayVersion === "rtw-v10") this.spawnManualObstacles();
+    else this.spawnDueWaves();
     this.detectCollision();
   }
 
@@ -326,6 +330,54 @@ export class RaceToWinSimulation {
 
     const activeWaveIds = new Set(this.activeTraffic.map((vehicle) => vehicle.waveId));
     this.activeWaves = this.activeWaves.filter((wave) => activeWaveIds.has(wave.id));
+  }
+
+  /**
+   * Version 10: replayable fixed 50,000-unit track copied from mijuego1.
+   * The source list is manually editable; identical z values form a double.
+   * A safety check skips only waves that would eliminate every reachable path.
+   */
+  private spawnManualObstacles(): void {
+    const pattern = MANUAL_OBSTACLE_PATTERN;
+    const patternLength = pattern.length;
+    while (this.activeTraffic.length < this.config.maxTrafficVehicles) {
+      const index = this.nextManualObstacleIndex;
+      const cycle = Math.floor(index / patternLength);
+      const localIndex = index % patternLength;
+      const entry = pattern[localIndex]!;
+      const worldDistance = -entry.z + cycle * MANUAL_TRACK_LENGTH;
+      const relativeDistance = worldDistance - this.playerDistanceMeters;
+      if (relativeDistance > 205) break;
+      const laneIndices: LaneIndex[] = [entry.lane];
+      let consumed = 1;
+      const next = pattern[localIndex + 1];
+      if (next && next.z === entry.z) {
+        laneIndices.push(next.lane);
+        consumed = 2;
+      }
+      this.nextManualObstacleIndex += consumed;
+      if (relativeDistance < -this.config.despawnBehindMeters) continue;
+      const candidate: TrafficWave = {
+        id: this.nextWaveId,
+        laneIndices,
+        worldDistance,
+        speedMps: 0,
+      };
+      if (!this.hasReachablePath([...this.activeWaves, candidate])) continue;
+      this.nextWaveId += 1;
+      this.activeWaves.push(candidate);
+      for (const selectedLane of laneIndices) {
+        const vehicle = this.acquireTrafficVehicle();
+        vehicle.waveId = candidate.id;
+        vehicle.laneIndex = selectedLane;
+        vehicle.worldDistance = worldDistance;
+        vehicle.speedMps = 0;
+        vehicle.variantIndex = Math.floor(worldDistance / 20) % this.trafficVariantCount;
+        vehicle.isDoubleObstacle = laneIndices.length === 2;
+        vehicle.active = true;
+        this.activeTraffic.push(vehicle);
+      }
+    }
   }
 
   private spawnDueWaves(): void {
