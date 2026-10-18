@@ -72,6 +72,11 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
+  // Rendering only: these coins never affect the verified score.
+  private readonly cosmeticCoins: THREE.Mesh[] = [];
+  private readonly coinGeometry = new THREE.CylinderGeometry(0.48, 0.48, 0.12, 16);
+  private readonly coinMaterial = new THREE.MeshStandardMaterial({ color: "#ffd43b", metalness: 0.65, roughness: 0.24, emissive: "#8c5400", emissiveIntensity: 0.2 });
+
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -118,6 +123,12 @@ export class RaceToWinWorld {
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
+    for (let index = 0; index < 20; index += 1) {
+      const coin = new THREE.Mesh(this.coinGeometry, this.coinMaterial);
+      coin.rotation.x = Math.PI / 2;
+      this.cosmeticCoins.push(coin);
+      this.scene.add(coin);
+    }
     void this.loadOwnedVehicleAssets();
   }
 
@@ -133,6 +144,7 @@ export class RaceToWinWorld {
     this.updateRoad(snapshot.metrics.distanceMeters);
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
+    this.updateCosmeticCoins(snapshot);
     this.updateCamera(snapshot, deltaSeconds);
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
@@ -161,6 +173,9 @@ export class RaceToWinWorld {
     this.roadHaze.dispose();
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
+    for (const coin of this.cosmeticCoins) this.scene.remove(coin);
+    this.coinGeometry.dispose();
+    this.coinMaterial.dispose();
     this.city.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
@@ -259,6 +274,21 @@ export class RaceToWinWorld {
 
     for (const [id, visual] of this.trafficVisuals) {
       if (!visibleIds.has(id)) visual.root.visible = false;
+    }
+  }
+
+  private updateCosmeticCoins(snapshot: RaceToWinSnapshot): void {
+    const distance = snapshot.metrics.distanceMeters;
+    const firstSlot = Math.floor(distance / 24);
+    for (let index = 0; index < this.cosmeticCoins.length; index += 1) {
+      const slot = firstSlot + index + 1;
+      const relative = slot * 24 - distance;
+      const coin = this.cosmeticCoins[index]!;
+      coin.visible = snapshot.state === "running" && relative > 3 && relative < 205;
+      if (!coin.visible) continue;
+      const lane = ((slot * 7 + Math.floor(slot / 4)) % 3) - 1;
+      coin.position.set(lane * 3.4, 1.25 + Math.sin(distance * 0.05 + slot) * 0.1, -relative);
+      coin.rotation.y = distance * 0.07 + slot * 0.6;
     }
   }
 
