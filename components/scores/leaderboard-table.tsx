@@ -4,6 +4,7 @@ import { PendingRun } from "@/components/scores/pending-run";
 
 type Entry = { rank: number; username: string; weeklyTotal: number };
 type Board = { game: { name: string }; tournamentWeek: string; page: number; hasNextPage: boolean; entries: Entry[] };
+type PreviousWeek = { tournamentWeek: string; entries: { rank: number; username: string; weeklyTotal: number; amountCents: number | null; awardStatus: string | null }[] };
 type Personal = { tournamentWeek: string; weeklyTotal: number; dailyTop7: { day: string; rank: number; score: number }[]; pendingRuns?: { sessionId: string; score: number; tournamentDay: string }[] };
 const weekdays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
@@ -20,7 +21,7 @@ function weekDays(week: string): string[] {
 export function LeaderboardTable() {
   const [data, setData] = useState<Board | null>(null);
   const [personal, setPersonal] = useState<Personal | null>(null);
-  const [previousWeek, setPreviousWeek] = useState<Board | null>(null);
+  const [previousWeek, setPreviousWeek] = useState<PreviousWeek | null>(null);
   const [previousWeekError, setPreviousWeekError] = useState(false);
   const [personalStatus, setPersonalStatus] = useState<"loading" | "sign-in" | "unavailable" | "ready">("loading");
   const [page, setPage] = useState(1);
@@ -80,16 +81,9 @@ export function LeaderboardTable() {
     let active = true;
     const loadPreviousWeek = async () => {
       try {
-        const currentResponse = await fetch("/api/leaderboard?page=1&pageSize=1", { cache: "no-store" });
-        if (!currentResponse.ok) throw new Error("Current week unavailable");
-        const current = await currentResponse.json() as Board;
-        const monday = new Date(current.tournamentWeek + "T12:00:00Z");
-        if (Number.isNaN(monday.getTime())) throw new Error("Invalid tournament week");
-        monday.setUTCDate(monday.getUTCDate() - 7);
-        const week = monday.toISOString().slice(0, 10);
-        const response = await fetch(`/api/leaderboard?week=${encodeURIComponent(week)}&page=1&pageSize=3`, { cache: "no-store" });
+        const response = await fetch("/api/leaderboard/last-week", { cache: "no-store" });
         if (!response.ok) throw new Error("Previous week unavailable");
-        const previous = await response.json() as Board;
+        const previous = await response.json() as PreviousWeek;
         if (active) { setPreviousWeek(previous); setPreviousWeekError(false); }
       } catch {
         if (active) setPreviousWeekError(true);
@@ -137,7 +131,7 @@ export function LeaderboardTable() {
           <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
           {previousWeek.entries.map(entry => <div className={`scores-table__row ranking-row ranking-row--${entry.rank}`} role="row" key={entry.rank}>
             <strong role="cell" className="scores-rank-position"><span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
-            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
+            <span role="cell">{entry.username}{entry.amountCents !== null ? <span style={{ marginLeft: "0.5rem", fontWeight: 700 }}>· ${(entry.amountCents / 100).toFixed(2)}</span> : <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}>· PENDING</span>}</span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
           </div>)}
         </div>}
     </section>
