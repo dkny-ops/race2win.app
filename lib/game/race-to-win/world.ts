@@ -72,12 +72,6 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
-  // Rendering only: these coins never affect the verified score.
-  private readonly cosmeticCoins: THREE.Mesh[] = [];
-  private readonly coinGroupLanes = new Map<number, number | null>();
-  private readonly coinGeometry = new THREE.CylinderGeometry(0.48, 0.48, 0.12, 16);
-  private readonly coinMaterial = new THREE.MeshStandardMaterial({ color: "#ffd43b", metalness: 0.65, roughness: 0.24, emissive: "#8c5400", emissiveIntensity: 0.2 });
-
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -124,12 +118,6 @@ export class RaceToWinWorld {
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
-    for (let index = 0; index < 30; index += 1) {
-      const coin = new THREE.Mesh(this.coinGeometry, this.coinMaterial);
-      coin.rotation.x = Math.PI / 2;
-      this.cosmeticCoins.push(coin);
-      this.scene.add(coin);
-    }
     void this.loadOwnedVehicleAssets();
   }
 
@@ -145,7 +133,6 @@ export class RaceToWinWorld {
     this.updateRoad(snapshot.metrics.distanceMeters);
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
-    this.updateCosmeticCoins(snapshot);
     this.updateCamera(snapshot, deltaSeconds);
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
@@ -174,9 +161,6 @@ export class RaceToWinWorld {
     this.roadHaze.dispose();
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
-    for (const coin of this.cosmeticCoins) this.scene.remove(coin);
-    this.coinGeometry.dispose();
-    this.coinMaterial.dispose();
     this.city.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
@@ -275,45 +259,6 @@ export class RaceToWinWorld {
 
     for (const [id, visual] of this.trafficVisuals) {
       if (!visibleIds.has(id)) visual.root.visible = false;
-    }
-  }
-
-  private updateCosmeticCoins(snapshot: RaceToWinSnapshot): void {
-    // Ten coins per group, with stable placement for the entire approach.
-    // These are visual only; no score, collision or server gameplay changes.
-    const distance = snapshot.metrics.distanceMeters;
-    const groupSpacing = 185;
-    const coinSpacing = 2.6;
-    const firstGroup = Math.floor(distance / groupSpacing);
-    const laneXs = [-5, 0, 5] as const;
-    for (const id of this.coinGroupLanes.keys()) {
-      if (id < firstGroup || id > firstGroup + 3) this.coinGroupLanes.delete(id);
-    }
-    for (let groupIndex = 0; groupIndex < 3; groupIndex += 1) {
-      const groupNumber = firstGroup + groupIndex + 1;
-      const startDistance = groupNumber * groupSpacing + 20;
-      const firstRelative = startDistance - distance;
-      if (!this.coinGroupLanes.has(groupNumber) && firstRelative < 205) {
-        const preferred = (groupNumber * 7 + 1) % 3;
-        const lane = [preferred, (preferred + 1) % 3, (preferred + 2) % 3].find(candidate =>
-          !snapshot.traffic.some(vehicle =>
-            Math.abs(vehicle.laneX - laneXs[candidate]!) < 1.5 &&
-            vehicle.relativeDistance >= firstRelative - 7 &&
-            vehicle.relativeDistance <= firstRelative + 9 * coinSpacing + 7
-          )
-        );
-        this.coinGroupLanes.set(groupNumber, lane ?? null);
-      }
-      const lane = this.coinGroupLanes.get(groupNumber);
-      for (let coinIndex = 0; coinIndex < 10; coinIndex += 1) {
-        const coin = this.cosmeticCoins[groupIndex * 10 + coinIndex]!;
-        const relative = firstRelative + coinIndex * coinSpacing;
-        // Keep coins visible until the car has actually passed them.
-        coin.visible = snapshot.state === "running" && lane !== null && lane !== undefined && relative > -2 && relative < 205;
-        if (!coin.visible || lane === null || lane === undefined) continue;
-        coin.position.set(laneXs[lane]!, 1.25 + Math.sin(distance * 0.05 + coinIndex) * 0.08, -relative);
-        coin.rotation.y = distance * 0.07 + coinIndex * 0.15;
-      }
     }
   }
 
