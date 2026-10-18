@@ -615,3 +615,13 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
     font-size:11px;
   }
 }
+
+/* Official hourly attempts and future rewarded-ad slot */
+.rtw-opportunities{display:flex;flex-direction:column;align-items:center;gap:.35rem;margin:.8rem auto .6rem;padding:.75rem .9rem;width:min(100%,330px);border:1px solid rgba(73,220,255,.35);border-radius:15px;background:rgba(4,17,34,.72);text-align:center}
+.rtw-opportunities__label{margin:0;font-size:.78rem;font-weight:900;letter-spacing:.08em;color:#c5f3ff}
+.rtw-opportunities__wheels{display:flex;justify-content:center;gap:clamp(8px,2vw,17px)}
+.rtw-opportunities__wheel{font-size:clamp(24px,5vw,35px);line-height:1;color:#53e0ff;text-shadow:0 0 9px rgba(54,221,255,.65);transition:opacity .2s,color .2s}
+.rtw-opportunities__wheel--spent{color:#59616e;opacity:.4;text-shadow:none}
+.rtw-opportunities__reset{margin:0;color:#a6b6c7;font-size:.65rem;letter-spacing:.045em}
+.rtw-opportunities__ad{margin-top:.35rem;width:100%;padding:.55rem .65rem;border:1px dashed rgba(255,205,72,.65);border-radius:9px;background:rgba(255,185,30,.08);color:#ffda77;font-size:.78rem;font-weight:800;cursor:not-allowed;opacity:.8}
+.rtw-opportunities__ad small{display:block;margin-top:.12rem;font-size:.6rem;letter-spacing:.08em}
