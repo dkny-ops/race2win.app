@@ -33,6 +33,14 @@ export async function POST() {
       return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
     }
 
+    const { data: consent, error: consentError } = await createAdminClient()
+      .from("player_terms_acceptances").select("terms_version")
+      .eq("player_id", userId).maybeSingle();
+    if (consentError) throw consentError;
+    if (consent?.terms_version !== "2026-10-18") {
+      return NextResponse.json({ message: "Accept the Terms of Use before entering official tournaments.", redirectTo: "/terms/accept" }, { status: 403, headers: CACHE });
+    }
+
     // The database serializes the verified player's count-and-insert under an
     // advisory transaction lock, which remains correct across server instances.
     const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v3", {
