@@ -505,3 +505,113 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
   .scores-page .scores-weekly-days .scores-day-count{font-size:.72rem}
   .scores-page .scores-weekly-days .scores-day-points{font-size:.78rem}
 }
+
+
+/* FIX: isolate the seven weekly tiles from the generic leaderboard grid. */
+.scores-page .scores-ranking-panel .scores-weekly-days{
+  display:grid!important;
+  width:100%;
+  min-width:0;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  grid-auto-flow:row;
+  grid-auto-columns:auto;
+  gap:clamp(8px,2vw,16px)!important;
+  align-items:stretch;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days>.scores-day-group{
+  display:block;
+  grid-column:auto;
+  width:100%;
+  min-width:0;
+  max-width:none;
+  min-height:0;
+  overflow:visible;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days>.scores-day-group--sunday{
+  grid-column:2!important;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days .scores-day-button.scores-table__row{
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:8px!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none;
+  height:125px;
+  min-height:125px!important;
+  padding:10px 5px!important;
+  margin:0;
+  text-align:center;
+  overflow:hidden;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days .scores-day-button>*{
+  display:block;
+  position:static;
+  min-width:0;
+  max-width:100%;
+  margin:0;
+  padding:0;
+  text-align:center!important;
+  line-height:1.2;
+  overflow-wrap:normal!important;
+  word-break:normal!important;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days .scores-day-label{
+  font-size:clamp(12px,2.8vw,16px)!important;
+  font-weight:900;
+  white-space:nowrap;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days .scores-day-count{
+  font-size:clamp(11px,2.6vw,14px)!important;
+  white-space:nowrap;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days .scores-day-points{
+  color:#ffdc7a!important;
+  font-size:clamp(12px,2.8vw,17px)!important;
+  font-style:italic;
+  font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere!important;
+}
+.scores-page .scores-ranking-panel .scores-weekly-days .scores-day-chevron{
+  font-size:11px;
+  line-height:1;
+  color:#4bdcff!important;
+}
+.scores-page .scores-weekly-expanded{
+  width:100%;
+  min-width:0;
+  margin:12px 0 0;
+  overflow:hidden;
+}
+.scores-page .scores-weekly-expanded .scores-day-run{
+  display:grid;
+  grid-template-columns:50px minmax(0,1fr) auto;
+  align-items:center;
+  gap:8px;
+  padding:9px 8px;
+  font-size:13px;
+}
+.scores-page .scores-weekly-expanded .scores-day-run span:last-child{
+  grid-column:auto;
+  text-align:right;
+}
+.scores-page .scores-weekly-expanded .scores-day-runs__title{
+  overflow-wrap:normal;
+  word-break:normal;
+}
+@media(max-width:600px){
+  .scores-page .scores-ranking-panel .scores-weekly-days{gap:8px!important}
+  .scores-page .scores-ranking-panel .scores-weekly-days .scores-day-button.scores-table__row{
+    height:115px;
+    min-height:115px!important;
+    padding:9px 3px!important;
+    border-radius:14px;
+  }
+  .scores-page .scores-weekly-expanded .scores-day-run{
+    grid-template-columns:32px minmax(0,1fr) auto;
+    gap:5px;
+    font-size:11px;
+  }
+}
