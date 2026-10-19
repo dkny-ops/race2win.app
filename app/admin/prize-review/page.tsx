@@ -30,7 +30,7 @@ export default async function AdminPrizeReviewPage() {
     .select("id").eq("slug", "race-to-win").maybeSingle();
   if (gameError || !game) throw new Error("Prize review unavailable");
 
-  const [totals, winners, runs, flags] = await Promise.all([
+  const [totals, winners, runs, flags, payouts] = await Promise.all([
     admin.from("weekly_tournament_totals")
       .select("player_id,rank_position,weekly_total_score,tie_break_status")
       .eq("game_id", game.id).eq("tournament_week_start", previousWeek)
@@ -45,8 +45,12 @@ export default async function AdminPrizeReviewPage() {
     admin.from("fraud_flags")
       .select("player_id,severity,status,signal_summary")
       .eq("game_id", game.id).neq("status", "resolved").limit(300),
+    admin.from("payouts")
+      .select("id,player_id,amount_cents,status,requested_at")
+      .in("status", ["requested", "under_review", "approved"])
+      .order("requested_at", { ascending: false }).limit(50),
   ]);
-  if (totals.error || winners.error || runs.error || flags.error) throw new Error("Prize review unavailable");
+  if (totals.error || winners.error || runs.error || flags.error || payouts.error) throw new Error("Prize review unavailable");
 
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
@@ -69,6 +73,11 @@ export default async function AdminPrizeReviewPage() {
         </li>)}</ul>
       </article>;
     })}
+    <h2>Open payout requests (up to 50)</h2>
+    {(payouts.data ?? []).length === 0 ? <p>No open payout requests.</p> : <ul>{(payouts.data ?? []).map((payout) => <li key={payout.id}>
+      Player {payout.player_id.slice(0, 8)} · {money(payout.amount_cents)} · {payout.status} · Request {payout.id}
+    </li>)}</ul>}
+    <p>Requests shown here are not proof of eligibility or authorization to pay. Verify each request before manually paying.</p>
     <p><Link href={ROUTES.home}>Back to home</Link></p>
   </section>;
 }
