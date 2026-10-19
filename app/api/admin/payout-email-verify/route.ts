@@ -1,18 +1,14 @@
+import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { NextResponse } from "next/server";
-import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
-import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { isUuid, NO_STORE_HEADERS, readBoundedJson } from "@/lib/competition/server";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const context = await getVerifiedUserContext();
-    if (!context) return NextResponse.json({ message: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
-    if (!isAdminConfigured()) return NextResponse.json({ message: "Unavailable" }, { status: 503, headers: NO_STORE_HEADERS });
-    const admin = createAdminClient();
-    const { data: allowed, error: gateError } = await admin.rpc("rtw_server_is_active_admin", { p_actor_user_id: context.userId });
-    if (gateError || allowed !== true) return NextResponse.json({ message: "Not found" }, { status: 404, headers: NO_STORE_HEADERS });
+    const authorization = await getAuthorizedPrizeAdmin();
+    if (!authorization) return NextResponse.json({ message: "Not found" }, { status: 404, headers: NO_STORE_HEADERS });
+    const { context, admin } = authorization;
     const body = await readBoundedJson(request);
     if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ message: "Invalid request" }, { status: 400, headers: NO_STORE_HEADERS });
     const value = body as Record<string, unknown>;
