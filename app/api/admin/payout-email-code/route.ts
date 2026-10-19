@@ -22,8 +22,10 @@ export async function POST(request: Request) {
     const { data: account, error: accountError } = await admin.auth.admin.getUserById(payout.player_id);
     if (accountError || !account.user?.email || !account.user.email_confirmed_at)
       return NextResponse.json({ message: "Confirmed registered email required" }, { status: 409, headers: NO_STORE_HEADERS });
+    const secret = process.env.PAYOUT_EMAIL_CODE_SECRET;
+    if (!secret || secret.length < 32) return NextResponse.json({ message: "Verification unavailable" }, { status: 503, headers: NO_STORE_HEADERS });
     const code = String(randomInt(0, 1000000)).padStart(6, "0");
-    const digest = createHmac("sha256", process.env.PAYOUT_EMAIL_CODE_SECRET)
+    const digest = createHmac("sha256", secret)
       .update(payoutId + ":" + code).digest("hex");
     const { data: expiresAt, error } = await admin.rpc("rtw_admin_issue_payout_challenge", {
       p_actor_user_id: context.userId, p_payout_id: payoutId, p_digest: digest,
