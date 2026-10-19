@@ -44,6 +44,18 @@ export default async function AdminPrizeReviewPage() {
   ]);
   if (totals.error || winners.error || flags.error || payouts.error) throw new Error("Prize review unavailable");
 
+  // Read only the server-maintained daily top-seven results; never query all attempts.
+  // A failure here must not take down the working prize-review panel.
+  const dailyTopResult = await admin.from("daily_top_scores")
+    .select("player_id,tournament_day,daily_rank,score")
+    .eq("game_id", game.id)
+    .eq("tournament_week_start", previousWeek)
+    .lte("daily_rank", 7)
+    .order("tournament_day", { ascending: true })
+    .order("daily_rank", { ascending: true })
+    .limit(500);
+  const dailyTopScores = dailyTopResult.error ? null : (dailyTopResult.data ?? []);
+
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
     <h1>Panel de revisión semanal</h1>
@@ -68,6 +80,33 @@ export default async function AdminPrizeReviewPage() {
             <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{playerFlags.length}</p>
           </div>
         </div>
+        <details style={{ marginBottom: "0.85rem" }}>
+          <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
+          {dailyTopScores === null ? <p>No se pudieron cargar las partidas Top 7. El resumen de premios sigue disponible.</p> : (() => {
+            const scores = dailyTopScores.filter((score) => score.player_id === entry.player_id);
+            const days = [...new Set(scores.map((score) => score.tournament_day))];
+            return days.length === 0 ? <p>No hay partidas Top 7 registradas para esta semana.</p> : <div style={{ display: "grid", gap: "0.85rem", marginTop: "0.5rem" }}>
+              {days.map((day) => <div key={day} style={{ border: "1px solid rgba(255,255,255,.18)", borderRadius: 10, padding: "0.75rem" }}>
+                <h3 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>{day}</h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+                    <thead><tr>
+                      <th scope="col" style={{ textAlign: "left", padding: "0.4rem", borderBottom: "1px solid #666" }}>Top</th>
+                      <th scope="col" style={{ textAlign: "right", padding: "0.4rem", borderBottom: "1px solid #666" }}>Puntos</th>
+                    </tr></thead>
+                    <tbody>{scores.filter((score) => score.tournament_day === day).map((score) =>
+                      <tr key={score.daily_rank}>
+                        <td style={{ padding: "0.4rem", borderBottom: "1px solid rgba(255,255,255,.1)" }}>#{score.daily_rank}</td>
+                        <td style={{ padding: "0.4rem", textAlign: "right", borderBottom: "1px solid rgba(255,255,255,.1)" }}>{score.score.toLocaleString("en-US")}</td>
+                      </tr>
+                    )}</tbody>
+                  </table>
+                </div>
+                <p style={{ fontSize: "0.85rem", marginTop: "0.5rem", opacity: 0.8 }}>Total del día: {scores.filter((score) => score.tournament_day === day).reduce((total, score) => total + score.score, 0).toLocaleString("en-US")}</p>
+              </div>)}
+            </div>;
+          })()}
+        </details>
         <details>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.5rem 0" }}>Ver datos de revisión del jugador</summary>
           <div style={{ overflowWrap: "anywhere" }}>
