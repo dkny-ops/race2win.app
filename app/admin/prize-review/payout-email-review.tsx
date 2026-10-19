@@ -4,6 +4,7 @@ import { useState } from "react";
 type RequestRow = { id: string; playerId: string; amountCents: number; status: string };
 export function PayoutEmailReview({ requests }: { requests: RequestRow[] }) {
   const [codes, setCodes] = useState<Record<string, string>>({});
+  const [recipients, setRecipients] = useState<Record<string, string>>({});
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, string>>({});
@@ -32,7 +33,19 @@ export function PayoutEmailReview({ requests }: { requests: RequestRow[] }) {
       <article key={item.id} className="profile-card" style={{ marginTop: "1rem" }}>
         <p>Player {item.playerId.slice(0, 8)} · {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(item.amountCents / 100)} · {item.status}</p>
         <p>Request ID: {item.id}</p>
-        <button type="button" className="button" disabled={busy !== null} onClick={() => void action(item.id, "/api/admin/payout-email-code", { payoutId: item.id })}>GENERATE CODE</button>
+        <button type="button" className="button" disabled={busy !== null} onClick={() => {
+          setBusy(item.id);
+          void fetch("/api/admin/payout-email-recipient?payoutId=" + encodeURIComponent(item.id), { cache: "no-store" })
+            .then(async (response) => {
+              const data = await response.json() as { email?: string; message?: string };
+              if (!response.ok || !data.email) throw new Error(data.message ?? "Recipient unavailable");
+              setRecipients((old) => ({ ...old, [item.id]: data.email as string }));
+            })
+            .catch(() => setMessages((old) => ({ ...old, [item.id]: "Confirmed email unavailable." })))
+            .finally(() => setBusy(null));
+        }}>SHOW REGISTERED EMAIL</button>
+        {recipients[item.id] ? <p>Registered confirmed email: {recipients[item.id]}</p> : null}
+        <button type="button" className="button" disabled={busy !== null || !recipients[item.id]} onClick={() => void action(item.id, "/api/admin/payout-email-code", { payoutId: item.id })}>GENERATE CODE</button>
         {codes[item.id] ? <div>
           <p>Temporary code: <strong>{codes[item.id]}</strong></p>
           <button type="button" className="button" onClick={() => {
