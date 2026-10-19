@@ -24,7 +24,7 @@ export async function GET() {
       logSecurityEvent({ eventType: "prize.claim.rejected", route: "/api/prizes/claimable", requestId, reason: "unauthenticated", status: 401 });
       return NextResponse.json({ message: "Sign in to view prizes." }, { status: 401, headers: NO_STORE_HEADERS });
     }
-    if (!isAdminConfigured()) return NextResponse.json({ claims: [], canContactWhatsApp: false, eligibleBalanceCents: 0 } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
+    if (!isAdminConfigured()) return NextResponse.json({ claims: [], canContactWhatsApp: false, eligibleBalanceCents: 0, pendingReviewCents: 0 } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
 
     const { data, error } = await createAdminClient()
       .from("provisional_winners")
@@ -35,6 +35,14 @@ export async function GET() {
       .gte("claim_deadline_at", new Date().toISOString())
       .order("claim_deadline_at", { ascending: true });
     if (error) throw error;
+
+    const { data: pending, error: pendingError } = await createAdminClient()
+      .from("provisional_winners")
+      .select("amount_cents")
+      .eq("player_id", playerId)
+      .eq("status", "provisional")
+      .eq("allocation_status", "allocated");
+    if (pendingError) throw pendingError;
 
     const { data: balance, error: balanceError } = await createAdminClient()
       .from("prize_balances")
@@ -52,7 +60,8 @@ export async function GET() {
       return [{ id: row.id, awardType: row.award_type, amountCents: row.amount_cents, claimDeadlineAt: row.claim_deadline_at }];
     });
     const availableBalance = safeCents(balance?.available_cents);
-    return NextResponse.json({ claims, canContactWhatsApp: Boolean(getWhatsAppClaimUrl()), eligibleBalanceCents: availableBalance >= 1000 ? availableBalance : 0 } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
+    const pendingReviewCents = (pending ?? []).reduce((sum, row) => sum + safeCents(row.amount_cents), 0);
+    return NextResponse.json({ claims, canContactWhatsApp: Boolean(getWhatsAppClaimUrl()), eligibleBalanceCents: availableBalance, pendingReviewCents } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
   } catch {
     logSecurityEvent({ eventType: "prize.claim.failed", route: "/api/prizes/claimable", requestId, reason: "database_operation_failed", status: 503 });
     return NextResponse.json({ message: "Prize information is unavailable." }, { status: 503, headers: NO_STORE_HEADERS });
