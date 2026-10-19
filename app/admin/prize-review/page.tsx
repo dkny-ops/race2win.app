@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { PayoutEmailReview } from "./payout-email-review";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
@@ -55,7 +56,7 @@ export default async function AdminPrizeReviewPage() {
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
     <h1>Weekly prize review</h1>
-    <p>Week beginning {previousWeek}. No payments, approvals or wallet credits can be triggered from this page.</p>
+    <p>Week beginning {previousWeek}. Email-code generation and owner attestation are available; no payments, approvals or wallet credits can be triggered from this page.</p>
     {(totals.data ?? []).length === 0 ? <p>No ranked players for this week.</p> : (totals.data ?? []).map((entry) => {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
       const playerRuns = (runs.data ?? []).filter((run) => run.player_id === entry.player_id);
@@ -74,9 +75,9 @@ export default async function AdminPrizeReviewPage() {
       </article>;
     })}
     <h2>Open payout requests (up to 50)</h2>
-    {(payouts.data ?? []).length === 0 ? <p>No open payout requests.</p> : <ul>{(payouts.data ?? []).map((payout) => <li key={payout.id}>
-      Player {payout.player_id.slice(0, 8)} · {money(payout.amount_cents)} · {payout.status} · Request {payout.id}
-    </li>)}</ul>}
+    <PayoutEmailReview requests={(payouts.data ?? []).map((p) => ({
+      id: p.id, playerId: p.player_id, amountCents: p.amount_cents, status: p.status,
+    }))} />
     <p>Requests shown here are not proof of eligibility or authorization to pay. Verify each request before manually paying.</p>
     <p><Link href={ROUTES.home}>Back to home</Link></p>
   </section>;
