@@ -47,7 +47,7 @@ export default async function AdminPrizeReviewPage() {
   // Read only the server-maintained daily top-seven results; never query all attempts.
   // A failure here must not take down the working prize-review panel.
   const dailyTopResult = await admin.from("daily_top_scores")
-    .select("player_id,tournament_day,daily_rank,score")
+    .select("player_id,tournament_day,daily_rank,score,validated_run_id")
     .eq("game_id", game.id)
     .eq("tournament_week_start", previousWeek)
     .lte("daily_rank", 7)
@@ -97,7 +97,7 @@ export default async function AdminPrizeReviewPage() {
                     <tbody>{scores.filter((score) => score.tournament_day === day).map((score) =>
                       <tr key={score.daily_rank}>
                         <td style={{ padding: "0.4rem", borderBottom: "1px solid rgba(255,255,255,.1)" }}>#{score.daily_rank}</td>
-                        <td style={{ padding: "0.4rem", textAlign: "right", borderBottom: "1px solid rgba(255,255,255,.1)" }}>{score.score.toLocaleString("en-US")}</td>
+                        <td style={{ padding: "0.4rem", textAlign: "right", borderBottom: "1px solid rgba(255,255,255,.1)" }}><Link href={"/admin/prize-review/runs/" + score.validated_run_id}>{score.score.toLocaleString("en-US")} ↗</Link></td>
                       </tr>
                     )}</tbody>
                   </table>
