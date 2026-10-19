@@ -48,12 +48,6 @@ export default async function AdminPrizeReviewPage() {
   ]);
   if (totals.error || winners.error || runs.error || flags.error) throw new Error("Prize review unavailable");
 
-  const ids = (totals.data ?? []).map((entry) => entry.player_id);
-  const { data: profiles, error: profilesError } = ids.length
-    ? await admin.from("profiles").select("user_id,username").in("user_id", ids)
-    : { data: [], error: null };
-  if (profilesError) throw new Error("Prize review unavailable");
-
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
     <h1>Weekly prize review</h1>
@@ -62,7 +56,7 @@ export default async function AdminPrizeReviewPage() {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
       const playerRuns = (runs.data ?? []).filter((run) => run.player_id === entry.player_id);
       const playerFlags = (flags.data ?? []).filter((flag) => flag.player_id === entry.player_id);
-      const name = (profiles ?? []).find((p) => p.user_id === entry.player_id)?.username ?? "Unknown player";
+      const name = "Player " + entry.player_id.slice(0, 8);
       return <article className="profile-card" key={entry.player_id} style={{ marginTop: "1rem" }}>
         <h2>#{entry.rank_position} · {name}</h2>
         <p>Weekly score: {entry.weekly_total_score} · Tie: {entry.tie_break_status}</p>
