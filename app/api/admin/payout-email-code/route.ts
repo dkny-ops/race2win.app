@@ -20,27 +20,14 @@ export async function POST(request: Request) {
         Object.keys(body).length !== 1 || !isUuid((body as Record<string, unknown>).payoutId))
       return NextResponse.json({ message: "Invalid request" }, { status: 400, headers: NO_STORE_HEADERS });
     const payoutId = (body as { payoutId: string }).payoutId;
-    const { data: payout, error: payoutError } = await admin.from("payouts")
-      .select("id,status").eq("id", payoutId).maybeSingle();
-    if (payoutError || !payout || !["requested", "under_review"].includes(payout.status))
-      return NextResponse.json({ message: "Payout not eligible" }, { status: 409, headers: NO_STORE_HEADERS });
-
-    // Never return a previously issued code. Prevent regeneration until expiry.
-    const { data: existing, error: existingError } = await admin.from("payout_email_challenges")
-      .select("expires_at,verified_at").eq("payout_id", payoutId).maybeSingle();
-    if (existingError) throw existingError;
-    if (existing && (existing.verified_at || Date.parse(existing.expires_at) > Date.now()))
-      return NextResponse.json({ message: "Challenge already issued" }, { status: 409, headers: NO_STORE_HEADERS });
-
     const code = String(randomInt(0, 1000000)).padStart(6, "0");
     const digest = createHmac("sha256", process.env.PAYOUT_EMAIL_CODE_SECRET)
       .update(payoutId + ":" + code).digest("hex");
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-    const { error } = await admin.from("payout_email_challenges").upsert({
-      payout_id: payoutId, code_digest: digest, expires_at: expiresAt,
-      issued_at: new Date().toISOString(), issued_by: context.userId, attempts: 0, verified_at: null,
-    }, { onConflict: "payout_id" });
-    if (error) throw error;
+    const { data: expiresAt, error } = await admin.rpc("rtw_admin_issue_payout_challenge", {
+      p_actor_user_id: context.userId, p_payout_id: payoutId, p_digest: digest,
+    });
+    if (error || typeof expiresAt !== "string")
+      return NextResponse.json({ message: "Challenge unavailable or already active" }, { status: 409, headers: NO_STORE_HEADERS });
     return NextResponse.json({ code, expiresAt, payoutId }, { headers: NO_STORE_HEADERS });
   } catch {
     return NextResponse.json({ message: "Verification unavailable" }, { status: 503, headers: NO_STORE_HEADERS });
