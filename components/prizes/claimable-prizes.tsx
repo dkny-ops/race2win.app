@@ -30,28 +30,6 @@ export function ClaimablePrizes() {
     })();
   }, []);
 
-  async function beginClaim(winnerId: string) {
-    setClaimingId(winnerId);
-    setNotice("");
-    try {
-      const response = await fetch("/api/prizes/claim", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ winnerId }),
-      });
-      const result = await response.json() as { whatsappUrl?: unknown; message?: unknown };
-      if (!response.ok || typeof result.whatsappUrl !== "string") {
-        setNotice(typeof result.message === "string" ? result.message : "Prize claim is unavailable.");
-        return;
-      }
-      window.location.assign(result.whatsappUrl);
-    } catch {
-      setNotice("Prize claim is unavailable.");
-    } finally {
-      setClaimingId(null);
-    }
-  }
-
   async function beginBalanceClaim() {
     setClaimingId("balance");
     setNotice("");
@@ -80,8 +58,7 @@ export function ClaimablePrizes() {
     <p className="profile-warning">MINIMUM WITHDRAWAL · $10.00</p>
     <p className="profile-warning">Your prize is provisional and remains subject to eligibility and fraud review before payment.</p>
     {data.claims.map((claim) => <div className="profile-form" key={claim.id}>
-      <p className="profile-warning">{prizeName(claim.awardType)} · {prizeAmount(claim.amountCents)}</p>
-      {data.canContactWhatsApp ? <button className="button button--primary" type="button" disabled={claimingId !== null} onClick={() => void beginClaim(claim.id)}>{claimingId === claim.id ? "OPENING WHATSAPP..." : "CLAIM VIA WHATSAPP"}</button> : null}
+      <p className="profile-warning">{prizeName(claim.awardType)} · {prizeAmount(claim.amountCents)} · PENDING REVIEW</p>
     </div>)}
     {data.eligibleBalanceCents >= 1000 ? <div className="profile-form">
       <p className="profile-warning">AVAILABLE PRIZE BALANCE · {prizeAmount(data.eligibleBalanceCents)}</p>
