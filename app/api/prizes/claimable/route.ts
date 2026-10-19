@@ -40,7 +40,7 @@ export async function GET() {
       .from("provisional_winners")
       .select("amount_cents")
       .eq("player_id", playerId)
-      .eq("status", "provisional")
+      .in("status", ["provisional", "claim_started", "under_review", "verified"])
       .eq("allocation_status", "allocated");
     if (pendingError) throw pendingError;
 
@@ -60,7 +60,10 @@ export async function GET() {
       return [{ id: row.id, awardType: row.award_type, amountCents: row.amount_cents, claimDeadlineAt: row.claim_deadline_at }];
     });
     const availableBalance = safeCents(balance?.available_cents);
-    const pendingReviewCents = (pending ?? []).reduce((sum, row) => sum + safeCents(row.amount_cents), 0);
+    const pendingReviewCents = (pending ?? []).reduce((sum, row) => {
+      const amount = safeCents(row.amount_cents);
+      return Number.isSafeInteger(sum + amount) ? sum + amount : sum;
+    }, 0);
     return NextResponse.json({ claims, canContactWhatsApp: Boolean(getWhatsAppClaimUrl()), eligibleBalanceCents: availableBalance, pendingReviewCents } satisfies ClaimablePrizeResponse, { headers: NO_STORE_HEADERS });
   } catch {
     logSecurityEvent({ eventType: "prize.claim.failed", route: "/api/prizes/claimable", requestId, reason: "database_operation_failed", status: 503 });
