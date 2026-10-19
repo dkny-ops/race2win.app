@@ -4,10 +4,12 @@ import { SITE_NAME } from "@/content/site";
 import { PRIMARY_NAVIGATION, ROUTES } from "@/lib/routes";
 import { ButtonLink } from "@/components/ui/button-link";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
+import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 
 export async function SiteHeader() {
   let authenticated = false;
   let username: string | null = null;
+  let isPrizeAdmin = false;
 
   try {
       const context = await getVerifiedUserContext();
@@ -19,6 +21,7 @@ export async function SiteHeader() {
           .eq("user_id", context.userId)
           .maybeSingle<{ username: string | null }>();
         username = profile?.username ?? null;
+        isPrizeAdmin = Boolean(await getAuthorizedPrizeAdmin());
       }
     } catch {
       // A transient auth-provider failure must not make the public site unavailable.
@@ -36,12 +39,13 @@ export async function SiteHeader() {
             <Link key={item.href} href={item.href}>{item.label}</Link>
           ))}
         </nav>
-        <div className="header-actions">{authenticated ? <><Link className="profile-link" href={ROUTES.profile} aria-label="Open player profile"><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <ButtonLink href={ROUTES.signIn} variant="text">SIGN IN</ButtonLink>}</div>
+        <div className="header-actions">{isPrizeAdmin ? <Link href="/admin/prize-review">ADMIN PANEL</Link> : null}{authenticated ? <><Link className="profile-link" href={ROUTES.profile} aria-label="Open player profile"><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <ButtonLink href={ROUTES.signIn} variant="text">SIGN IN</ButtonLink>}</div>
         <MobileMenu>
           <nav aria-label="Mobile navigation">
             {PRIMARY_NAVIGATION.map((item) => (
               <Link key={item.href} href={item.href}>{item.label}</Link>
             ))}
+            {isPrizeAdmin ? <Link href="/admin/prize-review">ADMIN PANEL</Link> : null}
             {authenticated ? <><Link className="profile-link" href={ROUTES.profile}><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <Link href={ROUTES.signIn}>SIGN IN</Link>}
           </nav>
         </MobileMenu>
