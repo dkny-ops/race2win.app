@@ -70,11 +70,14 @@ export function ClaimablePrizes() {
     }
   }
 
-  if (!data || (!data.claims.length && data.eligibleBalanceCents < 1000)) return null;
+  if (!data) return null;
 
   return <section className="profile-card" aria-labelledby="claim-prize-title">
     <p className="eyebrow">PRIZE CLAIM</p>
-    <h2 id="claim-prize-title">ELIGIBLE PRIZE</h2>
+    <h2 id="claim-prize-title">MY WALLET</h2>
+    <p className="profile-warning">AVAILABLE BALANCE · {prizeAmount(data.eligibleBalanceCents)}</p>
+    <p className="profile-warning">PENDING REVIEW · {prizeAmount(data.pendingReviewCents)}</p>
+    <p className="profile-warning">MINIMUM WITHDRAWAL · $10.00</p>
     <p className="profile-warning">Your prize is provisional and remains subject to eligibility and fraud review before payment.</p>
     {data.claims.map((claim) => <div className="profile-form" key={claim.id}>
       <p className="profile-warning">{prizeName(claim.awardType)} · {prizeAmount(claim.amountCents)}</p>
@@ -84,6 +87,7 @@ export function ClaimablePrizes() {
       <p className="profile-warning">AVAILABLE PRIZE BALANCE · {prizeAmount(data.eligibleBalanceCents)}</p>
       {data.canContactWhatsApp ? <button className="button button--primary" type="button" disabled={claimingId !== null} onClick={() => void beginBalanceClaim()}>{claimingId === "balance" ? "OPENING WHATSAPP..." : "CLAIM AVAILABLE BALANCE"}</button> : null}
     </div> : null}
+    {data.eligibleBalanceCents < 1000 ? <p className="profile-warning">CLAIM PRIZE unlocks at $10.00 available balance.</p> : null}
     <p className="profile-status" aria-live="polite">{notice}</p>
   </section>;
 }
