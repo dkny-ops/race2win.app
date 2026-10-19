@@ -9,4 +9,5 @@ export type ClaimablePrizeResponse = {
   claims: ClaimablePrize[];
   canContactWhatsApp: boolean;
   eligibleBalanceCents: number;
+  pendingReviewCents: number;
 };
