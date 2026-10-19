@@ -1,8 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
+import { notFound } from "next/navigation";
 import { PayoutEmailReview } from "./payout-email-review";
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { ROUTES } from "@/lib/routes";
 import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
 
@@ -14,13 +13,9 @@ function money(value: number | null) {
 }
 
 export default async function AdminPrizeReviewPage() {
-  const context = await getVerifiedUserContext();
-  if (!context) redirect(ROUTES.signIn);
-  const admin = createAdminClient();
-  const { data: authorized, error: gateError } = await admin.rpc("rtw_server_is_active_admin", {
-    p_actor_user_id: context.userId,
-  });
-  if (gateError || authorized !== true) notFound();
+  const authorization = await getAuthorizedPrizeAdmin();
+  if (!authorization) notFound();
+  const { admin } = authorization;
 
   const week = currentNewYorkTournamentWeek();
   const monday = new Date(week + "T12:00:00Z");
