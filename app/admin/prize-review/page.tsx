@@ -35,7 +35,7 @@ export default async function AdminPrizeReviewPage() {
       .select("id,player_id,rank_position,amount_cents,status,allocation_status,award_type")
       .eq("game_id", game.id).eq("tournament_week_start", previousWeek),
     admin.from("validated_runs")
-      .select("player_id,score,elapsed_ms,distance_millimeters,eligibility_status,game_session_id")
+      .select("player_id,score,elapsed_ms,distance_millimeters,eligibility_status,game_session_id,extra_life_used,score_multiplier")
       .eq("game_id", game.id).eq("tournament_week_start", previousWeek)
       .order("score", { ascending: false }).limit(300),
     admin.from("fraud_flags")
