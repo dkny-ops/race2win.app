@@ -21,9 +21,20 @@ export async function POST(request: Request) {
     let {data:award,error:awardError} = await auth.admin.from("provisional_winners").select("id,status,allocation_status,amount_cents").eq("game_id",game.id).eq("tournament_week_start",week).eq("player_id",b.playerId).eq("award_type","weekly_tournament").maybeSingle();
     if (awardError) throw awardError;
     if (!award) {
-      const generated = await auth.admin.rpc("rtw_generate_provisional_winners",{p_actor_user_id:auth.context.userId,p_game_slug:"race-to-win",p_week_start:week});
-      if (generated.error) throw generated.error;
-      const found = await auth.admin.from("provisional_winners").select("id,status,allocation_status,amount_cents").eq("game_id",game.id).eq("tournament_week_start",week).eq("player_id",b.playerId).eq("award_type","weekly_tournament").maybeSingle();
+      const deadline = new Date(week + "T12:00:00Z");
+      deadline.setUTCDate(deadline.getUTCDate() + 8);
+      const expectedAmount = rank.rank_position === 1 ? 1500 : rank.rank_position === 2 ? 300 : 200;
+      const inserted = await auth.admin.from("provisional_winners").insert({
+        game_id: game.id, player_id: b.playerId, tournament_week_start: week,
+        award_type: "weekly_tournament", rank_position: rank.rank_position,
+        amount_cents: expectedAmount, allocation_status: "allocated",
+        status: "provisional", claim_deadline_at: deadline.toISOString(),
+      });
+      if (inserted.error && inserted.error.code !== "23505") throw inserted.error;
+      const found = await auth.admin.from("provisional_winners")
+        .select("id,status,allocation_status,amount_cents")
+        .eq("game_id",game.id).eq("tournament_week_start",week)
+        .eq("player_id",b.playerId).eq("award_type","weekly_tournament").maybeSingle();
       if (found.error) throw found.error;
       award = found.data;
     }
