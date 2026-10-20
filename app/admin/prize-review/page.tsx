@@ -59,18 +59,23 @@ export default async function AdminPrizeReviewPage() {
   // Only ranked players (up to three) belong to this weekly winner review.
   const ranked = (totals.data ?? []).filter((entry) => entry.rank_position >= 1 && entry.rank_position <= 3);
   const playerIds = ranked.map((entry) => entry.player_id);
-  const profilesResult = playerIds.length ? await admin.from("profiles").select("user_id,username").in("user_id", playerIds) : null;
-  const profiles = profilesResult && !profilesResult.error ? profilesResult.data ?? [] : [];
-  // Auth email is fetched server-side only, after administrator authorization.
-  const emails = await Promise.all(playerIds.map(async (id) => {
-    const { data, error } = await admin.auth.admin.getUserById(id);
-    return { id, email: !error && data.user?.email_confirmed_at ? data.user.email ?? null : null };
+  // Fetch each winner's profile independently; a missing profile must not hide others.
+  const identitiesList = await Promise.all(playerIds.map(async (id) => {
+    const [profileResult, authResult] = await Promise.all([
+      admin.from("profiles").select("username").eq("user_id", id).maybeSingle(),
+      admin.auth.admin.getUserById(id),
+    ]);
+    const user = authResult.error ? null : authResult.data.user;
+    const metadata = user?.user_metadata;
+    const metadataName = typeof metadata?.username === "string" ? metadata.username.trim() : "";
+    const profileName = typeof profileResult.data?.username === "string" ? profileResult.data.username.trim() : "";
+    return {
+      id,
+      username: profileName || metadataName || null,
+      email: user?.email_confirmed_at ? user.email ?? null : null,
+    };
   }));
-  const identities = new Map(playerIds.map((id) => ({
-    id,
-    username: profiles.find((profile) => profile.user_id === id)?.username ?? null,
-    email: emails.find((entry) => entry.id === id)?.email ?? null,
-  })).map((entry) => [entry.id, entry]));
+  const identities = new Map(identitiesList.map((entry) => [entry.id, entry]));
   const rankedPayouts = (payouts.data ?? []).filter((payout) => playerIds.includes(payout.player_id));
 
   return <section className="page-section shell narrow">
