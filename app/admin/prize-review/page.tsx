@@ -105,7 +105,7 @@ export default async function AdminPrizeReviewPage() {
         </div>
         <h3 style={{ fontSize: "1rem" }}>Verificación manual del correo · Solo propietario</h3>
         <p>Genera un número sin valor monetario y envíalo personalmente al correo confirmado del jugador.</p>
-        <OwnerEmailCode playerId={entry.player_id} />
+        <OwnerEmailCode playerId={entry.player_id} winnerId={winner?.id} />
         <details style={{ marginBottom: "0.85rem" }}>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
           {dailyTopScores === null ? <p>No se pudieron cargar las partidas Top 7. El resumen de premios sigue disponible.</p> : (() => {
