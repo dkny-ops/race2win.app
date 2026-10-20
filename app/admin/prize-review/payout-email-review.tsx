@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-type RequestRow = { id: string; playerId: string; amountCents: number; status: string };
+type RequestRow = { id: string; playerId: string; amountCents: number; status: string; username: string | null; email: string | null };
 export function PayoutEmailReview({ requests }: { requests: RequestRow[] }) {
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [recipients, setRecipients] = useState<Record<string, string>>({});
@@ -31,8 +31,8 @@ export function PayoutEmailReview({ requests }: { requests: RequestRow[] }) {
   return <div>
     {requests.length === 0 ? <p>No open payout requests.</p> : requests.map((item) =>
       <article key={item.id} className="profile-card" style={{ marginTop: "1rem" }}>
-        <p>Player {item.playerId.slice(0, 8)} · {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(item.amountCents / 100)} · {item.status}</p>
-        <p>Request ID: {item.id}</p>
+        <p>{item.username || "Player " + item.playerId.slice(0, 8)} · {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(item.amountCents / 100)} · {item.status}</p>
+        <p><strong>Usuario:</strong> {item.username || "No registrado"}</p>\n        <p><strong>Correo confirmado:</strong> {item.email || "No disponible / sin confirmar"}</p>\n        <p>Request ID: {item.id}</p>
         <button type="button" className="button" disabled={busy !== null} onClick={() => {
           setBusy(item.id);
           void fetch("/api/admin/payout-email-recipient?payoutId=" + encodeURIComponent(item.id), { cache: "no-store" })
