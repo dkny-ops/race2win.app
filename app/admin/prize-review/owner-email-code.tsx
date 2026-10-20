@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-export function OwnerEmailCode({ winnerId }: { playerId: string; winnerId?: string }) {
+export function OwnerEmailCode({ winnerId, playerId, alreadyPaid = false }: { playerId: string; winnerId?: string; alreadyPaid?: boolean }) {
   const [code, setCode] = useState("");
-  const [closed, setClosed] = useState(false);
+  const [closed, setClosed] = useState(alreadyPaid);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   function generateCode() {
@@ -12,13 +12,13 @@ export function OwnerEmailCode({ winnerId }: { playerId: string; winnerId?: stri
     setMessage("");
   }
   async function confirmPayment() {
-    if (!winnerId || busy || closed) return;
+    if (busy || closed) return;
     if (!window.confirm("¿Confirmas que YA PAGASTE a este ganador? Esto desactivará su botón de WhatsApp.")) return;
     setBusy(true);
     try {
       const response = await fetch("/api/admin/winner-contact-close", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ winnerId, confirmedPaidByOwner: true }), cache: "no-store",
+        body: JSON.stringify({ playerId, confirmedPaidByOwner: true }), cache: "no-store",
       });
       if (!response.ok) throw new Error("Could not confirm payment");
       setClosed(true);
@@ -29,7 +29,7 @@ export function OwnerEmailCode({ winnerId }: { playerId: string; winnerId?: stri
   return <div style={{ display: "grid", gap: "0.65rem", marginBottom: "1rem" }}>
     <button type="button" className="button" onClick={generateCode}>Generar Código</button>
     {code ? <div style={{ padding: "0.75rem", border: "1px solid rgba(255,255,255,.25)", borderRadius: 8, fontSize: "1.4rem", letterSpacing: "0.15em", fontWeight: 700 }} onClick={() => void navigator.clipboard?.writeText(code)} title="Pulsa para copiar el código">{code}</div> : null}
-    <button type="button" className="button" disabled={!winnerId || busy || closed} onClick={() => void confirmPayment()}>{closed ? "Pago exitoso ✓" : busy ? "Guardando..." : "Pago exitoso"}</button>
+    <button type="button" className="button" disabled={busy || closed} onClick={() => void confirmPayment()}>{closed ? "Pago exitoso ✓" : busy ? "Guardando..." : "Pago exitoso"}</button>
     {message ? <p role="status">{message}</p> : null}
   </div>;
 }
