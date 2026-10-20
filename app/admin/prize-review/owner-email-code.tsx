@@ -36,10 +36,11 @@ export function OwnerEmailCode({ winnerId, playerId, alreadyPaid = false }: { pl
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId, confirmedPaidByOwner: true }), cache: "no-store",
       });
-      if (!response.ok) throw new Error("Could not confirm payment");
+      if (!response.ok) { const details = await response.json().catch(() => null) as {message?:string} | null; throw new Error(details?.message || "No se pudo registrar el pago"); }
       setClosed(true);
-      setMessage("WhatsApp desactivado para este ganador.");
-    } catch { setMessage("No se pudo guardar el pago exitoso."); }
+      setMessage("Pago registrado correctamente. El balance disponible quedó en $0.00.");
+      window.location.reload();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo guardar el pago exitoso."); }
     finally { setBusy(false); }
   }
   return <div style={{ display: "grid", gap: "0.65rem", marginBottom: "1rem" }}>
