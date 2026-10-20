@@ -36,6 +36,9 @@ export function ClaimablePrizes() {
         const response = await fetch("/api/prizes/winner-contact", { cache: "no-store" });
         if (!response.ok) return;
         const result = await response.json() as { eligible?: boolean; whatsappUrl?: string; prizeCents?: number };
+        if (result.eligible === true) {
+          setWeeklyPrizeCents(typeof result.prizeCents === "number" && result.prizeCents > 0 ? result.prizeCents : 0);
+        }
         if (result.eligible === true && typeof result.whatsappUrl === "string" && result.whatsappUrl.startsWith("https://wa.me/")) {
           setWinnerContact(result.whatsappUrl);
           setWeeklyPrizeCents(typeof result.prizeCents === "number" && result.prizeCents > 0 ? result.prizeCents : 0);
@@ -46,7 +49,7 @@ export function ClaimablePrizes() {
     })();
   }, []);
 
-  if (!data && !winnerContact) return null;
+  if (!data && !winnerContact && weeklyPrizeCents === 0) return null;
 
   return <section className="profile-card" aria-labelledby="claim-prize-title">
     <p className="eyebrow">PRIZE CLAIM</p>
