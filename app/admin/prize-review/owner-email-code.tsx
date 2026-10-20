@@ -2,10 +2,25 @@
 
 import { useState } from "react";
 
-export function OwnerEmailCode({ playerId }: { playerId: string }) {
+export function OwnerEmailCode({ playerId, winnerId }: { playerId: string; winnerId?: string }) {
   const [code, setCode] = useState("");
   const [compared, setCompared] = useState(false);
   const [message, setMessage] = useState("");
+  const [paidConfirmed, setPaidConfirmed] = useState(false);
+  const [contactClosed, setContactClosed] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function closeContact() {
+    if (!winnerId || !paidConfirmed || busy) return;
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/winner-contact-close", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ winnerId, confirmedPaidByOwner: true }), cache: "no-store" });
+      if (!response.ok) throw new Error("Unable to close contact");
+      setContactClosed(true);
+      setMessage("Contacto WhatsApp desactivado para este ganador. No se modificaron balances ni pagos.");
+    } catch { setMessage("No se pudo desactivar WhatsApp."); }
+    finally { setBusy(false); }
+  }
 
   function generate() {
     const digits = new Uint32Array(1);
@@ -35,6 +50,11 @@ export function OwnerEmailCode({ playerId }: { playerId: string }) {
       </label>
       <p>{compared ? "Cotejo manual marcado en esta pantalla; no se guarda ni autoriza pagos." : "Pendiente de cotejo manual."}</p>
     </> : null}
+    {winnerId ? <div style={{ display: "grid", gap: "0.5rem" }}>
+      <label><input type="checkbox" checked={paidConfirmed} disabled={contactClosed} onChange={(event) => setPaidConfirmed(event.target.checked)} /> Confirmo que YO ya realicé el pago fuera de esta plataforma.</label>
+      <button type="button" className="button" disabled={!paidConfirmed || busy || contactClosed} onClick={() => void closeContact()}>{contactClosed ? "CONTACTO CERRADO" : busy ? "GUARDANDO..." : "CONFIRMAR Y DESACTIVAR WHATSAPP"}</button>
+      <p>Solo cierra el contacto de este premio; no registra un pago contable ni modifica saldos.</p>
+    </div> : null}
     <p role="status" aria-live="polite">{message}</p>
   </div>;
 }
