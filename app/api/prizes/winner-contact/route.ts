@@ -34,7 +34,7 @@ export async function GET() {
     const awardBlocked = Boolean(award && (award.allocation_status !== "allocated" || ["disqualified", "expired"].includes(award.status)));
     const eligible = Boolean(winner && winner.tie_break_status === "resolved" && !alreadyPaid && !awardBlocked);
     const prizeCents = eligible ? (typeof award?.amount_cents === "number" && award.amount_cents > 0 ? award.amount_cents : winner?.rank_position === 1 ? 1500 : winner?.rank_position === 2 ? 300 : winner?.rank_position === 3 ? 200 : 0) : 0;
-    return NextResponse.json({ eligible, prizeCents, whatsappUrl: eligible && whatsappUrl ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json({ eligible, prizeCents, rankPosition: eligible ? winner?.rank_position : null, whatsappUrl: eligible && whatsappUrl ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
   } catch {
     return NextResponse.json({ eligible: false }, { status: 503, headers: NO_STORE_HEADERS });
   }
