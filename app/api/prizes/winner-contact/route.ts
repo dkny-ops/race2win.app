@@ -31,7 +31,8 @@ export async function GET() {
     const { data: contactClosed, error: closureError } = award ? await admin.rpc("rtw_is_winner_contact_closed", { p_winner: award.id }) : { data: false, error: null };
     if (closureError) throw closureError;
     const alreadyPaid = Boolean(award && (award.status === "paid" || award.paid_at !== null || contactClosed === true));
-    const eligible = Boolean(winner && winner.tie_break_status === "resolved" && !alreadyPaid);
+    const awardBlocked = Boolean(award && (award.allocation_status !== "allocated" || ["disqualified", "expired"].includes(award.status)));
+    const eligible = Boolean(winner && winner.tie_break_status === "resolved" && !alreadyPaid && !awardBlocked);
     const prizeCents = eligible ? (typeof award?.amount_cents === "number" && award.amount_cents > 0 ? award.amount_cents : winner?.rank_position === 1 ? 1500 : winner?.rank_position === 2 ? 300 : winner?.rank_position === 3 ? 200 : 0) : 0;
     return NextResponse.json({ eligible, prizeCents, whatsappUrl: eligible && whatsappUrl ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
   } catch {
