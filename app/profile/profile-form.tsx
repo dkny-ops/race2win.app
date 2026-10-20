@@ -3,13 +3,12 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Profile = { username: string | null; paypalEmail: string | null };
+type Profile = { username: string | null };
 
 export function ProfileForm({ nextPath: _nextPath = "/games/race-to-win" }: { nextPath?: string }) {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [username, setUsername] = useState("");
-  const [paypalEmail, setPaypalEmail] = useState("");
   const [acknowledged, setAcknowledged] = useState(false);
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -22,7 +21,6 @@ export function ProfileForm({ nextPath: _nextPath = "/games/race-to-win" }: { ne
         const data = await response.json() as Profile;
         setProfile(data);
         setUsername(data.username ?? "");
-        setPaypalEmail(data.paypalEmail ?? "");
       } catch {
         setNotice("Your profile is unavailable right now. Please try again.");
       }
@@ -42,7 +40,6 @@ export function ProfileForm({ nextPath: _nextPath = "/games/race-to-win" }: { ne
       const updated = data as Profile;
       setProfile(updated);
       setUsername(updated.username ?? "");
-      setPaypalEmail(updated.paypalEmail ?? "");
       setNotice("Saved.");
       router.refresh();
     } catch {
@@ -57,11 +54,6 @@ export function ProfileForm({ nextPath: _nextPath = "/games/race-to-win" }: { ne
     void save({ username, acknowledgeUsername: acknowledged });
   }
 
-  function handlePayPalSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void save({ paypalEmail });
-  }
-
   if (!profile) return <p className="profile-status" aria-live="polite">{notice || "Loading profile…"}</p>;
 
   return <div className="profile-stack">
@@ -70,9 +62,6 @@ export function ProfileForm({ nextPath: _nextPath = "/games/race-to-win" }: { ne
       {profile.username ? <p className="readonly-username profile-player-name">{profile.username}</p> : <form className="profile-form" onSubmit={handleUsernameSubmit} noValidate><p className="profile-warning">Choose carefully. Your username cannot be changed after it is saved.</p><label htmlFor="username">USERNAME</label><input id="username" value={username} onChange={(event) => setUsername(event.target.value)} minLength={3} maxLength={20} autoComplete="nickname" placeholder="RACER_01" required /><label className="acknowledgement"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} required /> <span>I understand this username cannot be changed.</span></label><button className="button button--primary" type="submit" disabled={isSaving}>{isSaving ? "SAVING..." : "SAVE USERNAME"}</button></form>}
     </section>
     {!profile.username ? <p className="profile-warning">Choose your username before playing.</p> : null}
-    <section className="profile-card" aria-labelledby="paypal-title">
-      <p className="eyebrow">PAYOUT DETAILS</p><h2 id="paypal-title">PAYPAL EMAIL</h2><p className="profile-warning">This information is used only for potential prize payouts. Never enter your PayPal password or security codes.</p><form className="profile-form" onSubmit={handlePayPalSubmit} noValidate><label htmlFor="paypal-email">PAYPAL EMAIL</label><input id="paypal-email" type="email" inputMode="email" autoComplete="email" value={paypalEmail} onChange={(event) => setPaypalEmail(event.target.value)} placeholder="you@example.com" /><button className="button button--secondary" type="submit" disabled={isSaving}>{isSaving ? "SAVING..." : "SAVE PAYPAL EMAIL"}</button></form>
-    </section>
     <p className="profile-status" aria-live="polite">{notice}</p>
   </div>;
 }
