@@ -15,7 +15,7 @@ function prizeAmount(cents: number) {
 export function ClaimablePrizes() {
   const [data, setData] = useState<ClaimablePrizeResponse | null>(null);
   const [notice, setNotice] = useState("");
-  const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [winnerContact, setWinnerContact] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -30,23 +30,20 @@ export function ClaimablePrizes() {
     })();
   }, []);
 
-  async function beginBalanceClaim() {
-    setClaimingId("balance");
-    setNotice("");
-    try {
-      const response = await fetch("/api/prizes/balance-claim", { method: "POST" });
-      const result = await response.json() as { whatsappUrl?: unknown; message?: unknown };
-      if (!response.ok || typeof result.whatsappUrl !== "string") {
-        setNotice(typeof result.message === "string" ? result.message : "Prize claim is unavailable.");
-        return;
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await fetch("/api/prizes/winner-contact", { cache: "no-store" });
+        if (!response.ok) return;
+        const result = await response.json() as { eligible?: boolean; whatsappUrl?: string };
+        if (result.eligible === true && typeof result.whatsappUrl === "string" && result.whatsappUrl.startsWith("https://wa.me/")) {
+          setWinnerContact(result.whatsappUrl);
+        }
+      } catch {
+        // Contact is optional and never affects financial state.
       }
-      window.location.assign(result.whatsappUrl);
-    } catch {
-      setNotice("Prize claim is unavailable.");
-    } finally {
-      setClaimingId(null);
-    }
-  }
+    })();
+  }, []);
 
   if (!data) return null;
 
@@ -60,11 +57,10 @@ export function ClaimablePrizes() {
     {data.claims.map((claim) => <div className="profile-form" key={claim.id}>
       <p className="profile-warning">{prizeName(claim.awardType)} · {prizeAmount(claim.amountCents)} · PENDING REVIEW</p>
     </div>)}
-    {data.eligibleBalanceCents >= 1000 ? <div className="profile-form">
-      <p className="profile-warning">AVAILABLE PRIZE BALANCE · {prizeAmount(data.eligibleBalanceCents)}</p>
-      {data.canContactWhatsApp ? <button className="button button--primary" type="button" disabled={claimingId !== null} onClick={() => void beginBalanceClaim()}>{claimingId === "balance" ? "OPENING WHATSAPP..." : "CLAIM AVAILABLE BALANCE"}</button> : null}
+    {winnerContact ? <div className="profile-form">
+      <p className="profile-warning">You finished in the previous tournament's Top 3. Contact the owner to begin manual verification.</p>
+      <a className="button button--primary" href={winnerContact} target="_blank" rel="noopener noreferrer">CONTACT OWNER ON WHATSAPP</a>
     </div> : null}
-    {data.eligibleBalanceCents < 1000 ? <p className="profile-warning">CLAIM PRIZE unlocks at $10.00 available balance.</p> : null}
     <p className="profile-status" aria-live="polite">{notice}</p>
   </section>;
 }
