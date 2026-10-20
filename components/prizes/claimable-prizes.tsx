@@ -14,7 +14,6 @@ function prizeAmount(cents: number) {
 
 export function ClaimablePrizes() {
   const [data, setData] = useState<ClaimablePrizeResponse | null>(null);
-  const [notice, setNotice] = useState("");
   const [winnerContact, setWinnerContact] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,22 +44,21 @@ export function ClaimablePrizes() {
     })();
   }, []);
 
-  if (!data) return null;
+  if (!data && !winnerContact) return null;
 
   return <section className="profile-card" aria-labelledby="claim-prize-title">
     <p className="eyebrow">PRIZE CLAIM</p>
     <h2 id="claim-prize-title">MY WALLET</h2>
-    <p className="profile-warning">AVAILABLE BALANCE · {prizeAmount(data.eligibleBalanceCents)}</p>
-    <p className="profile-warning">PENDING REVIEW · {prizeAmount(data.pendingReviewCents)}</p>
+    <p className="profile-warning">AVAILABLE BALANCE · {prizeAmount(data?.eligibleBalanceCents ?? 0)}</p>
+    <p className="profile-warning">PENDING REVIEW · {prizeAmount(data?.pendingReviewCents ?? 0)}</p>
     <p className="profile-warning">MINIMUM WITHDRAWAL · $10.00</p>
     <p className="profile-warning">Your prize is provisional and remains subject to eligibility and fraud review before payment.</p>
-    {data.claims.map((claim) => <div className="profile-form" key={claim.id}>
+    {(data?.claims ?? []).map((claim) => <div className="profile-form" key={claim.id}>
       <p className="profile-warning">{prizeName(claim.awardType)} · {prizeAmount(claim.amountCents)} · PENDING REVIEW</p>
     </div>)}
     {winnerContact ? <div className="profile-form">
-      <p className="profile-warning">You finished in the previous tournament's Top 3. Contact the owner to begin manual verification.</p>
+      <p className="profile-warning">TOP 3 · Tienes 24 horas desde el cierre del torneo para contactar al propietario y validar tu premio.</p>
       <a className="button button--primary" href={winnerContact} target="_blank" rel="noopener noreferrer">CONTACT OWNER ON WHATSAPP</a>
     </div> : null}
-    <p className="profile-status" aria-live="polite">{notice}</p>
   </section>;
 }
