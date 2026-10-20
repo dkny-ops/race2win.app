@@ -10,7 +10,7 @@ export async function GET() {
     const playerId = await getVerifiedPlayerId();
     if (!playerId) return NextResponse.json({ eligible: false }, { status: 401, headers: NO_STORE_HEADERS });
     const whatsappUrl = getWhatsAppClaimUrl();
-    if (!isAdminConfigured() || !whatsappUrl) return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
+    if (!isAdminConfigured()) return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
     const currentWeek = currentNewYorkTournamentWeek();
     const monday = new Date(currentWeek + "T12:00:00Z");
     monday.setUTCDate(monday.getUTCDate() - 7);
@@ -31,9 +31,9 @@ export async function GET() {
     const { data: contactClosed, error: closureError } = award ? await admin.rpc("rtw_is_winner_contact_closed", { p_winner: award.id }) : { data: false, error: null };
     if (closureError) throw closureError;
     const alreadyPaid = Boolean(award && (award.status === "paid" || award.paid_at !== null || contactClosed === true));
-    const eligible = Boolean(winner && award && winner.tie_break_status !== "tie_pending_review" && !alreadyPaid);
+    const eligible = Boolean(winner && winner.tie_break_status === "resolved" && !alreadyPaid);
     const prizeCents = eligible ? (typeof award?.amount_cents === "number" && award.amount_cents > 0 ? award.amount_cents : winner?.rank_position === 1 ? 1500 : winner?.rank_position === 2 ? 300 : winner?.rank_position === 3 ? 200 : 0) : 0;
-    return NextResponse.json({ eligible, prizeCents, whatsappUrl: eligible ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json({ eligible, prizeCents, whatsappUrl: eligible && whatsappUrl ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
   } catch {
     return NextResponse.json({ eligible: false }, { status: 503, headers: NO_STORE_HEADERS });
   }
