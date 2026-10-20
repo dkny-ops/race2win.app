@@ -16,6 +16,7 @@ export function ClaimablePrizes() {
   const [data, setData] = useState<ClaimablePrizeResponse | null>(null);
   const [winnerContact, setWinnerContact] = useState<string | null>(null);
   const [weeklyPrizeCents, setWeeklyPrizeCents] = useState(0);
+  const [weeklyRank, setWeeklyRank] = useState<number | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -35,8 +36,9 @@ export function ClaimablePrizes() {
       try {
         const response = await fetch("/api/prizes/winner-contact", { cache: "no-store" });
         if (!response.ok) return;
-        const result = await response.json() as { eligible?: boolean; whatsappUrl?: string; prizeCents?: number };
+        const result = await response.json() as { eligible?: boolean; whatsappUrl?: string; prizeCents?: number; rankPosition?: number | null };
         if (result.eligible === true) {
+          setWeeklyRank(result.rankPosition === 1 || result.rankPosition === 2 || result.rankPosition === 3 ? result.rankPosition : null);
           setWeeklyPrizeCents(typeof result.prizeCents === "number" && result.prizeCents > 0 ? result.prizeCents : 0);
         }
         if (result.eligible === true && typeof result.whatsappUrl === "string" && result.whatsappUrl.startsWith("https://wa.me/")) {
@@ -55,7 +57,7 @@ export function ClaimablePrizes() {
     <p className="eyebrow">PRIZE CLAIM</p>
     <h2 id="claim-prize-title">MY WALLET</h2>
     <p className="profile-warning">AVAILABLE BALANCE · {prizeAmount(data?.eligibleBalanceCents ?? 0)}</p>
-    {weeklyPrizeCents > 0 ? <p className="profile-warning">PREMIO TOP 3 POR VALIDAR · {prizeAmount(weeklyPrizeCents)}</p> : null}
+    {weeklyPrizeCents > 0 ? <p className="profile-warning">{weeklyRank === 1 ? "1er lugar" : weeklyRank === 2 ? "2do lugar" : weeklyRank === 3 ? "3er lugar" : "Premio semanal"} · {prizeAmount(weeklyPrizeCents)}</p> : null}
     <p className="profile-warning">PENDING REVIEW · {prizeAmount(data?.pendingReviewCents ?? 0)}</p>
     <p className="profile-warning">MINIMUM WITHDRAWAL · $10.00</p>
     <p className="profile-warning">Your prize is provisional and remains subject to eligibility and fraud review before payment.</p>
