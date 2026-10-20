@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const playerId = await getVerifiedPlayerId();
     if (!playerId) return NextResponse.json({ eligible: false }, { status: 401, headers: NO_STORE_HEADERS });
-    const whatsappUrl = getWhatsAppClaimUrl();
+    const whatsappConfigured = Boolean(getWhatsAppClaimUrl());
     if (!isAdminConfigured()) return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
     const currentWeek = currentNewYorkTournamentWeek();
     const monday = new Date(currentWeek + "T12:00:00Z");
@@ -30,6 +30,9 @@ export async function GET() {
     if (awardError) throw awardError;
     const { data: contactClosed, error: closureError } = award ? await admin.rpc("rtw_is_winner_contact_closed", { p_winner: award.id }) : { data: false, error: null };
     if (closureError) throw closureError;
+    const { data: profile, error: profileError } = await admin.from("profiles").select("username").eq("user_id", playerId).maybeSingle();
+    if (profileError) throw profileError;
+    const whatsappUrl = whatsappConfigured ? getWhatsAppClaimUrl(profile?.username ?? undefined) : null;
     const alreadyPaid = Boolean(award && (award.status === "paid" || award.paid_at !== null || contactClosed === true));
     const awardBlocked = Boolean(award && (award.allocation_status !== "allocated" || ["disqualified", "expired"].includes(award.status)));
     const eligible = Boolean(winner && winner.tie_break_status === "resolved" && !alreadyPaid && !awardBlocked);
