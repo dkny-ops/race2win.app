@@ -28,31 +28,14 @@ export async function POST(request: Request) {
       .select("id,status,paid_at,allocation_status").eq("game_id", game.id).eq("tournament_week_start", week)
       .eq("player_id", b.playerId).eq("award_type", "weekly_tournament").maybeSingle();
     if (awardError) throw awardError;
-    if (!award) {
-      const deadline = new Date(week + "T12:00:00Z");
-      deadline.setUTCDate(deadline.getUTCDate() + 8);
-      const amount = rank.rank_position === 1 ? 1500 : rank.rank_position === 2 ? 300 : 200;
-      const created = await auth.admin.from("provisional_winners").upsert({
-        game_id: game.id, player_id: b.playerId, tournament_week_start: week,
-        award_type: "weekly_tournament", rank_position: rank.rank_position, amount_cents: amount,
-        allocation_status: "allocated", status: "provisional", claim_deadline_at: deadline.toISOString(),
-      }, { onConflict: "game_id,tournament_week_start,award_type,player_id,allocation_revision", ignoreDuplicates: true })
-        .select("id,status,paid_at,allocation_status").maybeSingle();
-      if (created.error) throw created.error;
-      award = created.data;
-      if (!award) {
-        const fetched = await auth.admin.from("provisional_winners").select("id,status,paid_at,allocation_status")
-          .eq("game_id", game.id).eq("tournament_week_start", week).eq("player_id", b.playerId)
-          .eq("award_type", "weekly_tournament").maybeSingle();
-        if (fetched.error) throw fetched.error;
-        award = fetched.data;
-      }
-    }
-    if (!award || award.allocation_status !== "allocated" || ["disqualified", "expired"].includes(award.status))
-      return NextResponse.json({ message: "Award not payable" }, { status: 409, headers: NO_STORE_HEADERS });
-    const { data, error } = await auth.admin.rpc("rtw_owner_close_winner_contact", { p_actor: auth.context.userId, p_winner: award.id });
-    if (error || data !== true) return NextResponse.json({ message: "Could not record payment confirmation" }, { status: 409, headers: NO_STORE_HEADERS });
-    return NextResponse.json({ closed: true, note: "Owner payment confirmation recorded. No money transferred." }, { headers: NO_STORE_HEADERS });
+    if (!award || award.status !== "approved_for_payment" || award.allocation_status !== "allocated")
+      return NextResponse.json({message:"Validate balance before confirming full payment"},{status:409,headers:NO_STORE_HEADERS});
+    const {data:paidCents,error:paymentError} = await auth.admin.rpc("rtw_owner_confirm_full_balance_paid",{
+      p_actor:auth.context.userId,p_player:b.playerId,p_winner:award.id,
+    });
+    if (paymentError || typeof paidCents !== "number")
+      return NextResponse.json({message:"Full balance payment confirmation rejected; check available balance and pending payout requests"},{status:409,headers:NO_STORE_HEADERS});
+    return NextResponse.json({closed:true,paidCents,note:"Full available balance recorded as paid externally"},{headers:NO_STORE_HEADERS});
   } catch {
     return NextResponse.json({ message: "Unavailable" }, { status: 503, headers: NO_STORE_HEADERS });
   }
