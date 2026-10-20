@@ -58,7 +58,6 @@ export function ClaimablePrizes() {
     <h2 id="claim-prize-title">MY WALLET</h2>
     <p className="profile-warning">AVAILABLE BALANCE · {prizeAmount(data?.eligibleBalanceCents ?? 0)}</p>
     {weeklyPrizeCents > 0 ? <p className="profile-warning">{weeklyRank === 1 ? "1er lugar" : weeklyRank === 2 ? "2do lugar" : weeklyRank === 3 ? "3er lugar" : "Premio semanal"} · {prizeAmount(weeklyPrizeCents)}</p> : null}
-    <p className="profile-warning">PENDING REVIEW · {prizeAmount(data?.pendingReviewCents ?? 0)}</p>
     <p className="profile-warning">MINIMUM WITHDRAWAL · $10.00</p>
     <p className="profile-warning">Your prize is provisional and remains subject to eligibility and fraud review before payment.</p>
     {(data?.claims ?? []).map((claim) => <div className="profile-form" key={claim.id}>
