@@ -24,11 +24,13 @@ export async function GET() {
       .gte("rank_position", 1).lte("rank_position", 3).maybeSingle();
     if (error) throw error;
     const { data: award, error: awardError } = await admin.from("provisional_winners")
-      .select("status,paid_at").eq("game_id", game.id)
+      .select("id,status,paid_at").eq("game_id", game.id)
       .eq("tournament_week_start", finishedWeek).eq("player_id", playerId)
       .eq("award_type", "weekly_tournament").maybeSingle();
     if (awardError) throw awardError;
-    const alreadyPaid = Boolean(award && (award.status === "paid" || award.paid_at !== null));
+    const { data: contactClosed, error: closureError } = award ? await admin.rpc("rtw_is_winner_contact_closed", { p_winner: award.id }) : { data: false, error: null };
+    if (closureError) throw closureError;
+    const alreadyPaid = Boolean(award && (award.status === "paid" || award.paid_at !== null || contactClosed === true));
     const eligible = Boolean(winner && winner.tie_break_status !== "tie_pending_review" && !alreadyPaid);
     return NextResponse.json({ eligible, whatsappUrl: eligible ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
   } catch {
