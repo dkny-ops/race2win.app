@@ -18,10 +18,13 @@ export function OwnerEmailCode({ winnerId, playerId, alreadyPaid = false }: { pl
     setBusy(true);
     try {
       const response = await fetch("/api/admin/validate-winner-balance", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({playerId,confirmedReviewed:true}),cache:"no-store"});
-      if (!response.ok) throw new Error("Validation failed");
+      if (!response.ok) {
+        const error = await response.json().catch(() => null) as {message?:string} | null;
+        throw new Error(error?.message || "No se pudo validar el balance");
+      }
       setValidated(true);
       setMessage("Balance validado y acreditado por el servidor.");
-    } catch { setMessage("No se pudo validar el balance. Revisa el estado del premio."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo validar el balance."); }
     finally { setBusy(false); }
   }
   async function confirmPayment() {
