@@ -103,8 +103,8 @@ export default async function AdminPrizeReviewPage() {
             <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{playerFlags.length}</p>
           </div>
         </div>
-        <h3 style={{ fontSize: "1rem" }}>Código de correo y confirmación de pago · Solo propietario</h3>
-        <p>Genera y copia el código para enviarlo tú mismo por correo. Después de pagar personalmente al ganador, confirma el pago para desactivar WhatsApp.</p>
+        <h3 style={{ fontSize: "1rem" }}>Acciones del propietario</h3>
+        <p></p>
         <OwnerEmailCode playerId={entry.player_id} winnerId={winner?.id} />
         <details style={{ marginBottom: "0.85rem" }}>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
