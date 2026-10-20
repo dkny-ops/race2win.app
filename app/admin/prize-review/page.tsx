@@ -82,7 +82,8 @@ export default async function AdminPrizeReviewPage() {
       const playerFlags = (flags.data ?? []).filter((flag) => flag.player_id === entry.player_id);
       const name = identities.get(entry.player_id)?.username || "Usuario no disponible";
       return <article className="profile-card" key={entry.player_id} style={{ marginTop: "1rem", padding: "1.25rem", border: "1px solid rgba(255,255,255,.2)", borderRadius: 14 }}>
-        <h2 style={{ marginBottom: "0.35rem" }}>#{entry.rank_position} · {name}</h2>\n        <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: "1rem" }}>ID de jugador (abreviado): {entry.player_id.slice(0, 8)} · Identificador de cuenta, no puntuación</p>
+        <h2 style={{ marginBottom: "0.35rem" }}>#{entry.rank_position} · {name}</h2>
+        <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: "1rem" }}>ID de jugador (abreviado): {entry.player_id.slice(0, 8)} · Identificador de cuenta, no puntuación</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
           <div style={{ padding: "0.85rem", border: "1px solid rgba(255,255,255,.15)", borderRadius: 10 }}>
             <p style={{ opacity: 0.7, fontSize: "0.8rem" }}>TOTAL SEMANAL</p>
