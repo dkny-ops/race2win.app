@@ -8,13 +8,6 @@ import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin Prize Review", robots: { index: false, follow: false } };
 
-// Verified against the official weekly winners and profiles on 2026-10-19.
-// Read-only fallback for these two existing accounts while production profile lookup is investigated.
-const verifiedWinnerNames: Record<string, string> = {
-  "89565250-aafb-4508-a945-39cb329a5650": "BadBoy",
-  "9a216afd-7447-41d2-a7d0-e701cd579d14": "test1",
-};
-
 function money(value: number | null) {
   return typeof value === "number" ? "$" + (value / 100).toFixed(2) : "Not allocated";
 }
@@ -78,7 +71,7 @@ export default async function AdminPrizeReviewPage() {
     const profileName = typeof profileResult.data?.username === "string" ? profileResult.data.username.trim() : "";
     return {
       id,
-      username: profileName || metadataName || verifiedWinnerNames[id] || null,
+      username: profileName || metadataName || null,
       email: user?.email_confirmed_at ? user.email ?? null : null,
     };
   }));
