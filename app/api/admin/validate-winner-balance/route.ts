@@ -40,8 +40,20 @@ export async function POST(request: Request) {
     }
     const expected = rank.rank_position === 1 ? 1500 : rank.rank_position === 2 ? 300 : 200;
     if (!award || award.allocation_status !== "allocated" || award.amount_cents !== expected || ["disqualified","expired","paid"].includes(award.status)) return NextResponse.json({message:"Prize cannot be validated"},{status:409,headers:NO_STORE_HEADERS});
-    if (award.status !== "approved_for_payment") {
-      const result = await auth.admin.rpc("rtw_admin_transition_winner",{p_actor_user_id:auth.context.userId,p_winner_id:award.id,p_new_status:"approved_for_payment",p_note:"Owner reviewed games and validated wallet balance"});
+    const transitions: Record<string,string[]> = {
+      provisional: ["under_review","verified","approved_for_payment"],
+      claim_started: ["under_review","verified","approved_for_payment"],
+      under_review: ["verified","approved_for_payment"],
+      verified: ["approved_for_payment"],
+      approved_for_payment: [],
+    };
+    const steps = transitions[award.status];
+    if (!steps) return NextResponse.json({message:"Prize state not eligible for validation"},{status:409,headers:NO_STORE_HEADERS});
+    for (const status of steps) {
+      const result = await auth.admin.rpc("rtw_admin_transition_winner",{
+        p_actor_user_id:auth.context.userId,p_winner_id:award.id,
+        p_new_status:status,p_note:"Owner reviewed games and validated wallet balance",
+      });
       if (result.error) throw result.error;
     }
     return NextResponse.json({validated:true,amountCents:expected},{headers:NO_STORE_HEADERS});
