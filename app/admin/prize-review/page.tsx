@@ -86,6 +86,8 @@ export default async function AdminPrizeReviewPage() {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
       const playerFlags = (flags.data ?? []).filter((flag) => flag.player_id === entry.player_id);
       const name = identities.get(entry.player_id)?.username || "Usuario no disponible";
+      const scheduledPrizeCents = entry.rank_position === 1 ? 1500 : entry.rank_position === 2 ? 300 : 200;
+      const playerPayouts = rankedPayouts.filter((payout) => payout.player_id === entry.player_id);
       return <article className="profile-card" key={entry.player_id} style={{ marginTop: "1rem", padding: "1.25rem", border: "1px solid rgba(255,255,255,.2)", borderRadius: 14 }}>
         <h2 style={{ marginBottom: "0.35rem" }}>#{entry.rank_position} · {name}</h2>
         <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: "1rem" }}>ID de jugador (abreviado): {entry.player_id.slice(0, 8)} · Identificador de cuenta, no puntuación</p>
@@ -96,13 +98,16 @@ export default async function AdminPrizeReviewPage() {
           </div>
           <div style={{ padding: "0.85rem", border: "1px solid rgba(255,255,255,.15)", borderRadius: 10 }}>
             <p style={{ opacity: 0.7, fontSize: "0.8rem" }}>PREMIO PROVISIONAL</p>
-            <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{money(winner?.amount_cents ?? null)}</p>
+            <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{money(winner?.amount_cents ?? scheduledPrizeCents)}</p>
           </div>
           <div style={{ padding: "0.85rem", border: "1px solid rgba(255,255,255,.15)", borderRadius: 10 }}>
             <p style={{ opacity: 0.7, fontSize: "0.8rem" }}>ALERTAS ABIERTAS</p>
             <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{playerFlags.length}</p>
           </div>
         </div>
+        <h3 style={{ fontSize: "1rem" }}>Verificación de retiro · Solo propietario</h3>
+        <p>La generación del código requiere una solicitud de retiro válida. No acredita saldo ni ejecuta pagos.</p>
+        <PayoutEmailReview requests={playerPayouts.map((p) => ({ id: p.id, playerId: p.player_id, username: identities.get(p.player_id)?.username ?? null, email: identities.get(p.player_id)?.email ?? null, amountCents: p.amount_cents, status: p.status }))} />
         <details style={{ marginBottom: "0.85rem" }}>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
           {dailyTopScores === null ? <p>No se pudieron cargar las partidas Top 7. El resumen de premios sigue disponible.</p> : (() => {
@@ -134,17 +139,13 @@ export default async function AdminPrizeReviewPage() {
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.5rem 0" }}>Ver datos de revisión del jugador</summary>
           <div style={{ overflowWrap: "anywhere" }}>
             <p><strong>ID de jugador:</strong> <code>{entry.player_id}</code></p>\n            <p><strong>Usuario:</strong> {identities.get(entry.player_id)?.username || "No registrado"}</p>\n            <p><strong>Correo confirmado:</strong> {identities.get(entry.player_id)?.email || "No disponible / sin confirmar"}</p>
-            <p><strong>Estado del premio:</strong> {winner?.status ?? "No generado"}</p>
+            <p><strong>Estado del premio:</strong> {winner?.status ?? "No generado; importe previsto, no acreditado"}</p>
             <p><strong>Desempate:</strong> {entry.tie_break_status}</p>
             {playerFlags.map((flag, index) => <p key={index}><strong>Alerta:</strong> {flag.severity} · {flag.status} · {flag.signal_summary}</p>)}
           </div>
         </details>
       </article>;
     })}
-    <h2>Solicitudes de retiro de ganadores Top 3</h2>\n    <p>Se muestran únicamente solicitudes de jugadores clasificados en el Top 3 de la semana indicada. Si solo hay dos ganadores, aparecerán dos como máximo.</p>
-    <PayoutEmailReview requests={rankedPayouts.map((p) => ({
-      id: p.id, playerId: p.player_id, username: identities.get(p.player_id)?.username ?? null, email: identities.get(p.player_id)?.email ?? null, amountCents: p.amount_cents, status: p.status,
-    }))} />
     <p>Las solicitudes no constituyen autorización de pago. Cada caso requiere revisión humana.</p>
     <p><Link href={ROUTES.home}>Back to home</Link></p>
   </section>;
