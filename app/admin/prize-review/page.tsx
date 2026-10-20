@@ -1,6 +1,6 @@
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { notFound } from "next/navigation";
-import { PayoutEmailReview } from "./payout-email-review";
+import { OwnerEmailCode } from "./owner-email-code";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
 import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
@@ -76,7 +76,6 @@ export default async function AdminPrizeReviewPage() {
     };
   }));
   const identities = new Map(identitiesList.map((entry) => [entry.id, entry]));
-  const rankedPayouts = (payouts.data ?? []).filter((payout) => playerIds.includes(payout.player_id));
 
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
@@ -87,7 +86,6 @@ export default async function AdminPrizeReviewPage() {
       const playerFlags = (flags.data ?? []).filter((flag) => flag.player_id === entry.player_id);
       const name = identities.get(entry.player_id)?.username || "Usuario no disponible";
       const scheduledPrizeCents = entry.rank_position === 1 ? 1500 : entry.rank_position === 2 ? 300 : 200;
-      const playerPayouts = rankedPayouts.filter((payout) => payout.player_id === entry.player_id);
       return <article className="profile-card" key={entry.player_id} style={{ marginTop: "1rem", padding: "1.25rem", border: "1px solid rgba(255,255,255,.2)", borderRadius: 14 }}>
         <h2 style={{ marginBottom: "0.35rem" }}>#{entry.rank_position} · {name}</h2>
         <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: "1rem" }}>ID de jugador (abreviado): {entry.player_id.slice(0, 8)} · Identificador de cuenta, no puntuación</p>
@@ -105,9 +103,9 @@ export default async function AdminPrizeReviewPage() {
             <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{playerFlags.length}</p>
           </div>
         </div>
-        <h3 style={{ fontSize: "1rem" }}>Verificación de retiro · Solo propietario</h3>
-        <p>La generación del código requiere una solicitud de retiro válida. No acredita saldo ni ejecuta pagos.</p>
-        <PayoutEmailReview requests={playerPayouts.map((p) => ({ id: p.id, playerId: p.player_id, username: identities.get(p.player_id)?.username ?? null, email: identities.get(p.player_id)?.email ?? null, amountCents: p.amount_cents, status: p.status }))} />
+        <h3 style={{ fontSize: "1rem" }}>Verificación manual del correo · Solo propietario</h3>
+        <p>Genera un número sin valor monetario y envíalo personalmente al correo confirmado del jugador.</p>
+        <OwnerEmailCode playerId={entry.player_id} />
         <details style={{ marginBottom: "0.85rem" }}>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
           {dailyTopScores === null ? <p>No se pudieron cargar las partidas Top 7. El resumen de premios sigue disponible.</p> : (() => {
