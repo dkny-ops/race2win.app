@@ -5,12 +5,14 @@ import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
 import { FAQS } from "@/content/site";
 import { ROUTES } from "@/lib/routes";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
+import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let username: string | null = null;
   let authenticated = false;
+  const owner = await getAuthorizedPrizeAdmin().catch(() => null);
   try {
       const context = await getVerifiedUserContext();
       if (context) {
@@ -37,7 +39,7 @@ export default async function HomePage() {
             <h1>RACE <em>TO WIN</em></h1>
             <p className="hero-lede">A new competitive racing experience is in development. One track. One chance to own the run.</p>
             <div className="button-row">
-              <PlayGameLink>PLAY</PlayGameLink>{authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>}
+              <PlayGameLink>PLAY</PlayGameLink>{owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}{authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">PROFILE</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">SIGN IN</ButtonLink>}
             </div>
             <p className="play-note">PLAY opens the Race To Win game.</p>
           </div>
