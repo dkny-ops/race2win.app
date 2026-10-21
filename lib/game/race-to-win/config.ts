@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v10";
+export const GAMEPLAY_VERSION = "rtw-v11";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
@@ -142,4 +142,10 @@ export const LEGACY_V8_CONFIG: RaceToWinConfig = Object.freeze({
 export const LEGACY_V9_CONFIG: RaceToWinConfig = Object.freeze({
   ...DEFAULT_RACE_TO_WIN_CONFIG,
   gameplayVersion: "rtw-v9",
+});
+
+/** Keep v10 replay rules for sessions started before the 21-car track. */
+export const LEGACY_V10_CONFIG: RaceToWinConfig = Object.freeze({
+  ...DEFAULT_RACE_TO_WIN_CONFIG,
+  gameplayVersion: "rtw-v10",
 });
