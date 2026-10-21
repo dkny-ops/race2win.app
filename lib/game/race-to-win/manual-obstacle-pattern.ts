@@ -1,9 +1,11 @@
-/** v13 fixed 48-car track: 21 original, three two-car rows, then 21 repeated.
- * Distances in metres from start. lane 0=left, 1=center, 2=right.
- * Same-z entries form a two-car row; historical v11/v12 tracks are archived.
+/** v14: repeat the approved 48-car layout until the distance reached at 60s.
+ * The 60-second cutoff (4277.291m) is derived from the versioned v14 speed
+ * curve at 60Hz. No new obstacles appear beyond this distance.
+ * The base 48-car pattern is preserved in legacy-v13-obstacle-pattern.ts.
  */
 export const MANUAL_TRACK_LENGTH = 50_000;
-export const MANUAL_OBSTACLE_PATTERN: ReadonlyArray<Readonly<{ lane: 0 | 1 | 2; z: number }>> = [
+export const MANUAL_ONE_MINUTE_DISTANCE_METERS = 4277.291085391142;
+const BASE_PATTERN: ReadonlyArray<Readonly<{ lane: 0 | 1 | 2; z: number }>> = [
   { lane: 1, z: -50 },
   { lane: 0, z: -70 },
   { lane: 2, z: -70 },
@@ -53,3 +55,12 @@ export const MANUAL_OBSTACLE_PATTERN: ReadonlyArray<Readonly<{ lane: 0 | 1 | 2; 
   { lane: 0, z: -695 },
   { lane: 2, z: -695 },
 ];
+const REPEAT_DISTANCE_METERS = 665; // next first car at 715m, 20m after last at 695m
+export const MANUAL_OBSTACLE_PATTERN: ReadonlyArray<Readonly<{ lane: 0 | 1 | 2; z: number }>> = Object.freeze(
+  Array.from({ length: Math.ceil(MANUAL_ONE_MINUTE_DISTANCE_METERS / REPEAT_DISTANCE_METERS) })
+    .flatMap((_, cycle) => BASE_PATTERN.map((entry) => Object.freeze({
+      lane: entry.lane,
+      z: entry.z - cycle * REPEAT_DISTANCE_METERS,
+    })))
+    .filter((entry) => -entry.z <= MANUAL_ONE_MINUTE_DISTANCE_METERS),
+);
