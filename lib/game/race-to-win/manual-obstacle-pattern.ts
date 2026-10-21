@@ -1,7 +1,6 @@
-/** Exactly 21 stationary obstacles, manually placed in three repetitions.
- * Distances are measured from the player's start. No obstacles after 330m.
- * lane 0=left, 1=center, 2=right. Shared z values make two-car rows.
- * Versioned v11 authoritative pattern: edit only with a new gameplay version.
+/** v13 fixed 48-car track: 21 original, three two-car rows, then 21 repeated.
+ * Distances in metres from start. lane 0=left, 1=center, 2=right.
+ * Same-z entries form a two-car row; historical v11/v12 tracks are archived.
  */
 export const MANUAL_TRACK_LENGTH = 50_000;
 export const MANUAL_OBSTACLE_PATTERN: ReadonlyArray<Readonly<{ lane: 0 | 1 | 2; z: number }>> = [
@@ -26,4 +25,31 @@ export const MANUAL_OBSTACLE_PATTERN: ReadonlyArray<Readonly<{ lane: 0 | 1 | 2; 
   { lane: 1, z: -310 },
   { lane: 0, z: -330 },
   { lane: 2, z: -330 },
+  { lane: 0, z: -350 },
+  { lane: 1, z: -350 },
+  { lane: 1, z: -375 },
+  { lane: 2, z: -375 },
+  { lane: 0, z: -395 },
+  { lane: 2, z: -395 },
+  { lane: 1, z: -415 },
+  { lane: 0, z: -435 },
+  { lane: 2, z: -435 },
+  { lane: 1, z: -455 },
+  { lane: 1, z: -475 },
+  { lane: 0, z: -495 },
+  { lane: 2, z: -495 },
+  { lane: 1, z: -515 },
+  { lane: 0, z: -535 },
+  { lane: 2, z: -535 },
+  { lane: 1, z: -555 },
+  { lane: 1, z: -575 },
+  { lane: 0, z: -595 },
+  { lane: 2, z: -595 },
+  { lane: 1, z: -615 },
+  { lane: 0, z: -635 },
+  { lane: 2, z: -635 },
+  { lane: 1, z: -655 },
+  { lane: 1, z: -675 },
+  { lane: 0, z: -695 },
+  { lane: 2, z: -695 },
 ];
