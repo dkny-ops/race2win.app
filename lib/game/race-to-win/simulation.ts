@@ -8,6 +8,7 @@ import { RaceToWinPrng } from "./prng";
 import { MANUAL_OBSTACLE_PATTERN, MANUAL_TRACK_LENGTH } from "./manual-obstacle-pattern";
 import { LEGACY_V10_OBSTACLE_PATTERN, LEGACY_V10_TRACK_LENGTH } from "./legacy-v10-obstacle-pattern";
 import { LEGACY_V12_OBSTACLE_PATTERN, LEGACY_V12_TRACK_LENGTH } from "./legacy-v12-obstacle-pattern";
+import { LEGACY_V13_OBSTACLE_PATTERN, LEGACY_V13_TRACK_LENGTH } from "./legacy-v13-obstacle-pattern";
 import type {
   CollisionSnapshot,
   DisplayMetrics,
@@ -252,7 +253,7 @@ export class RaceToWinSimulation {
     this.processInputs();
     this.updateLaneTransition(stepMs);
     this.updateTraffic(deltaSeconds);
-    if (this.config.gameplayVersion === "rtw-v10" || this.config.gameplayVersion === "rtw-v11" || this.config.gameplayVersion === "rtw-v12" || this.config.gameplayVersion === "rtw-v13") this.spawnManualObstacles();
+    if (this.config.gameplayVersion === "rtw-v10" || this.config.gameplayVersion === "rtw-v11" || this.config.gameplayVersion === "rtw-v12" || this.config.gameplayVersion === "rtw-v13" || this.config.gameplayVersion === "rtw-v14") this.spawnManualObstacles();
     else this.spawnDueWaves();
     this.detectCollision();
   }
@@ -342,8 +343,9 @@ export class RaceToWinSimulation {
   private spawnManualObstacles(): void {
     const isLegacyV10 = this.config.gameplayVersion === "rtw-v10";
     const isLegacyV11V12 = this.config.gameplayVersion === "rtw-v11" || this.config.gameplayVersion === "rtw-v12";
-    const pattern = isLegacyV10 ? LEGACY_V10_OBSTACLE_PATTERN : isLegacyV11V12 ? LEGACY_V12_OBSTACLE_PATTERN : MANUAL_OBSTACLE_PATTERN;
-    const trackLength = isLegacyV10 ? LEGACY_V10_TRACK_LENGTH : isLegacyV11V12 ? LEGACY_V12_TRACK_LENGTH : MANUAL_TRACK_LENGTH;
+    const isLegacyV13 = this.config.gameplayVersion === "rtw-v13";
+    const pattern = isLegacyV10 ? LEGACY_V10_OBSTACLE_PATTERN : isLegacyV11V12 ? LEGACY_V12_OBSTACLE_PATTERN : isLegacyV13 ? LEGACY_V13_OBSTACLE_PATTERN : MANUAL_OBSTACLE_PATTERN;
+    const trackLength = isLegacyV10 ? LEGACY_V10_TRACK_LENGTH : isLegacyV11V12 ? LEGACY_V12_TRACK_LENGTH : isLegacyV13 ? LEGACY_V13_TRACK_LENGTH : MANUAL_TRACK_LENGTH;
     const patternLength = pattern.length;
     while (this.activeTraffic.length < this.config.maxTrafficVehicles) {
       const index = this.nextManualObstacleIndex;
@@ -371,7 +373,7 @@ export class RaceToWinSimulation {
       };
       // v12 fixed track must not silently drop manually positioned vehicles.
       // Historical v10/v11 replays retain their original reachability filter.
-      if (this.config.gameplayVersion !== "rtw-v12" && this.config.gameplayVersion !== "rtw-v13" && !this.hasReachablePath([...this.activeWaves, candidate])) continue;
+      if (this.config.gameplayVersion !== "rtw-v12" && this.config.gameplayVersion !== "rtw-v13" && this.config.gameplayVersion !== "rtw-v14" && !this.hasReachablePath([...this.activeWaves, candidate])) continue;
       this.nextWaveId += 1;
       this.activeWaves.push(candidate);
       for (const selectedLane of laneIndices) {
