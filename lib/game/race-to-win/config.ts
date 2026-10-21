@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v13";
+export const GAMEPLAY_VERSION = "rtw-v14";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
@@ -160,4 +160,10 @@ export const LEGACY_V11_CONFIG: RaceToWinConfig = Object.freeze({
 export const LEGACY_V12_CONFIG: RaceToWinConfig = Object.freeze({
   ...DEFAULT_RACE_TO_WIN_CONFIG,
   gameplayVersion: "rtw-v12",
+});
+
+/** Historical v13 replay retains the original 48-car layout. */
+export const LEGACY_V13_CONFIG: RaceToWinConfig = Object.freeze({
+  ...DEFAULT_RACE_TO_WIN_CONFIG,
+  gameplayVersion: "rtw-v13",
 });
