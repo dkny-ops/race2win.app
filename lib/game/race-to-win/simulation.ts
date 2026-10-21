@@ -251,7 +251,7 @@ export class RaceToWinSimulation {
     this.processInputs();
     this.updateLaneTransition(stepMs);
     this.updateTraffic(deltaSeconds);
-    if (this.config.gameplayVersion === "rtw-v10" || this.config.gameplayVersion === "rtw-v11") this.spawnManualObstacles();
+    if (this.config.gameplayVersion === "rtw-v10" || this.config.gameplayVersion === "rtw-v11" || this.config.gameplayVersion === "rtw-v12") this.spawnManualObstacles();
     else this.spawnDueWaves();
     this.detectCollision();
   }
@@ -367,7 +367,9 @@ export class RaceToWinSimulation {
         worldDistance,
         speedMps: 0,
       };
-      if (!this.hasReachablePath([...this.activeWaves, candidate])) continue;
+      // v12 fixed track must not silently drop manually positioned vehicles.
+      // Historical v10/v11 replays retain their original reachability filter.
+      if (this.config.gameplayVersion !== "rtw-v12" && !this.hasReachablePath([...this.activeWaves, candidate])) continue;
       this.nextWaveId += 1;
       this.activeWaves.push(candidate);
       for (const selectedLane of laneIndices) {
