@@ -649,3 +649,16 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .prize-promo__note{margin:.65rem 0 0;color:#d6b983;font-size:.76rem;text-align:center}
 @media(max-width:720px){.hero .hero-grid{min-height:710px}.hero .prize-promo{margin:-35px auto 40px}.prize-promo__inner{min-height:145px;padding:.85rem}.prize-promo__sparkle{right:4%;top:7%;font-size:1.4rem}}
 @media(max-width:420px){.hero .hero-grid{min-height:690px}.hero .prize-promo{width:calc(100% - 2rem);margin:-20px auto 35px}.prize-promo__inner{gap:.6rem}.prize-promo__trophy{font-size:2.5rem}}
+
+
+/* Reference-matched homepage: prize plaque sits 16px below the blue panel. */
+.hero{display:flex;flex-direction:column;align-items:stretch}
+.hero .hero-grid{flex:0 0 auto;min-height:0!important;padding-top:clamp(90px,11vw,130px);padding-bottom:0;display:flex;align-items:flex-start;justify-content:flex-start}
+.hero .hero-copy{padding-top:clamp(1.2rem,4vw,2.2rem);margin:0;max-width:850px}
+.hero .prize-promo{flex:0 0 auto;margin:16px auto 42px!important;width:min(850px,calc(100% - 3rem));max-width:850px}
+.hero .prize-promo__inner{min-height:180px;gap:clamp(1rem,5vw,3rem);border-width:3px;background:radial-gradient(ellipse at 60% 18%,rgba(219,139,19,.42),transparent 68%),linear-gradient(120deg,#100900,#060606 62%,#2d1703);box-shadow:0 0 30px rgba(255,178,28,.5),inset 0 0 30px rgba(255,177,25,.19)}
+.hero .prize-promo__trophy{font-size:clamp(4.5rem,15vw,7.5rem);line-height:1}
+.hero .prize-promo__caption{font-size:clamp(.95rem,4vw,1.6rem)}
+.hero .prize-promo__split{padding:.35rem .7rem;border:1px solid rgba(252,191,61,.65);border-radius:8px}
+.hero .prize-promo__note{margin:.75rem auto 0}
+@media(max-width:720px){.hero .hero-grid{min-height:0!important;padding-top:58px}.hero .hero-copy{padding:1.2rem}.hero .prize-promo{width:calc(100% - 2rem);margin:16px auto 36px!important}.hero .prize-promo__inner{min-height:145px;gap:.7rem}.hero .prize-promo__trophy{font-size:clamp(3.6rem,14vw,5.5rem)}}
