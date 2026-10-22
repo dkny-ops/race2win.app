@@ -12,10 +12,12 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
  const widget = useRef<string | null>(null);
  const chosen = useRef<number | null>(null);
  const latest = useRef<Check | null>(null);
+ const refreshInFlight = useRef(false);
  const currentSession = useRef(sessionId);
  currentSession.current = sessionId;
  const refresh = useCallback(async () => {
-  if (!sessionId) return;
+  if (!sessionId || refreshInFlight.current) return;
+  refreshInFlight.current = true;
   try {
    const response = await fetch("/api/game-sessions/human-check?sessionId=" + encodeURIComponent(sessionId), { credentials: "same-origin", cache: "no-store" });
    if (!response.ok) return;
@@ -23,7 +25,8 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
    if (currentSession.current !== sessionId) return;
    if (typeof body.due !== "boolean" || typeof body.verified !== "boolean") return;
    latest.current = body; setCheck(body);
-  } catch { /* keep driving; server holds unverified results */ }
+  } catch { /* server holds unverified results */ }
+  finally { refreshInFlight.current = false; }
  }, [sessionId]);
  useEffect(() => {
   setCheck(null); latest.current = null; chosen.current = null; setMessage(""); setBusy(false);
