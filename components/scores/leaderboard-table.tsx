@@ -5,7 +5,8 @@ import { PendingRun } from "@/components/scores/pending-run";
 type Entry = { rank: number; username: string; weeklyTotal: number };
 type Board = { game: { name: string }; tournamentWeek: string; page: number; hasNextPage: boolean; entries: Entry[] };
 type PreviousWeek = { tournamentWeek: string; entries: { rank: number; username: string; weeklyTotal: number; amountCents: number | null; awardStatus: string | null }[] };
-type Personal = { tournamentWeek: string; weeklyTotal: number; dailyTop7: { day: string; rank: number; score: number }[]; pendingRuns?: { sessionId: string; score: number; tournamentDay: string }[] };
+type Personal = { tournamentWeek: string; weeklyTotal: number; dailyTop7: { day: string; rank: number; score: number; elapsedMs: number | null }[]; pendingRuns?: { sessionId: string; score: number; tournamentDay: string }[] };
+function formatRunTime(ms: number | null): string { if (ms === null || !Number.isFinite(ms) || ms < 0) return "--:--"; const seconds = Math.floor(ms / 1000); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`; }
 const weekdays = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
 function weekDays(week: string): string[] {
@@ -152,7 +153,7 @@ export function LeaderboardTable() {
           </div>)}
         </div>{selectedDay && days.includes(selectedDay) ? <div className="scores-day-runs scores-weekly-expanded" id={`daily-runs-${days.indexOf(selectedDay)}`}>
           <p className="scores-day-runs__title">{selectedDay} · TOP 7 VERIFIED SCORES</p>
-          {runsForDay(selectedDay).length ? runsForDay(selectedDay).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span>VERIFIED</span></div>) : <p className="muted">No verified scores for this day.</p>}
+          {runsForDay(selectedDay).length ? runsForDay(selectedDay).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span style={{ display: "inline-flex", alignItems: "center", gap: "0.65rem", justifyContent: "flex-end" }}><span aria-label="Verified" title="Verified" style={{ color: "#43dba2", fontSize: "1.25rem", fontWeight: 800 }}>✓</span><span aria-label="Run time"> {formatRunTime(run.elapsedMs)}</span></span></div>) : <p className="muted">No verified scores for this day.</p>}
         </div> : null}<div className="scores-ranking-total"><span>WEEKLY TOTAL</span><strong>{(personal?.weeklyTotal ?? 0).toLocaleString()}</strong></div></>}
     </section>
   </div>;
