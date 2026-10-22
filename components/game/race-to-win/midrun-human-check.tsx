@@ -3,11 +3,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 type Check = { due: boolean; verified: boolean; nonce: string | null; target: number | null; siteKey: string | null };
 const SYMBOLS = ["●", "▲", "■", "★"];
-export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void }) {
+export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void; onTimeout: () => void }) {
  const [check, setCheck] = useState<Check | null>(null);
  const [ready, setReady] = useState(false);
  const [busy, setBusy] = useState(false);
  const [answerRecorded, setAnswerRecorded] = useState(false);
+ const [secondsLeft, setSecondsLeft] = useState(5);
+ const timedOutNonce = useRef<string | null>(null);
  const [message, setMessage] = useState("");
  const container = useRef<HTMLDivElement>(null);
  const widget = useRef<string | null>(null);
@@ -30,13 +32,31 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
   finally { refreshInFlight.current = false; }
  }, [sessionId]);
  useEffect(() => {
-  setCheck(null); latest.current = null; chosen.current = null; setAnswerRecorded(false); setMessage(""); setBusy(false);
+  setCheck(null); latest.current = null; chosen.current = null; timedOutNonce.current = null; setAnswerRecorded(false); setMessage(""); setBusy(false);
   if (!running || !sessionId) return;
   void refresh();
   const timer = window.setInterval(() => { void refresh(); }, 500);
   return () => window.clearInterval(timer);
  }, [sessionId, running, refresh]);
  useEffect(() => { onPauseChange(Boolean(running && sessionId && check?.due && !check.verified)); return () => onPauseChange(false); }, [running, sessionId, check?.due, check?.verified, onPauseChange]);
+ useEffect(() => {
+  if (!running || !check?.due || check.verified || !check.nonce || answerRecorded) return;
+  const nonce = check.nonce;
+  const tick = () => {
+   const due = latest.current;
+   if (!due || due.nonce !== nonce || due.verified) return;
+   // The server remains authoritative; this clock only drives the local display.
+   setSecondsLeft((value) => Math.max(0, value - 0.1));
+  };
+  setSecondsLeft(5);
+  const timer = window.setInterval(tick, 100);
+  const deadline = window.setTimeout(() => {
+   if (timedOutNonce.current === nonce || chosen.current !== null) return;
+   timedOutNonce.current = nonce;
+   onTimeout();
+  }, 5000);
+  return () => { window.clearInterval(timer); window.clearTimeout(deadline); };
+ }, [running, check?.due, check?.verified, check?.nonce, answerRecorded, onTimeout]);
  const onToken = useCallback(async (token: string) => {
   const active = latest.current;
   const choice = chosen.current;
@@ -68,7 +88,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
  if (!running || !sessionId || !check?.due || check.verified) return null;
  return <aside onPointerDown={(event) => event.stopPropagation()} onPointerUp={(event) => event.stopPropagation()} role="group" aria-label="Human verification" style={{ position:"absolute",top:85,left:"50%",transform:"translateX(-50%)",zIndex:30,background:"rgba(0,0,0,.88)",color:"white",padding:12,borderRadius:12,textAlign:"center",maxWidth:"90vw",pointerEvents:"auto" }}>
   <TurnstileScript onReady={() => setReady(true)} onError={() => setMessage("Verification service unavailable")} />
-  <p style={{margin:"0 0 8px"}}>Tap the matching symbol to verify your run</p>
+  <p style={{margin:"0 0 8px"}}>Tap the matching symbol to verify your run · {Math.ceil(secondsLeft)}s</p>
   <p style={{fontSize:22,margin:"0 0 8px"}} aria-label="Target symbol">{SYMBOLS[check.target ?? 0]}</p>
   <div style={{display:"flex",gap:12,justifyContent:"center"}}>
    {SYMBOLS.map((symbol,index)=><button key={index} type="button" disabled={busy || answerRecorded || !check.siteKey || !ready} onClick={() => {
