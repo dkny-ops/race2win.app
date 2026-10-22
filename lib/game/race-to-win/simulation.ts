@@ -1,3 +1,5 @@
+import { v17SpeedAtSeconds } from "./v17-speed";
+import { LEGACY_V16_OBSTACLE_PATTERN, LEGACY_V16_TRACK_LENGTH } from "./legacy-v16-obstacle-pattern";
 import {
   DEFAULT_RACE_TO_WIN_CONFIG,
   TRACK_SEED,
@@ -255,12 +257,13 @@ export class RaceToWinSimulation {
     this.processInputs();
     this.updateLaneTransition(stepMs);
     this.updateTraffic(deltaSeconds);
-    if (this.config.gameplayVersion === "rtw-v10" || this.config.gameplayVersion === "rtw-v11" || this.config.gameplayVersion === "rtw-v12" || this.config.gameplayVersion === "rtw-v13" || this.config.gameplayVersion === "rtw-v14" || this.config.gameplayVersion === "rtw-v15" || this.config.gameplayVersion === "rtw-v16") this.spawnManualObstacles();
+    if (this.config.gameplayVersion === "rtw-v10" || this.config.gameplayVersion === "rtw-v11" || this.config.gameplayVersion === "rtw-v12" || this.config.gameplayVersion === "rtw-v13" || this.config.gameplayVersion === "rtw-v14" || this.config.gameplayVersion === "rtw-v15" || this.config.gameplayVersion === "rtw-v16" || this.config.gameplayVersion === "rtw-v17") this.spawnManualObstacles();
     else this.spawnDueWaves();
     this.detectCollision();
   }
 
   private speedForElapsedTime(): number {
+    if (this.config.gameplayVersion === "rtw-v17") return v17SpeedAtSeconds(this.elapsedSeconds, this.config);
     const progress = clamp(this.elapsedSeconds / this.config.speedRampSeconds, 0, 1);
     // The base curve stays continuous; the fixed, versioned 10% steps mirror
     // the previous game's pace increase without trusting client-reported speed.
@@ -348,8 +351,9 @@ export class RaceToWinSimulation {
     const isLegacyV13 = this.config.gameplayVersion === "rtw-v13";
     const isLegacyV14 = this.config.gameplayVersion === "rtw-v14";
     const isLegacyV15 = this.config.gameplayVersion === "rtw-v15";
-    const pattern = isLegacyV10 ? LEGACY_V10_OBSTACLE_PATTERN : isLegacyV11V12 ? LEGACY_V12_OBSTACLE_PATTERN : isLegacyV13 ? LEGACY_V13_OBSTACLE_PATTERN : isLegacyV14 ? LEGACY_V14_OBSTACLE_PATTERN : isLegacyV15 ? LEGACY_V15_OBSTACLE_PATTERN : MANUAL_OBSTACLE_PATTERN;
-    const trackLength = isLegacyV10 ? LEGACY_V10_TRACK_LENGTH : isLegacyV11V12 ? LEGACY_V12_TRACK_LENGTH : isLegacyV13 ? LEGACY_V13_TRACK_LENGTH : isLegacyV14 ? LEGACY_V14_TRACK_LENGTH : isLegacyV15 ? LEGACY_V15_TRACK_LENGTH : MANUAL_TRACK_LENGTH;
+    const isLegacyV16 = this.config.gameplayVersion === "rtw-v16";
+    const pattern = isLegacyV10 ? LEGACY_V10_OBSTACLE_PATTERN : isLegacyV11V12 ? LEGACY_V12_OBSTACLE_PATTERN : isLegacyV13 ? LEGACY_V13_OBSTACLE_PATTERN : isLegacyV14 ? LEGACY_V14_OBSTACLE_PATTERN : isLegacyV15 ? LEGACY_V15_OBSTACLE_PATTERN : isLegacyV16 ? LEGACY_V16_OBSTACLE_PATTERN : MANUAL_OBSTACLE_PATTERN;
+    const trackLength = isLegacyV10 ? LEGACY_V10_TRACK_LENGTH : isLegacyV11V12 ? LEGACY_V12_TRACK_LENGTH : isLegacyV13 ? LEGACY_V13_TRACK_LENGTH : isLegacyV14 ? LEGACY_V14_TRACK_LENGTH : isLegacyV15 ? LEGACY_V15_TRACK_LENGTH : isLegacyV16 ? LEGACY_V16_TRACK_LENGTH : MANUAL_TRACK_LENGTH;
     const patternLength = pattern.length;
     while (this.activeTraffic.length < this.config.maxTrafficVehicles) {
       const index = this.nextManualObstacleIndex;
@@ -377,7 +381,7 @@ export class RaceToWinSimulation {
       };
       // v12 fixed track must not silently drop manually positioned vehicles.
       // Historical v10/v11 replays retain their original reachability filter.
-      if (this.config.gameplayVersion !== "rtw-v12" && this.config.gameplayVersion !== "rtw-v13" && this.config.gameplayVersion !== "rtw-v14" && this.config.gameplayVersion !== "rtw-v15" && this.config.gameplayVersion !== "rtw-v16" && !this.hasReachablePath([...this.activeWaves, candidate])) continue;
+      if (this.config.gameplayVersion !== "rtw-v12" && this.config.gameplayVersion !== "rtw-v13" && this.config.gameplayVersion !== "rtw-v14" && this.config.gameplayVersion !== "rtw-v15" && this.config.gameplayVersion !== "rtw-v16" && this.config.gameplayVersion !== "rtw-v17" && !this.hasReachablePath([...this.activeWaves, candidate])) continue;
       this.nextWaveId += 1;
       this.activeWaves.push(candidate);
       for (const selectedLane of laneIndices) {
