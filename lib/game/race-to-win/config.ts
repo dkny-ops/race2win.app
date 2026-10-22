@@ -4,7 +4,7 @@
  */
 // Increment whenever an authoritative simulation rule changes. A session is
 // replayed only by the exact version that created it.
-export const GAMEPLAY_VERSION = "rtw-v16";
+export const GAMEPLAY_VERSION = "rtw-v17";
 export const TRACK_SEED = 987_654_321;
 // Retained as an alias so existing consumers keep the versioned replay contract.
 export const RACE_TO_WIN_GAMEPLAY_VERSION = GAMEPLAY_VERSION;
@@ -178,4 +178,10 @@ export const LEGACY_V14_CONFIG: RaceToWinConfig = Object.freeze({
 export const LEGACY_V15_CONFIG: RaceToWinConfig = Object.freeze({
   ...DEFAULT_RACE_TO_WIN_CONFIG,
   gameplayVersion: "rtw-v15",
+});
+
+/** Preserve v16 speed and replay constants before introducing the uncapped v17 schedule. */
+export const LEGACY_V16_CONFIG: RaceToWinConfig = Object.freeze({
+  ...DEFAULT_RACE_TO_WIN_CONFIG,
+  gameplayVersion: "rtw-v16",
 });
