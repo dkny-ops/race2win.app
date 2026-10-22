@@ -1,4 +1,4 @@
-import { GAMEPLAY_VERSION, DEFAULT_RACE_TO_WIN_CONFIG, LEGACY_V7_CONFIG, LEGACY_V8_CONFIG, LEGACY_V9_CONFIG, LEGACY_V10_CONFIG, LEGACY_V11_CONFIG, LEGACY_V12_CONFIG, LEGACY_V13_CONFIG, LEGACY_V14_CONFIG, LEGACY_V15_CONFIG, LEGACY_V16_CONFIG } from "./config";
+import { GAMEPLAY_VERSION, DEFAULT_RACE_TO_WIN_CONFIG, LEGACY_V7_CONFIG, LEGACY_V8_CONFIG, LEGACY_V9_CONFIG, LEGACY_V10_CONFIG, LEGACY_V11_CONFIG, LEGACY_V12_CONFIG, LEGACY_V13_CONFIG, LEGACY_V14_CONFIG, LEGACY_V15_CONFIG, LEGACY_V16_CONFIG, LEGACY_V17_CONFIG } from "./config";
 import { RaceToWinSimulation } from "./simulation";
 import type { LaneInputEvent } from "./types";
 
@@ -25,14 +25,14 @@ export interface AuthoritativeRaceProgress {
  * exists. New sessions are rtw-v7 and use the renewable activity lease.
  */
 export function isAuthoritativeGameplayVersion(value: unknown): value is string {
-  return value === "rtw-v6" || value === "rtw-v7" || value === "rtw-v8" || value === "rtw-v9" || value === "rtw-v10" || value === "rtw-v11" || value === "rtw-v12" || value === "rtw-v13" || value === "rtw-v14" || value === "rtw-v15" || value === "rtw-v16" || value === GAMEPLAY_VERSION;
+  return value === "rtw-v6" || value === "rtw-v7" || value === "rtw-v8" || value === "rtw-v9" || value === "rtw-v10" || value === "rtw-v11" || value === "rtw-v12" || value === "rtw-v13" || value === "rtw-v14" || value === "rtw-v15" || value === "rtw-v16" || value === "rtw-v17" || value === GAMEPLAY_VERSION;
 }
 
 export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceProgress | null {
   if (!isAuthoritativeGameplayVersion(gameplayVersion)) return null;
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff || !Number.isSafeInteger(elapsedCapMs) || elapsedCapMs < 0) return null;
   if (inputs.length > MAX_OFFICIAL_INPUTS) return null;
-  const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6, config: gameplayVersion === GAMEPLAY_VERSION ? undefined : gameplayVersion === "rtw-v16" ? LEGACY_V16_CONFIG : gameplayVersion === "rtw-v15" ? LEGACY_V15_CONFIG : gameplayVersion === "rtw-v14" ? LEGACY_V14_CONFIG : gameplayVersion === "rtw-v13" ? LEGACY_V13_CONFIG : gameplayVersion === "rtw-v12" ? LEGACY_V12_CONFIG : gameplayVersion === "rtw-v11" ? LEGACY_V11_CONFIG : gameplayVersion === "rtw-v10" ? LEGACY_V10_CONFIG : gameplayVersion === "rtw-v9" ? LEGACY_V9_CONFIG : gameplayVersion === "rtw-v8" ? LEGACY_V8_CONFIG : LEGACY_V7_CONFIG });
+  const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6, config: gameplayVersion === GAMEPLAY_VERSION ? undefined : gameplayVersion === "rtw-v17" ? LEGACY_V17_CONFIG : gameplayVersion === "rtw-v16" ? LEGACY_V16_CONFIG : gameplayVersion === "rtw-v15" ? LEGACY_V15_CONFIG : gameplayVersion === "rtw-v14" ? LEGACY_V14_CONFIG : gameplayVersion === "rtw-v13" ? LEGACY_V13_CONFIG : gameplayVersion === "rtw-v12" ? LEGACY_V12_CONFIG : gameplayVersion === "rtw-v11" ? LEGACY_V11_CONFIG : gameplayVersion === "rtw-v10" ? LEGACY_V10_CONFIG : gameplayVersion === "rtw-v9" ? LEGACY_V9_CONFIG : gameplayVersion === "rtw-v8" ? LEGACY_V8_CONFIG : LEGACY_V7_CONFIG });
   let previousAtMs = -1;
   for (let index = 0; index < inputs.length; index += 1) {
     const input = inputs[index]!;
