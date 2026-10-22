@@ -108,6 +108,7 @@ export class RaceToWinSimulation {
   private recycledTraffic: TrafficVehicle[] = [];
   private activeWaves: TrafficWave[] = [];
   private collision: CollisionSnapshot | null = null;
+  private protectedUntilMs = 0;
 
   public constructor(options: RaceToWinSimulationOptions = {}) {
     this.config = mergeRaceToWinConfig(options.config);
@@ -140,9 +141,16 @@ export class RaceToWinSimulation {
     this.pressureSafeLaneIndex = 0;
     this.lastPressureSafeLane = null;
     this.collision = null;
+    this.protectedUntilMs = 0;
     this.recycledTraffic.push(...this.activeTraffic);
     this.activeTraffic = [];
     this.activeWaves = [];
+  }
+
+  /** Collision protection is measured in simulation time, not wall time. */
+  public protectForFiveSeconds(): void {
+    if (this.state !== "running") return;
+    this.protectedUntilMs = Math.max(this.protectedUntilMs, this.simulationTimeMs + 5000);
   }
 
   public start(): void {
@@ -668,6 +676,7 @@ export class RaceToWinSimulation {
   }
 
   private detectCollision(): void {
+    if (this.simulationTimeMs <= this.protectedUntilMs) return;
     for (const vehicle of this.activeTraffic) {
       const relativeDistance = vehicle.worldDistance - this.playerDistanceMeters;
       const lateralDistance = Math.abs(this.config.lanes[vehicle.laneIndex] - this.playerLaneX);
