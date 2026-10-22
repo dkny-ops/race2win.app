@@ -91,8 +91,11 @@ export async function POST(request: Request) {
       logSecurityEvent({ eventType: "game_session.finalize.rejected", route: "/api/game-sessions/finalize", requestId, reason: "session_not_active", status: 409 });
       return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: responseHeaders });
     }
+    const { data: verifiedWindows, error: windowError } = await admin.rpc("rtw_read_verified_protections", { p_session_id: session.id, p_player_id: userId });
+    if (windowError) throw windowError;
+    const protections = (verifiedWindows ?? []).map((row: { resume_simulation_ms: number }) => row.resume_simulation_ms);
     const elapsedCapMs = Math.max(0, Math.floor(Date.now() - Date.parse(session.started_at)));
-    const replay = replayAuthoritativeRace(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs);
+    const replay = replayAuthoritativeRace(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs, protections);
     if (!replay) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "replay_rejected", status: 409 });
       return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: responseHeaders });
