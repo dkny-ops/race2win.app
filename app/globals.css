@@ -634,3 +634,18 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .rtw-play-count__ticket{display:inline-grid;place-items:center;transform:rotate(-22deg);width:27px;height:27px;border-radius:6px;background:linear-gradient(140deg,#fff39b,#f6aa16 55%,#c66a06);border:2px solid #ffdd60;color:#794005;font-size:19px;line-height:1;text-shadow:none;box-shadow:1px 2px 0 #8e4e07}
 .rtw-ad-slot{width:min(100%,360px);margin:1rem auto .3rem}
 .rtw-ad-slot .rtw-opportunities__ad{margin:0;min-height:54px;background:rgba(255,188,28,.07);border:1px dashed rgba(255,209,92,.55)}
+
+
+/* Gold tournament announcement, positioned beneath the homepage PLAY card. */
+.hero .prize-promo{position:relative;z-index:4;width:min(680px,calc(100% - 3rem));margin:-105px auto 45px;text-align:center}
+.prize-promo__inner{position:relative;display:flex;align-items:center;justify-content:center;gap:1.4rem;min-height:165px;padding:1.1rem 1.5rem;border:2px solid #eebc42;border-radius:22px;background:radial-gradient(ellipse at 50% 10%,rgba(164,100,8,.35),transparent 65%),linear-gradient(145deg,#170f06,#030507 65%,#241404);box-shadow:0 0 23px rgba(251,174,29,.36),inset 0 0 26px rgba(255,185,38,.16);overflow:hidden}
+.prize-promo__inner:after{content:"";position:absolute;inset:8px;border:1px solid rgba(255,219,112,.32);border-radius:15px;pointer-events:none}
+.prize-promo__trophy{font-size:clamp(2.5rem,8vw,4rem);filter:drop-shadow(0 0 14px #e5a61d)}
+.prize-promo__message{display:flex;flex-direction:column;align-items:center;line-height:1.06;text-transform:uppercase}
+.prize-promo__amount{font-size:clamp(3.5rem,13vw,6.4rem);font-weight:1000;letter-spacing:-.06em;background:linear-gradient(#fff7bf 0%,#ffc747 38%,#ad6508 72%,#ffe599 100%);color:transparent;background-clip:text;-webkit-background-clip:text;filter:drop-shadow(0 2px 3px rgba(255,162,0,.4))}
+.prize-promo__caption{color:#ffdd7b;font-weight:900;font-size:clamp(1rem,4vw,1.5rem);letter-spacing:.08em}
+.prize-promo__split{margin-top:.55rem;color:#fff1cb;font-size:clamp(.75rem,2.8vw,.95rem);font-weight:700;text-transform:none}
+.prize-promo__sparkle{position:absolute;right:9%;top:13%;font-size:2.1rem;color:#ffe9a2}
+.prize-promo__note{margin:.65rem 0 0;color:#d6b983;font-size:.76rem;text-align:center}
+@media(max-width:720px){.hero .hero-grid{min-height:710px}.hero .prize-promo{margin:-35px auto 40px}.prize-promo__inner{min-height:145px;padding:.85rem}.prize-promo__sparkle{right:4%;top:7%;font-size:1.4rem}}
+@media(max-width:420px){.hero .hero-grid{min-height:690px}.hero .prize-promo{width:calc(100% - 2rem);margin:-20px auto 35px}.prize-promo__inner{gap:.6rem}.prize-promo__trophy{font-size:2.5rem}}
