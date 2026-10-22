@@ -1,5 +1,7 @@
 import { LocalizedHome } from "@/components/marketing/localized-home";
 import { ROUTES } from "@/lib/routes";
+import { getVerifiedUserContext } from "@/lib/supabase/server";
+import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
