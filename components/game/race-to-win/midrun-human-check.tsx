@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 type Check = { due: boolean; verified: boolean; nonce: string | null; target: number | null; siteKey: string | null };
 const SYMBOLS = ["●", "▲", "■", "★"];
-export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void; onTimeout: () => void }) {
+export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout, onVerified }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void; onTimeout: () => void; onVerified: () => void }) {
  const [check, setCheck] = useState<Check | null>(null);
  const [ready, setReady] = useState(false);
  const [busy, setBusy] = useState(false);
@@ -69,11 +69,11 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout 
    });
    if (!response.ok) throw new Error("verification_failed");
    if (currentSession.current !== id) return;
-   setMessage("Verification complete"); setCheck({ ...active, verified: true }); latest.current = { ...active, verified: true };
+   setMessage("Verification complete"); onVerified(); setCheck({ ...active, verified: true }); latest.current = { ...active, verified: true };
   } catch {
    if (currentSession.current === id) { setMessage("Verification pending. Try again."); window.turnstile?.reset(widget.current ?? ""); }
   } finally { if (currentSession.current === id) setBusy(false); }
- }, []);
+ }, [onVerified]);
  useEffect(() => {
   if (!running || !ready || !check?.due || check.verified || !check.siteKey || !container.current || widget.current || !window.turnstile) return;
   const id = window.turnstile.render(container.current, {
