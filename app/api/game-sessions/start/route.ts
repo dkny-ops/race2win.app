@@ -75,6 +75,11 @@ export async function POST() {
     ) {
       throw new Error("Unexpected official session response");
     }
+    const { data: created, error: creationError } = await createAdminClient().rpc("rtw_create_human_check", {
+      p_session_id: session.id, p_player_id: userId,
+      p_delay_seconds: randomInt(90, 151), p_target: randomInt(0, 4),
+    });
+    if (creationError || created !== true) throw new Error("challenge_unavailable");
     return NextResponse.json({
       sessionId: session.id,
       gameId: RACE_TO_WIN_GAME_SLUG,
