@@ -54,7 +54,7 @@ export async function POST() {
       p_seed: seedFromServer(),
     });
     if (error) {
-      logSecurityEvent({ eventType: "game_session.start.rpc_error", route: "/api/game-sessions/start", requestId, reason: error.code ?? "rpc_failed", status: 503 });
+      logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "database_operation_failed", status: 503 });
       if (error.code === "P0001" && error.message === "Hourly official opportunities exhausted.") {
         logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "rate_limited", status: 429 });
         return NextResponse.json({ message: "Usaste tus 5 oportunidades de esta hora. Se renuevan al inicio de la próxima hora; no se acumulan." }, { status: 429, headers: CACHE });
@@ -85,7 +85,7 @@ export async function POST() {
       p_delay_seconds: randomInt(60, 101), p_target: randomInt(0, 4),
     });
     if (creationError || created !== true) {
-      logSecurityEvent({ eventType: "game_session.human_check.failed", route: "/api/game-sessions/start", requestId, reason: creationError?.code ?? "challenge_creation_rejected", status: 503 });
+      logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "database_operation_failed", status: 503 });
       throw new Error("challenge_unavailable");
     }
     return NextResponse.json({
@@ -99,7 +99,7 @@ export async function POST() {
       activityLeaseExpiresAt: session.activity_lease_expires_at,
     }, { headers: CACHE });
   } catch {
-    logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: `database_operation_failed:${failureStage}`, status: 503 });
+    logSecurityEvent({ eventType: "game_session.start.failed", route: "/api/game-sessions/start", requestId, reason: "database_operation_failed", status: 503 });
     return NextResponse.json({ message: "Official sessions are unavailable." }, { status: 503, headers: CACHE });
   }
 }
