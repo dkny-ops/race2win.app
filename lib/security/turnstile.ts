@@ -1,7 +1,7 @@
 import "server-only";
 
 /** Actions are controlled by the server; callers cannot choose them. */
-export type TurnstileAction = "otp_request" | "weekly_leader_verification";
+export type TurnstileAction = "otp_request" | "weekly_leader_verification" | "midrun_human_check";
 
 type Verification =
   | Readonly<{ status: "verified" }>
