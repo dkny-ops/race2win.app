@@ -6,7 +6,7 @@ import Script from "next/script";
 type TurnstileApi = Readonly<{
   render: (container: HTMLElement, options: Readonly<{
     sitekey: string;
-    action: "otp_request" | "weekly_leader_verification";
+    action: "otp_request" | "weekly_leader_verification" | "midrun_human_check";
     size: "flexible" | "invisible";
     execution?: "execute";
     appearance?: "interaction-only";
