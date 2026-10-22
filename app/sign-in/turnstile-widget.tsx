@@ -7,11 +7,14 @@ type TurnstileApi = Readonly<{
   render: (container: HTMLElement, options: Readonly<{
     sitekey: string;
     action: "otp_request" | "weekly_leader_verification";
-    size: "flexible";
+    size: "flexible" | "invisible";
+    execution?: "execute";
+    appearance?: "interaction-only";
     callback: (token: string) => void;
     "expired-callback": () => void;
     "error-callback": () => void;
   }>) => string;
+  execute: (widgetId: string) => void;
   reset: (widgetId: string) => void;
   remove: (widgetId: string) => void;
 }>;
