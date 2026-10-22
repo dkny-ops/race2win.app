@@ -29,7 +29,7 @@ export function MidrunHumanCheck({ sessionId, running }: { sessionId: string | n
   setCheck(null); latest.current = null; chosen.current = null; setMessage(""); setBusy(false);
   if (!running || !sessionId) return;
   void refresh();
-  const timer = window.setInterval(() => { void refresh(); }, 7000);
+  const timer = window.setInterval(() => { void refresh(); }, 500);
   return () => window.clearInterval(timer);
  }, [sessionId, running, refresh]);
  const onToken = useCallback(async (token: string) => {
