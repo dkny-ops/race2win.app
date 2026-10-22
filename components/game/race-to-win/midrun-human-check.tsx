@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 type Check = { due: boolean; verified: boolean; nonce: string | null; target: number | null; siteKey: string | null };
 const SYMBOLS = ["●", "▲", "■", "★"];
-export function MidrunHumanCheck({ sessionId, running }: { sessionId: string | null; running: boolean }) {
+export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void }) {
  const [check, setCheck] = useState<Check | null>(null);
  const [ready, setReady] = useState(false);
  const [busy, setBusy] = useState(false);
@@ -32,6 +32,7 @@ export function MidrunHumanCheck({ sessionId, running }: { sessionId: string | n
   const timer = window.setInterval(() => { void refresh(); }, 500);
   return () => window.clearInterval(timer);
  }, [sessionId, running, refresh]);
+ useEffect(() => { onPauseChange(Boolean(running && sessionId && check?.due && !check.verified)); return () => onPauseChange(false); }, [running, sessionId, check?.due, check?.verified, onPauseChange]);
  const onToken = useCallback(async (token: string) => {
   const active = latest.current;
   const choice = chosen.current;
