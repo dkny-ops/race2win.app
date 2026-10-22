@@ -32,9 +32,13 @@ export async function POST(request: Request) {
   const body = await readOfficialSessionJson(request);
   if (!body || typeof body !== "object" || Array.isArray(body)) return NextResponse.json({ message: "Invalid" }, { status: 400, headers: HEADERS });
   const b = body as Record<string, unknown>;
-  if (Object.keys(b).length !== 4 || !validId(b.sessionId) || !validId(b.nonce) || !Number.isInteger(b.choice) || (b.choice as number) < 0 || (b.choice as number) > 3 || typeof b.turnstileToken !== "string") return NextResponse.json({ message: "Invalid" }, { status: 400, headers: HEADERS });
+  if (![3, 4].includes(Object.keys(b).length) || !validId(b.sessionId) || !validId(b.nonce) || !Number.isInteger(b.choice) || (b.choice as number) < 0 || (b.choice as number) > 3 || (Object.keys(b).length === 4 && typeof b.turnstileToken !== "string") || (Object.keys(b).length === 3 && "turnstileToken" in b)) return NextResponse.json({ message: "Invalid" }, { status: 400, headers: HEADERS });
   const user = await getVerifiedUserContext();
   if (!user || !isAdminConfigured()) return NextResponse.json({ message: "Unavailable" }, { status: 401, headers: HEADERS });
+  if (!("turnstileToken" in b)) {
+   const { data: accepted, error: choiceError } = await createAdminClient().rpc("rtw_record_human_check_choice", { p_session_id: b.sessionId, p_player_id: user.userId, p_nonce: b.nonce, p_choice: b.choice });
+   return NextResponse.json({ accepted: !choiceError && accepted === true }, { status: !choiceError && accepted === true ? 200 : 409, headers: HEADERS });
+  }
   const check = await readCheck(b.sessionId, user.userId);
   if (!check || check.status !== "pending" || check.nonce !== b.nonce || check.target !== b.choice || Date.parse(check.due_at) > Date.now()) return NextResponse.json({ message: "Verification failed" }, { status: 409, headers: HEADERS });
   const verified = await verifyTurnstileToken(b.turnstileToken, "midrun_human_check");
