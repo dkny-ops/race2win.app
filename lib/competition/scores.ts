@@ -62,7 +62,7 @@ export type PersonalScoresResponse = Readonly<{
   weeklyTotal: number;
   rank: number | null;
   pendingRuns: readonly { sessionId: string; score: number; tournamentDay: string }[];
-  dailyTop7: readonly { day: string; rank: number; score: number }[];
+  dailyTop7: readonly { day: string; rank: number; score: number; elapsedMs: number | null }[];
   recentValidatedRuns: readonly { score: number; distanceMillimeters: number; elapsedMs: number; completedAt: string; tournamentDay: string }[];
 }>;
 
@@ -79,7 +79,7 @@ export async function readPersonalScores(playerId: string): Promise<PersonalScor
       .eq("tournament_week_start", tournamentWeek)
       .maybeSingle(),
     admin.from("daily_top_scores")
-      .select("tournament_day, daily_rank, score")
+      .select("tournament_day, daily_rank, score, validated_run_id")
       .eq("game_id", game.id)
       .eq("player_id", playerId)
       .eq("tournament_week_start", tournamentWeek)
@@ -105,6 +105,18 @@ export async function readPersonalScores(playerId: string): Promise<PersonalScor
   if (dailyResult.error) throw dailyResult.error;
   if (recentResult.error) throw recentResult.error;
   if (pendingResult.error) throw pendingResult.error;
+  const topRunIds = (dailyResult.data ?? []).map(row => row.validated_run_id).filter((id): id is string => typeof id === "string");
+  const durations = new Map<string, number>();
+  if (topRunIds.length) {
+    const { data: runTimes, error: timesError } = await admin.from("validated_runs")
+      .select("id, elapsed_ms")
+      .eq("player_id", playerId)
+      .eq("game_id", game.id)
+      .eq("eligibility_status", "valid")
+      .in("id", topRunIds);
+    if (timesError) throw timesError;
+    for (const run of runTimes ?? []) durations.set(run.id, Number(run.elapsed_ms));
+  }
   return {
     tournamentWeek,
     game: { slug: game.slug, name: game.display_name },
@@ -115,6 +127,7 @@ export async function readPersonalScores(playerId: string): Promise<PersonalScor
       day: row.tournament_day,
       rank: row.daily_rank,
       score: row.score,
+      elapsedMs: durations.get(row.validated_run_id) ?? null,
     })),
     recentValidatedRuns: (recentResult.data ?? []).map((row) => ({
       score: row.score,
