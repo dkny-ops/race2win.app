@@ -1,5 +1,7 @@
-/** v16: retain v15's first minute, append the four requested rows,
- * then repeat the entire sequence until 180 seconds of the versioned speed curve.
+import { DEFAULT_RACE_TO_WIN_CONFIG } from "./config";
+import { v17SpeedAtSeconds } from "./v17-speed";
+/** v17: retain v15's first minute, append the four requested rows,
+ * then repeat the entire sequence until 600 seconds of the versioned speed curve.
  * The 45m opposite-lane doubles are deliberately not silently removed.
  */
 export const MANUAL_TRACK_LENGTH = 50_000;
@@ -62,15 +64,11 @@ const cycleLength = last + 170; // restart at the same initial 50m offset
 // Integrate the authoritative 60Hz speed curve through exactly three minutes.
 const fixedStepSeconds = 1 / 60;
 let totalDistance = 0;
-for (let tick = 1; tick <= 180 * 60; tick += 1) {
+for (let tick = 1; tick <= 600 * 60; tick += 1) {
   const elapsed = tick * fixedStepSeconds;
-  const progress = Math.min(elapsed / 180, 1);
-  const eased = 1 - (1 - progress) ** 2;
-  const base = 34 + (480 / 3.6 - 34) * eased;
-  const steps = Math.min(10, Math.floor(elapsed / 20));
-  totalDistance += Math.min(480 / 3.6, base * 1.1 ** steps) * fixedStepSeconds;
+  totalDistance += v17SpeedAtSeconds(elapsed, DEFAULT_RACE_TO_WIN_CONFIG) * fixedStepSeconds;
 }
-export const MANUAL_THREE_MINUTE_DISTANCE_METERS = totalDistance;
+export const MANUAL_TEN_MINUTE_DISTANCE_METERS = totalDistance;
 const pattern: Row[] = [];
 for (let cycle = 0; cycle * cycleLength <= totalDistance; cycle += 1) {
   for (const row of sequence) {
