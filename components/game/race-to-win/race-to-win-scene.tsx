@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { GAMEPLAY_VERSION, RaceToWinAudio, RaceToWinSimulation, TRACK_SEED, type DisplayMetrics, type LaneInputEvent } from "@/lib/game/race-to-win";
 import { RaceToWinWorld } from "@/lib/game/race-to-win/world";
+import { MidrunHumanCheck } from "./midrun-human-check";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
@@ -257,6 +258,7 @@ export function RaceToWinScene() {
 
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
     <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
+    <MidrunHumanCheck sessionId={officialSessionRef.current?.sessionId ?? null} running={screenState === "running"} />
     {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div></div> : null}
     {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><div className="rtw-play-wrap"><button type="button" className="rtw-action rtw-action--primary rtw-action--play-glass" disabled={opportunitiesError || !opportunities || (opportunities.remaining === 0 && !opportunities.exempt)} onClick={() => void beginOfficialRun()}>PLAY</button><span className="rtw-play-count" aria-live="polite" aria-label={opportunities?.exempt ? "Test account with unlimited races" : opportunities ? `${opportunities.remaining} of 5 races remaining` : "Checking races remaining"}><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{opportunitiesError ? "—/5" : opportunities ? (opportunities.exempt ? "∞" : `${opportunities.remaining}/5`) : "…/5"}</span></div><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div><div className="rtw-ad-slot"><button className="rtw-opportunities__ad" type="button" disabled title="Rewarded ads are not connected yet">▶ WATCH AD · +1 RACE <small>COMING SOON</small></button></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
     {screenState === "starting" ? <div className="rtw-loading" role="status">PREPARING OFFICIAL SESSION…</div> : null}
