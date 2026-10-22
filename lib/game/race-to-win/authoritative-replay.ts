@@ -28,7 +28,7 @@ export function isAuthoritativeGameplayVersion(value: unknown): value is string 
   return value === "rtw-v6" || value === "rtw-v7" || value === "rtw-v8" || value === "rtw-v9" || value === "rtw-v10" || value === "rtw-v11" || value === "rtw-v12" || value === "rtw-v13" || value === "rtw-v14" || value === "rtw-v15" || value === "rtw-v16" || value === "rtw-v17" || value === "rtw-v18" || value === "rtw-v19" || value === GAMEPLAY_VERSION;
 }
 
-export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceProgress | null {
+export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number, verifiedProtectionAtMs: readonly number[] = []): AuthoritativeRaceProgress | null {
   if (!isAuthoritativeGameplayVersion(gameplayVersion)) return null;
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff || !Number.isSafeInteger(elapsedCapMs) || elapsedCapMs < 0) return null;
   if (inputs.length > MAX_OFFICIAL_INPUTS) return null;
@@ -40,9 +40,18 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
     if (!simulation.queueReplayInput(input)) return null;
     previousAtMs = input.atMs;
   }
+  if (verifiedProtectionAtMs.some((ms) => !Number.isSafeInteger(ms) || ms < 0 || ms > elapsedCapMs)) return null;
+  const protectedTicks = [...new Set(verifiedProtectionAtMs)].sort((a, b) => a - b);
+  let nextProtection = 0;
   simulation.start();
   const stepMs = DEFAULT_RACE_TO_WIN_CONFIG.fixedStepMs;
-  while (simulation.snapshot().state === "running" && simulation.snapshot().simulationTimeMs + stepMs <= elapsedCapMs) simulation.step(stepMs);
+  while (simulation.snapshot().state === "running" && simulation.snapshot().simulationTimeMs + stepMs <= elapsedCapMs) {
+    while (nextProtection < protectedTicks.length && simulation.snapshot().simulationTimeMs >= protectedTicks[nextProtection]!) {
+      simulation.protectForFiveSeconds();
+      nextProtection += 1;
+    }
+    simulation.step(stepMs);
+  }
   const snapshot = simulation.snapshot();
   if (snapshot.state !== "running" && snapshot.state !== "crashed") return null;
   return {
@@ -54,8 +63,8 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
   };
 }
 
-export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number): AuthoritativeRaceResult | null {
-  const progress = replayAuthoritativeProgress(gameplayVersion, seed, inputs, elapsedCapMs);
+export function replayAuthoritativeRace(gameplayVersion: unknown, seed: number, inputs: readonly LaneInputEvent[], elapsedCapMs: number, verifiedProtectionAtMs: readonly number[] = []): AuthoritativeRaceResult | null {
+  const progress = replayAuthoritativeProgress(gameplayVersion, seed, inputs, elapsedCapMs, verifiedProtectionAtMs);
   if (!progress || progress.state !== "crashed" || progress.collisionAtMs === null) return null;
   return {
     score: progress.score,
