@@ -46,7 +46,7 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
   simulation.start();
   const stepMs = DEFAULT_RACE_TO_WIN_CONFIG.fixedStepMs;
   while (simulation.snapshot().state === "running" && simulation.snapshot().simulationTimeMs + stepMs <= elapsedCapMs) {
-    while (nextProtection < protectedTicks.length && simulation.snapshot().simulationTimeMs >= protectedTicks[nextProtection]!) {
+    while (nextProtection < protectedTicks.length && Math.round(simulation.snapshot().simulationTimeMs) >= protectedTicks[nextProtection]!) {
       simulation.protectForFiveSeconds();
       nextProtection += 1;
     }
