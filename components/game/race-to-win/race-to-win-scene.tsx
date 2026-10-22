@@ -93,7 +93,7 @@ export function RaceToWinScene() {
   const cancelCheckpointRetries = useCallback(() => { checkpointRetryTimersRef.current.forEach((timer) => window.clearTimeout(timer)); checkpointRetryTimersRef.current.clear(); checkpointAttemptsRef.current.clear(); checkpointInFlightRef.current.clear(); nextCheckpointRef.current = 1; }, []);
 
   const returnToStartScreen = useCallback(() => {
-    cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); officialSessionRef.current = null; finalizingRef.current = false;
+    cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); humanCheckPausedRef.current = false; officialSessionRef.current = null; finalizingRef.current = false;
     const simulation = simulationRef.current;
     if (simulation) { simulation.reset(TRACK_SEED); setMetrics(simulation.snapshot().metrics); }
     setCountdown(null); setOfficialOutcome(null); setRunNotice(null); setState("ready");
@@ -230,7 +230,7 @@ export function RaceToWinScene() {
     const resize = () => { const bounds = stage.getBoundingClientRect(); world.resize(bounds.width, bounds.height); };
     const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage); resize();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.repeat || screenStateRef.current !== "running") return;
+      if (event.repeat || screenStateRef.current !== "running" || humanCheckPausedRef.current) return;
       if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") { event.preventDefault(); requestLaneChange(-1); }
       if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") { event.preventDefault(); requestLaneChange(1); }
     };
@@ -241,7 +241,7 @@ export function RaceToWinScene() {
       const snapshot = screenStateRef.current === "running" && !humanCheckPausedRef.current ? simulation.step(deltaMs) : simulation.snapshot();
       world.update(snapshot, deltaMs / 1_000);
       if (now - lastHudUpdateAt >= 90 || snapshot.state === "crashed") { setMetrics(snapshot.metrics); lastHudUpdateAt = now; }
-      if (screenStateRef.current === "running") submitReachedCheckpoints(snapshot.metrics.score);
+      if (screenStateRef.current === "running" && !humanCheckPausedRef.current) submitReachedCheckpoints(snapshot.metrics.score);
       if (snapshot.state === "crashed" && screenStateRef.current === "running") { audioRef.current?.play("collision", { volume: 0.7 }); void finalizeOfficialRun(); }
       animationFrameRef.current = window.requestAnimationFrame(frame);
     };
