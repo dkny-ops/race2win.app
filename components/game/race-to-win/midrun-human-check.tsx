@@ -72,9 +72,20 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
   <div style={{display:"flex",gap:12,justifyContent:"center"}}>
    {SYMBOLS.map((symbol,index)=><button key={index} type="button" disabled={busy || !check.siteKey || !ready} onClick={() => {
     if (index !== check.target) { setMessage("Try the matching symbol."); return; }
-    chosen.current=index; setBusy(true); setMessage("Checking...");
-    if (widget.current) window.turnstile?.execute(widget.current);
-    else { setBusy(false); setMessage("Verification unavailable."); }
+    setBusy(true); setMessage("Recording answer...");
+    void (async () => {
+     try {
+      const response = await fetch("/api/game-sessions/human-check", {
+       method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ sessionId, nonce: check.nonce, choice: index }),
+      });
+      if (!response.ok) { setMessage("Too late. This challenge was not passed."); return; }
+      chosen.current = index; setMessage("Checking humanity...");
+      if (widget.current) window.turnstile?.execute(widget.current);
+      else setMessage("Verification unavailable.");
+     } catch { setMessage("Could not record answer."); }
+     finally { setBusy(false); }
+    })();
    }} style={{fontSize:22,padding:"8px 12px",borderRadius:8}} aria-label={"Select symbol "+symbol}>{symbol}</button>)}
   </div>
   <div ref={container} />
