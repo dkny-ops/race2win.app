@@ -4,7 +4,7 @@ import { v17SpeedAtSeconds } from "./v17-speed";
  * then repeat the entire sequence until 600 seconds of the versioned speed curve.
  * The 45m opposite-lane doubles are deliberately not silently removed.
  */
-export const MANUAL_TRACK_LENGTH = 50_000;
+
 const FIRST_MINUTE_METERS = 4277.291085391142;
 const BASE_ROW_LANES: ReadonlyArray<readonly (0 | 1 | 2)[]> = [
   [1],
@@ -69,6 +69,8 @@ for (let tick = 1; tick <= 600 * 60; tick += 1) {
   totalDistance += v17SpeedAtSeconds(elapsed, DEFAULT_RACE_TO_WIN_CONFIG) * fixedStepSeconds;
 }
 export const MANUAL_TEN_MINUTE_DISTANCE_METERS = totalDistance;
+/** One full ten-minute obstacle cycle, followed by a safe 40m seam. */
+export const MANUAL_TRACK_LENGTH = totalDistance + 40;
 const pattern: Row[] = [];
 for (let cycle = 0; cycle * cycleLength <= totalDistance; cycle += 1) {
   for (const row of sequence) {
