@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (error || !session || session.status!=="active") return NextResponse.json({message:"Unavailable"},{status:409,headers});
   const {data:checks,error:checkError}=await admin.rpc("rtw_read_human_check",{p_session_id:session.id,p_player_id:user.userId});
   const check=Array.isArray(checks)?checks[0]:null;
-  if (checkError || !check || check.status!=="pending" || Date.now()<Date.parse(check.due_at)+5000) return NextResponse.json({message:"Not timed out"},{status:409,headers});
+  if (checkError || !check || check.status!=="pending" || Date.now()<Date.parse(check.due_at)+10000) return NextResponse.json({message:"Not timed out"},{status:409,headers});
   const cap=Math.max(0,Math.floor(Date.parse(check.due_at)-Date.parse(session.started_at)));
   const replay=replayAuthoritativeProgress(session.gameplay_version,Number(session.seed),inputs,cap);
   if (!replay || replay.state!=="running") return NextResponse.json({message:"Invalid replay"},{status:409,headers});
