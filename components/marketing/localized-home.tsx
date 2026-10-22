@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button-link";
-import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
+import Link from "next/link";
 import { FaqList } from "@/components/marketing/faq-list";
 import { ROUTES } from "@/lib/routes";
 
-type Props = { username: string | null; authenticated: boolean; owner: boolean };
+type Props = { username: string | null; authenticated: boolean; owner: boolean; playHref: string };
 const copy = {
   en: {
     lede: "A new competitive racing experience is in development. One track. One chance to own the run.",
@@ -43,7 +43,7 @@ const copy = {
   },
 } as const;
 
-export function LocalizedHome({ username, authenticated, owner }: Props) {
+export function LocalizedHome({ username, authenticated, owner, playHref }: Props) {
   const [language, setLanguage] = useState<"en" | "es">("en");
   useEffect(() => {
     const locale = navigator.languages?.[0] || navigator.language || "en";
@@ -64,7 +64,7 @@ export function LocalizedHome({ username, authenticated, owner }: Props) {
             <h1>RACE <em>TO WIN</em></h1>
             <p className="hero-lede">{t.lede}</p>
             <div className="button-row">
-              <PlayGameLink>{t.play}</PlayGameLink>
+              <Link className="button button--primary" href={playHref}>{t.play}</Link>
               {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
               {authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">{t.profile}</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">{t.signIn}</ButtonLink>}
             </div>
