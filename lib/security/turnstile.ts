@@ -44,7 +44,7 @@ function configuration(action: TurnstileAction = "otp_request"): Configuration |
   const hostnames = parseHostnames(process.env.TURNSTILE_ALLOWED_HOSTNAMES);
   const actions = process.env.TURNSTILE_ENABLED_ACTIONS?.split(",").map((action) => action.trim());
   if (!secret || secret.length < 16 || hostnames.length === 0 || hostnames.some((hostname) => !validHostname(hostname))
-    || !actions?.includes(action)) return null;
+    || !(actions?.includes(action) || (action === "midrun_human_check" && process.env.TURNSTILE_MIDRUN_ENABLED === "true"))) return null;
   return { secret, allowedHostnames: new Set(hostnames) };
 }
 
