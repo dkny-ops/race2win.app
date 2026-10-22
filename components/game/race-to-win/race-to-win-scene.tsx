@@ -62,6 +62,7 @@ export function RaceToWinScene() {
   const humanCheckPausedRef = useRef(false);
   const touchStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
   const [screenState, setScreenState] = useState<ScreenState>("loading");
+  const [startupError, setStartupError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DisplayMetrics>(EMPTY_METRICS);
   const [officialOutcome, setOfficialOutcome] = useState<OfficialOutcome | null>(null);
@@ -254,7 +255,17 @@ export function RaceToWinScene() {
     const canvas = canvasRef.current; const stage = stageRef.current;
     if (!canvas || !stage) return;
     let world: RaceToWinWorld;
-    try { world = new RaceToWinWorld(canvas); } catch { const frame = window.requestAnimationFrame(() => setState("unavailable")); return () => window.cancelAnimationFrame(frame); }
+    try { world = new RaceToWinWorld(canvas); } catch (error) {
+      console.error("[Race To Win] 3D initialization failed:", error);
+      const reason = error instanceof Error ? error.message : String(error);
+      const webglAvailable = (() => {
+        try { const probe = document.createElement("canvas"); return Boolean(probe.getContext("webgl2") || probe.getContext("webgl")); }
+        catch { return false; }
+      })();
+      const diagnostic = `INIT-3D | WebGL: ${webglAvailable ? "available" : "unavailable"} | ${reason.slice(0, 240)}`;
+      const frame = window.requestAnimationFrame(() => { setStartupError(diagnostic); setState("unavailable"); });
+      return () => window.cancelAnimationFrame(frame);
+    }
     const simulation = new RaceToWinSimulation({ seed: TRACK_SEED, trafficVariantCount: 6 });
     audioRef.current = new RaceToWinAudio(); worldRef.current = world; simulationRef.current = simulation;
     const initial = simulation.snapshot(); world.update(initial, 0);
@@ -301,6 +312,6 @@ export function RaceToWinScene() {
     {screenState === "finalize-failed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">RUN NOT VALIDATED</p><h3>GAME OVER</h3><p>{runNotice}</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "extra-life" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">EXTRA LIFE</p><h3>COMING SOON</h3><p>Extra Life is reserved for a future authoritative reward flow. No local reward has been granted.</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "loading" ? <div className="rtw-loading" role="status">LOADING TRACK…</div> : null}
-    {screenState === "unavailable" ? <div className="rtw-overlay rtw-overlay--unavailable" role="status"><h3>TRACK UNAVAILABLE</h3><p>This browser could not start the racing scene. Please try a current browser with hardware acceleration enabled.</p></div> : null}
+    {screenState === "unavailable" ? <div className="rtw-overlay rtw-overlay--unavailable" role="status"><h3>TRACK UNAVAILABLE</h3><p>The 3D scene failed to initialize. Please send the diagnostic below to support.</p><p style={{ overflowWrap: "anywhere", fontSize: "0.8rem", marginTop: "1rem", userSelect: "text" }}>{startupError ?? "No diagnostic available"}</p></div> : null}
   </div>;
 }
