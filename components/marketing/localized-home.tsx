@@ -71,17 +71,15 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <p className="play-note">{t.playNote}</p>
           </div>
         </div>
-      <aside className="shell prize-promo" aria-label={t.pool}>
-        <div className="prize-promo__inner">
-          <div className="prize-promo__emblem" aria-hidden="true"><svg viewBox="0 0 240 210" focusable="false" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="prizeGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff8bc"/><stop offset=".28" stopColor="#f5bb32"/><stop offset=".55" stopColor="#aa5a05"/><stop offset=".8" stopColor="#ffdf68"/><stop offset="1" stopColor="#a75b0c"/></linearGradient><pattern id="raceChecks" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="#f5f2e5"/><rect width="8" height="8" fill="#141414"/><rect x="8" y="8" width="8" height="8" fill="#141414"/></pattern></defs><g opacity=".9"><path d="M113 156 Q74 111 24 130 L38 151 Q73 130 113 172Z" fill="url(#raceChecks)" stroke="#b99140" strokeWidth="2"/><path d="M127 156 Q169 105 215 130 L199 151 Q162 132 127 172Z" fill="url(#raceChecks)" stroke="#b99140" strokeWidth="2"/><path d="M113 156 L33 95 M127 156 L209 95" stroke="#caa03c" strokeWidth="3"/></g><g fill="url(#prizeGold)" stroke="#ffe992" strokeWidth=".8"><ellipse cx="65.0" cy="157" rx="7" ry="15" transform="rotate(-48 65.0 157)"/><ellipse cx="175.0" cy="157" rx="7" ry="15" transform="rotate(48 175.0 157)"/><ellipse cx="60.2" cy="145" rx="7" ry="15" transform="rotate(-41 60.2 145)"/><ellipse cx="179.8" cy="145" rx="7" ry="15" transform="rotate(41 179.8 145)"/><ellipse cx="55.7" cy="133" rx="7" ry="15" transform="rotate(-34 55.7 133)"/><ellipse cx="184.3" cy="133" rx="7" ry="15" transform="rotate(34 184.3 133)"/><ellipse cx="51.4" cy="121" rx="7" ry="15" transform="rotate(-27 51.4 121)"/><ellipse cx="188.6" cy="121" rx="7" ry="15" transform="rotate(27 188.6 121)"/><ellipse cx="47.8" cy="109" rx="7" ry="15" transform="rotate(-20 47.8 109)"/><ellipse cx="192.2" cy="109" rx="7" ry="15" transform="rotate(20 192.2 109)"/><ellipse cx="44.8" cy="97" rx="7" ry="15" transform="rotate(-13 44.8 97)"/><ellipse cx="195.2" cy="97" rx="7" ry="15" transform="rotate(13 195.2 97)"/><ellipse cx="42.6" cy="85" rx="7" ry="15" transform="rotate(-6 42.6 85)"/><ellipse cx="197.4" cy="85" rx="7" ry="15" transform="rotate(6 197.4 85)"/><ellipse cx="41.3" cy="73" rx="7" ry="15" transform="rotate(1 41.3 73)"/><ellipse cx="198.7" cy="73" rx="7" ry="15" transform="rotate(-1 198.7 73)"/><ellipse cx="41.0" cy="61" rx="7" ry="15" transform="rotate(8 41.0 61)"/><ellipse cx="199.0" cy="61" rx="7" ry="15" transform="rotate(-8 199.0 61)"/></g><g fill="url(#prizeGold)" stroke="#ffe992" strokeWidth="1.5"><path d="M79 51H161L156 104Q149 127 120 132Q91 127 84 104Z"/><path d="M80 61H58Q49 61 51 78Q55 103 91 105L96 94Q66 95 64 76H82Z"/><path d="M160 61H182Q191 61 189 78Q185 103 149 105L144 94Q174 95 176 76H158Z"/><path d="M113 130H127V153H137V163H103V153H113Z"/><path d="M91 163H149L156 176H84Z"/><path d="M76 180H164V190H76Z"/></g><path d="M94 56H111L101 112Q91 102 90 78Z" fill="#fff3a2" opacity=".65"/></svg></div>
-          <div className="prize-promo__message">
-            <strong className="prize-promo__amount">$20</strong>
-            <span className="prize-promo__caption">{t.pool}</span>
-            <span className="prize-promo__split">{t.split}</span>
-          </div>
-          <span className="prize-promo__sparkle" aria-hidden="true">✦</span>
-        </div>
-        <p className="prize-promo__note">{t.prizeNote}</p>
+      <aside className="shell prize-promo" aria-label={language === "es" ? "Premios previstos: 20 dólares repartidos entre los tres primeros lugares. Se aplican reglas oficiales." : "Planned 20 dollar prize pool shared among the top three winners. Official rules apply."}>
+        <Image
+          className="prize-promo__banner-image"
+          src="/images/racetowin-prize-banner.png.png"
+          alt="Race To Win — $20 total prize pool, shared among the top 3 winners. Planned tournament prizes; eligibility and official rules apply."
+          width={1536}
+          height={512}
+          sizes="(max-width: 720px) calc(100vw - 2rem), 850px"
+        />
       </aside>
       </section>
       <section className="section shell two-column" aria-labelledby="fair-title">
