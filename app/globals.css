@@ -662,3 +662,7 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .hero .prize-promo__split{padding:.35rem .7rem;border:1px solid rgba(252,191,61,.65);border-radius:8px}
 .hero .prize-promo__note{margin:.75rem auto 0}
 @media(max-width:720px){.hero .hero-grid{min-height:0!important;padding-top:58px}.hero .hero-copy{padding:1.2rem}.hero .prize-promo{width:calc(100% - 2rem);margin:16px auto 36px!important}.hero .prize-promo__inner{min-height:145px;gap:.7rem}.hero .prize-promo__trophy{font-size:clamp(3.6rem,14vw,5.5rem)}}
+
+/* Use the uploaded banner artwork without the old CSS plaque overlay. */
+.hero .prize-promo{line-height:0}
+.hero .prize-promo__banner-image{display:block;width:100%;height:auto;border-radius:16px;filter:drop-shadow(0 0 13px rgba(245,171,34,.35))}
