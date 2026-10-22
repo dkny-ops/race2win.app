@@ -71,7 +71,6 @@ export function LocalizedHome({ username, authenticated, owner }: Props) {
             <p className="play-note">{t.playNote}</p>
           </div>
         </div>
-      </section>
       <aside className="shell prize-promo" aria-label={t.pool}>
         <div className="prize-promo__inner">
           <span className="prize-promo__trophy" aria-hidden="true">🏆</span>
@@ -84,6 +83,7 @@ export function LocalizedHome({ username, authenticated, owner }: Props) {
         </div>
         <p className="prize-promo__note">{t.prizeNote}</p>
       </aside>
+      </section>
       <section className="section shell two-column" aria-labelledby="fair-title">
         <div><p className="eyebrow">{t.built}</p><h2 id="fair-title">{t.line}</h2></div>
         <div><p>{t.rules}</p><ButtonLink href={ROUTES.rules} variant="secondary">{t.readRules}</ButtonLink></div>
