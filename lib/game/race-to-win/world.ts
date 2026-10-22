@@ -75,19 +75,21 @@ export class RaceToWinWorld {
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
-    // Three.js requires WebGL 2. Some Safari GPU drivers return null for
-    // getShaderPrecisionFormat, although the context itself is available.
-    const gl = canvas.getContext("webgl2", {
+    // Do not hand Three.js a lost or incomplete WebGL context.
+    // Safari may return a non-null context while its attributes or shader
+    // precision information are unavailable (e.g. after GPU process reset).
+    const options: WebGLContextAttributes = {
       antialias: !this.quality.mobile,
       alpha: false,
       powerPreference: "default",
-    });
-    if (!gl) throw new Error("WebGL 2 context unavailable");
-    const originalGetShaderPrecisionFormat = gl.getShaderPrecisionFormat.bind(gl);
-    const precisionFallback = { rangeMin: 0, rangeMax: 0, precision: 0 };
-    // Only repair the non-conforming null result; preserve genuine GPU data.
-    gl.getShaderPrecisionFormat = (shaderType: number, precisionType: number) =>
-      originalGetShaderPrecisionFormat(shaderType, precisionType) ?? precisionFallback;
+    };
+    const gl = canvas.getContext("webgl2", options);
+    if (!gl) throw new Error("WebGL2 unavailable");
+    if (gl.isContextLost()) throw new Error("WebGL2 context lost");
+    const attributes = gl.getContextAttributes();
+    if (!attributes) throw new Error("WebGL2 context attributes unavailable");
+    const shaderPrecision = gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.HIGH_FLOAT);
+    if (!shaderPrecision) throw new Error("WebGL2 shader precision unavailable");
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       context: gl,
