@@ -75,8 +75,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Session unavailable." }, { status: 409, headers: CACHE });
     }
 
+    const { data: verifiedWindows, error: windowError } = await admin.rpc("rtw_read_verified_protections", { p_session_id: session.id, p_player_id: playerId });
+    if (windowError) throw windowError;
+    const protections = (verifiedWindows ?? []).map((row: { resume_simulation_ms: number }) => row.resume_simulation_ms);
     const elapsedCapMs = Math.max(0, Math.floor(Date.now() - Date.parse(session.started_at)));
-    const progress = replayAuthoritativeProgress(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs);
+    const progress = replayAuthoritativeProgress(session.gameplay_version, Number(session.seed), body.inputs, elapsedCapMs, protections);
     const checkpointInterval = Number(session.checkpoint_interval_score);
     const milestoneScore = body.checkpointIndex * checkpointInterval;
     if (!progress || progress.score < milestoneScore) {
