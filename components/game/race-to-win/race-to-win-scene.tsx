@@ -194,12 +194,13 @@ export function RaceToWinScene() {
       if (!response.ok) throw new Error("timeout_not_verified");
       const result = await response.json() as {score:number;distanceMillimeters:number;elapsedMs:number};
       if (!Number.isFinite(result.score) || !Number.isFinite(result.elapsedMs) || !Number.isFinite(result.distanceMillimeters)) throw new Error("invalid_timeout_result");
+      returnToStartScreen();
       setRunNotice(`Human check timed out. Score: ${result.score.toLocaleString()}. This run is not eligible for prizes.`);
     } catch {
+      returnToStartScreen();
       setRunNotice("Human check timed out. Official score could not be confirmed.");
     } finally {
       finalizingRef.current = false;
-      returnToStartScreen();
     }
   }, [returnToStartScreen,setState]);
 
