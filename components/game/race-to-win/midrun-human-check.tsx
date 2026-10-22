@@ -7,6 +7,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
  const [check, setCheck] = useState<Check | null>(null);
  const [ready, setReady] = useState(false);
  const [busy, setBusy] = useState(false);
+ const [answerRecorded, setAnswerRecorded] = useState(false);
  const [message, setMessage] = useState("");
  const container = useRef<HTMLDivElement>(null);
  const widget = useRef<string | null>(null);
@@ -29,7 +30,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
   finally { refreshInFlight.current = false; }
  }, [sessionId]);
  useEffect(() => {
-  setCheck(null); latest.current = null; chosen.current = null; setMessage(""); setBusy(false);
+  setCheck(null); latest.current = null; chosen.current = null; setAnswerRecorded(false); setMessage(""); setBusy(false);
   if (!running || !sessionId) return;
   void refresh();
   const timer = window.setInterval(() => { void refresh(); }, 500);
@@ -70,7 +71,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
   <p style={{margin:"0 0 8px"}}>Tap the matching symbol to verify your run</p>
   <p style={{fontSize:22,margin:"0 0 8px"}} aria-label="Target symbol">{SYMBOLS[check.target ?? 0]}</p>
   <div style={{display:"flex",gap:12,justifyContent:"center"}}>
-   {SYMBOLS.map((symbol,index)=><button key={index} type="button" disabled={busy || !check.siteKey || !ready} onClick={() => {
+   {SYMBOLS.map((symbol,index)=><button key={index} type="button" disabled={busy || answerRecorded || !check.siteKey || !ready} onClick={() => {
     if (index !== check.target) { setMessage("Try the matching symbol."); return; }
     setBusy(true); setMessage("Recording answer...");
     void (async () => {
@@ -80,7 +81,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange }: { sessio
        body: JSON.stringify({ sessionId, nonce: check.nonce, choice: index }),
       });
       if (!response.ok) { setMessage("Too late. This challenge was not passed."); return; }
-      chosen.current = index; setMessage("Checking humanity...");
+      chosen.current = index; setAnswerRecorded(true); setMessage("Checking humanity...");
       if (widget.current) window.turnstile?.execute(widget.current);
       else setMessage("Verification unavailable.");
      } catch { setMessage("Could not record answer."); }
