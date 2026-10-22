@@ -61,7 +61,7 @@ export function MidrunHumanCheck({ sessionId, running }: { sessionId: string | n
   return () => { if (widget.current === id) widget.current = null; window.turnstile?.remove(id); };
  }, [running, ready, check?.due, check?.verified, check?.siteKey, onToken]);
  if (!running || !sessionId || !check?.due || check.verified) return null;
- return <aside role="group" aria-label="Human verification" style={{ position:"absolute",top:85,left:"50%",transform:"translateX(-50%)",zIndex:30,background:"rgba(0,0,0,.88)",color:"white",padding:12,borderRadius:12,textAlign:"center",maxWidth:"90vw",pointerEvents:"auto" }}>
+ return <aside onPointerDown={(event) => event.stopPropagation()} onPointerUp={(event) => event.stopPropagation()} role="group" aria-label="Human verification" style={{ position:"absolute",top:85,left:"50%",transform:"translateX(-50%)",zIndex:30,background:"rgba(0,0,0,.88)",color:"white",padding:12,borderRadius:12,textAlign:"center",maxWidth:"90vw",pointerEvents:"auto" }}>
   <TurnstileScript onReady={() => setReady(true)} onError={() => setMessage("Verification service unavailable")} />
   <p style={{margin:"0 0 8px"}}>Tap the matching symbol to verify your run</p>
   <p style={{fontSize:22,margin:"0 0 8px"}} aria-label="Target symbol">{SYMBOLS[check.target ?? 0]}</p>
