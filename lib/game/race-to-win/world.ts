@@ -75,11 +75,26 @@ export class RaceToWinWorld {
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
-    this.renderer = new THREE.WebGLRenderer({
-      canvas,
+    // Three.js requires WebGL 2. Some Safari GPU drivers return null for
+    // getShaderPrecisionFormat, although the context itself is available.
+    const gl = canvas.getContext("webgl2", {
       antialias: !this.quality.mobile,
       alpha: false,
-      powerPreference: "high-performance",
+      powerPreference: "default",
+    });
+    if (!gl) throw new Error("WebGL 2 context unavailable");
+    const originalGetShaderPrecisionFormat = gl.getShaderPrecisionFormat.bind(gl);
+    const precisionFallback = { rangeMin: 0, rangeMax: 0, precision: 0 };
+    // Only repair the non-conforming null result; preserve genuine GPU data.
+    gl.getShaderPrecisionFormat = (shaderType: number, precisionType: number) =>
+      originalGetShaderPrecisionFormat(shaderType, precisionType) ?? precisionFallback;
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      context: gl,
+      antialias: !this.quality.mobile,
+      alpha: false,
+      powerPreference: "default",
+      precision: "mediump",
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.quality.pixelRatioCap));
     this.renderer.setClearColor("#090f1b", 1);
