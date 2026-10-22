@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { GAMEPLAY_VERSION } from "@/lib/game/race-to-win";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
@@ -10,8 +10,9 @@ export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
 
 function seedFromServer(): number {
-  const hour = Math.floor(Date.now() / 3_600_000);
-  return createHash("sha256").update(`race-to-win:${GAMEPLAY_VERSION}:utc:${hour}`).digest().readUInt32BE(0);
+  // Independent cryptographically random seed per official run. Persisted in
+  // game_sessions for deterministic authoritative replay and historical audit.
+  return randomInt(0x1_0000_0000);
 }
 
 
