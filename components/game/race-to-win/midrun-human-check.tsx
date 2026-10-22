@@ -8,7 +8,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout 
  const [ready, setReady] = useState(false);
  const [busy, setBusy] = useState(false);
  const [answerRecorded, setAnswerRecorded] = useState(false);
- const [secondsLeft, setSecondsLeft] = useState(5);
+ const [secondsLeft, setSecondsLeft] = useState(10);
  const timedOutNonce = useRef<string | null>(null);
  const [message, setMessage] = useState("");
  const container = useRef<HTMLDivElement>(null);
@@ -48,13 +48,13 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout 
    // The server remains authoritative; this clock only drives the local display.
    setSecondsLeft((value) => Math.max(0, value - 0.1));
   };
-  setSecondsLeft(5);
+  setSecondsLeft(10);
   const timer = window.setInterval(tick, 100);
   const deadline = window.setTimeout(() => {
    if (timedOutNonce.current === nonce || chosen.current !== null) return;
    timedOutNonce.current = nonce;
    onTimeout();
-  }, 5000);
+  }, 10000);
   return () => { window.clearInterval(timer); window.clearTimeout(deadline); };
  }, [running, check?.due, check?.verified, check?.nonce, answerRecorded, onTimeout]);
  const onToken = useCallback(async (token: string) => {
