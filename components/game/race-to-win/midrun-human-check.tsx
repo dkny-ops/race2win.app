@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 type Check = { due: boolean; verified: boolean; nonce: string | null; target: number | null; siteKey: string | null };
 const SYMBOLS = ["●", "▲", "■", "★"];
-export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout, onVerified }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void; onTimeout: () => void; onVerified?: () => void }) {
+export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout, onVerified, getResumeEvidence }: { sessionId: string | null; running: boolean; onPauseChange: (paused: boolean) => void; onTimeout: () => void; onVerified?: () => void; getResumeEvidence: () => { resumeMs: number; inputs: readonly { sequence: number; atMs: number; direction: -1 | 1 }[] } | null }) {
  const [check, setCheck] = useState<Check | null>(null);
  const [ready, setReady] = useState(false);
  const [busy, setBusy] = useState(false);
@@ -62,10 +62,12 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   const choice = chosen.current;
   const id = currentSession.current;
   if (!active || !id || !active.nonce || choice === null) return;
+  const evidence = getResumeEvidence();
+  if (!evidence) { setMessage("Verification evidence unavailable."); return; }
   try {
    const response = await fetch("/api/game-sessions/human-check", {
     method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionId: id, nonce: active.nonce, choice, turnstileToken: token }),
+    body: JSON.stringify({ sessionId: id, nonce: active.nonce, choice, turnstileToken: token, resumeMs: evidence.resumeMs, inputs: evidence.inputs }),
    });
    if (!response.ok) throw new Error("verification_failed");
    if (currentSession.current !== id) return;
@@ -73,7 +75,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   } catch {
    if (currentSession.current === id) { setMessage("Verification pending. Try again."); window.turnstile?.reset(widget.current ?? ""); }
   } finally { if (currentSession.current === id) setBusy(false); }
- }, [onVerified]);
+ }, [onVerified, getResumeEvidence]);
  useEffect(() => {
   if (!running || !ready || !check?.due || check.verified || !check.siteKey || !container.current || widget.current || !window.turnstile) return;
   const id = window.turnstile.render(container.current, {
