@@ -666,3 +666,6 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 /* Use the uploaded banner artwork without the old CSS plaque overlay. */
 .hero .prize-promo{line-height:0}
 .hero .prize-promo__banner-image{display:block;width:100%;height:auto;border-radius:16px;filter:drop-shadow(0 0 13px rgba(245,171,34,.35))}
+
+/* Mobile: keep hero card below the header divider; banner follows with 16px gap. */
+@media(max-width:720px){.hero .hero-grid{padding-top:100px!important}}
