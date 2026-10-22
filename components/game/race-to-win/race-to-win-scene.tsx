@@ -59,6 +59,7 @@ export function RaceToWinScene() {
   const officialSessionRef = useRef<OfficialSession | null>(null);
   const finalizingRef = useRef(false);
   const screenStateRef = useRef<ScreenState>("loading");
+  const humanCheckPausedRef = useRef(false);
   const touchStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
   const [screenState, setScreenState] = useState<ScreenState>("loading");
   const [countdown, setCountdown] = useState<string | null>(null);
@@ -103,7 +104,7 @@ export function RaceToWinScene() {
     gameOverTimerRef.current = window.setTimeout(() => { gameOverTimerRef.current = null; if (screenStateRef.current === "crashed" || screenStateRef.current === "finalize-failed") returnToStartScreen(); }, 3_000);
   }, [cancelGameOverReturn, returnToStartScreen]);
 
-  const requestLaneChange = useCallback((direction: -1 | 1) => { if (screenStateRef.current === "running") simulationRef.current?.requestLaneChange(direction); }, []);
+  const requestLaneChange = useCallback((direction: -1 | 1) => { if (screenStateRef.current === "running" && !humanCheckPausedRef.current) simulationRef.current?.requestLaneChange(direction); }, []);
 
   const submitCheckpoint = useCallback(async (checkpointIndex: number) => {
     const session = officialSessionRef.current;
@@ -237,7 +238,7 @@ export function RaceToWinScene() {
     let previousFrameAt = performance.now(); let lastHudUpdateAt = 0;
     const frame = (now: number) => {
       const deltaMs = Math.min(now - previousFrameAt, 100); previousFrameAt = now;
-      const snapshot = screenStateRef.current === "running" ? simulation.step(deltaMs) : simulation.snapshot();
+      const snapshot = screenStateRef.current === "running" && !humanCheckPausedRef.current ? simulation.step(deltaMs) : simulation.snapshot();
       world.update(snapshot, deltaMs / 1_000);
       if (now - lastHudUpdateAt >= 90 || snapshot.state === "crashed") { setMetrics(snapshot.metrics); lastHudUpdateAt = now; }
       if (screenStateRef.current === "running") submitReachedCheckpoints(snapshot.metrics.score);
@@ -258,7 +259,7 @@ export function RaceToWinScene() {
 
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
     <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
-    <MidrunHumanCheck sessionId={officialSessionRef.current?.sessionId ?? null} running={screenState === "running"} />
+    <MidrunHumanCheck sessionId={officialSessionRef.current?.sessionId ?? null} running={screenState === "running"} onPauseChange={(paused) => { humanCheckPausedRef.current = paused; }} />
     {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div></div> : null}
     {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><div className="rtw-play-wrap"><button type="button" className="rtw-action rtw-action--primary rtw-action--play-glass" disabled={opportunitiesError || !opportunities || (opportunities.remaining === 0 && !opportunities.exempt)} onClick={() => void beginOfficialRun()}>PLAY</button><span className="rtw-play-count" aria-live="polite" aria-label={opportunities?.exempt ? "Test account with unlimited races" : opportunities ? `${opportunities.remaining} of 5 races remaining` : "Checking races remaining"}><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{opportunitiesError ? "—/5" : opportunities ? (opportunities.exempt ? "∞" : `${opportunities.remaining}/5`) : "…/5"}</span></div><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div><div className="rtw-ad-slot"><button className="rtw-opportunities__ad" type="button" disabled title="Rewarded ads are not connected yet">▶ WATCH AD · +1 RACE <small>COMING SOON</small></button></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
     {screenState === "starting" ? <div className="rtw-loading" role="status">PREPARING OFFICIAL SESSION…</div> : null}
