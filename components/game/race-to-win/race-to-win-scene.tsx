@@ -196,7 +196,7 @@ export function RaceToWinScene() {
       const result = await response.json() as {score:number;distanceMillimeters:number;elapsedMs:number};
       if (!Number.isFinite(result.score) || !Number.isFinite(result.elapsedMs) || !Number.isFinite(result.distanceMillimeters)) throw new Error("invalid_timeout_result");
       returnToStartScreen();
-      setRunNotice(`Human check timed out. Score: ${result.score.toLocaleString()}. This run is not eligible for prizes.`);
+      setRunNotice(`Human check timed out. Score: ${result.score.toLocaleString()}. Result saved for verification and tournament review.`);
     } catch {
       returnToStartScreen();
       setRunNotice("Human check timed out. Official score could not be confirmed.");
