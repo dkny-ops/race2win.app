@@ -669,3 +669,18 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 
 /* Mobile: keep hero card below the header divider; banner follows with 16px gap. */
 @media(max-width:720px){.hero .hero-grid{padding-top:100px!important}}
+
+/* Homepage sizing correction: align game hero and prize banner in one compact column. */
+.hero{min-height:0}
+.hero .hero-grid{width:min(760px,calc(100% - 2rem));padding:clamp(94px,9vw,118px) 0 0!important}
+.hero .hero-copy{width:100%;max-width:760px;padding:clamp(1rem,2.8vw,1.75rem)!important}
+.hero .hero-copy h1{font-size:clamp(2.2rem,4.2vw,3.6rem);white-space:normal}
+.hero .prize-promo{width:min(760px,calc(100% - 2rem))!important;max-width:760px;margin:16px auto 32px!important}
+.hero .prize-promo__banner-image{width:100%;height:auto;object-fit:contain}
+@media(max-width:720px){
+  .hero .hero-grid{padding-top:86px!important}
+  .hero .hero-copy{padding:1rem!important}
+  .hero .hero-copy h1{font-size:clamp(2.05rem,9vw,3.3rem)}
+  .hero .prize-promo{margin:16px auto 24px!important}
+  .hero .button-row{margin-top:1.2rem}
+}
