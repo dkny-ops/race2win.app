@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
   if (!check || check.status !== "pending" || check.nonce !== b.nonce || check.target !== b.choice || Date.parse(check.due_at) > Date.now()) return NextResponse.json({ message: "Verification failed" }, { status: 409, headers: HEADERS });
   const verified = await verifyTurnstileToken(b.turnstileToken, "midrun_human_check");
   if (verified.status !== "verified") return NextResponse.json({ message: "Verification pending" }, { status: verified.status === "unavailable" ? 503 : 400, headers: HEADERS });
-  const { data, error } = await createAdminClient().rpc("rtw_verify_human_check", { p_session_id: b.sessionId, p_player_id: user.userId, p_nonce: b.nonce, p_choice: b.choice });
+  const { data, error } = await createAdminClient().rpc("rtw_verify_and_advance_human_check", { p_session_id: b.sessionId, p_player_id: user.userId, p_nonce: b.nonce, p_choice: b.choice, p_next_target: randomInt(0, 4) });
   if (error || data !== true) return NextResponse.json({ message: "Verification pending" }, { status: 409, headers: HEADERS });
   return NextResponse.json({ verified: true }, { headers: HEADERS });
  } catch { return NextResponse.json({ message: "Verification unavailable" }, { status: 503, headers: HEADERS }); }
