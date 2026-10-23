@@ -34,13 +34,3 @@ export function usePlayerLanguage(): [PlayerLanguage, (language: PlayerLanguage)
   return [language, chooseLanguage];
 }
 
-export function PlayerLanguageSelector() {
-  const [language, setLanguage] = usePlayerLanguage();
-  return <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-    <span>{language === "es" ? "Idioma" : "Language"}</span>
-    <select aria-label="Language / Idioma" value={language} onChange={(event) => setLanguage(event.target.value as PlayerLanguage)}>
-      <option value="en">English</option>
-      <option value="es">Español</option>
-    </select>
-  </label>;
-}
