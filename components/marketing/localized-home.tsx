@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button-link";
 import Link from "next/link";
 import { FaqList } from "@/components/marketing/faq-list";
+import { FlappyMini } from "@/components/game/flappy-mini";
 import { ROUTES } from "@/lib/routes";
 
 type Props = { username: string | null; authenticated: boolean; owner: boolean; playHref: string };
@@ -81,6 +82,10 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
           sizes="(max-width: 720px) calc(100vw - 2rem), 850px"
         />
       </aside>
+      </section>
+      <section className="section shell" aria-labelledby="flappy-title" style={{ maxWidth: 800, paddingTop: "2rem", paddingBottom: "2rem" }}>
+        <h2 id="flappy-title" style={{ textAlign: "center", marginBottom: "1rem" }}>FLAPPY RACE · MINI GAME</h2>
+        <FlappyMini language={language} />
       </section>
       <section className="section shell two-column" aria-labelledby="fair-title">
         <div><p className="eyebrow">{t.built}</p><h2 id="fair-title">{t.line}</h2></div>
