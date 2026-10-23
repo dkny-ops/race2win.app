@@ -100,6 +100,26 @@ export async function POST(request: Request) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "replay_rejected", status: 409 });
       return NextResponse.json({ message: "Run record is not yet finalizable." }, { status: 409, headers: responseHeaders });
     }
+    // Fail closed if the authoritative replay crossed a human-check deadline
+    // without the server recording a successful Cloudflare-backed challenge.
+    // The RPC is service-role only; clients cannot mark a check as verified.
+    const { data: humanRows, error: humanError } = await admin.rpc("rtw_read_human_check", {
+      p_session_id: session.id,
+      p_player_id: userId,
+    });
+    if (humanError) throw humanError;
+    const humanCheck = Array.isArray(humanRows) ? humanRows[0] : null;
+    if (!humanCheck || typeof humanCheck.due_at !== "string" || typeof humanCheck.status !== "string") {
+      logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "human_check_evidence_missing", status: 409 });
+      return NextResponse.json({ message: "Human verification evidence missing." }, { status: 409, headers: responseHeaders });
+    }
+    const finishAtMs = Date.parse(session.started_at) + replay.elapsedMs;
+    const dueAtMs = Date.parse(humanCheck.due_at);
+    if (!Number.isFinite(dueAtMs) || (humanCheck.status !== "pending" && humanCheck.status !== "verified") ||
+        (humanCheck.status === "pending" && finishAtMs >= dueAtMs)) {
+      logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "human_check_not_verified", status: 409 });
+      return NextResponse.json({ message: "Required human verification was not completed." }, { status: 409, headers: responseHeaders });
+    }
     const checkpointInterval = Number(session.checkpoint_interval_score);
     const expectedCheckpointCount = checkpointCountForScore(replay.score, checkpointInterval);
     const { data: existingCheckpoints, error: checkpointReadError } = await admin.rpc("rtw_read_game_session_checkpoint_proofs", {
