@@ -71,6 +71,8 @@ export type SecurityEventReason =
   | "session_not_active"
   | "gameplay_version_rejected"
   | "replay_rejected"
+  | "human_check_evidence_missing"
+  | "human_check_not_verified"
   | "finalize_conflict"
   | "authorization_rejected"
   | "eligibility_rejected"
