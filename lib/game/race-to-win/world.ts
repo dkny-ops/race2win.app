@@ -83,10 +83,17 @@ export class RaceToWinWorld {
       alpha: false,
       powerPreference: "default",
     };
-    // Let Three.js own context creation and restoration. A preflight
-    // getContext/isContextLost check can race Safari's GPU process recovery.
-    // Avoid creating a second WebGL context solely for diagnostics.
+    // Safari can return a WebGL2 object whose GPU context is already lost.
+    // Reject it before Three.js dereferences null shader precision metadata.
+    const gl = canvas.getContext("webgl2", options);
+    if (!gl) throw new Error("WebGL2 unavailable");
+    if (gl.isContextLost()) throw new Error("WebGL2 context lost");
+    if (!gl.getContextAttributes()) throw new Error("WebGL2 context attributes unavailable");
+    if (!gl.getShaderPrecisionFormat(gl.VERTEX_SHADER, gl.MEDIUM_FLOAT)) {
+      throw new Error("WebGL2 shader precision unavailable");
+    }
     this.renderer = new THREE.WebGLRenderer({
+      context: gl,
       canvas,
       antialias: !this.quality.mobile,
       alpha: false,
