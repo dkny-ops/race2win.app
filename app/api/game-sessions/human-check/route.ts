@@ -54,7 +54,11 @@ export async function POST(request: Request) {
   const progress = replayAuthoritativeProgress(session.gameplay_version,Number(session.seed),inputs,b.resumeMs as number,protections);
   if (!progress || progress.state !== "running" || Math.abs(progress.elapsedMs - (b.resumeMs as number)) > 20) return NextResponse.json({ message: "Invalid replay" }, { status: 409, headers: HEADERS });
   const verified = await verifyTurnstileToken(b.turnstileToken, "midrun_human_check");
-  if (verified.status !== "verified") return NextResponse.json({ message: "Verification pending" }, { status: verified.status === "unavailable" ? 503 : 400, headers: HEADERS });
+  if (verified.status !== "verified") {
+   // Only log a bounded reason category; never log challenge answers, tokens, or player identifiers.
+   console.warn("midrun_turnstile_verification", { status: verified.status, reason: verified.reason });
+   return NextResponse.json({ message: verified.status === "unavailable" ? "Verification temporarily unavailable" : "Human verification failed", code: verified.status === "unavailable" ? "verification_unavailable" : "verification_rejected" }, { status: verified.status === "unavailable" ? 503 : 403, headers: HEADERS });
+  }
   const { data, error } = await createAdminClient().rpc("rtw_verify_and_advance_human_check", { p_session_id: b.sessionId, p_player_id: user.userId, p_nonce: b.nonce, p_choice: b.choice, p_next_target: randomInt(0, 4) });
   if (error || data !== true) return NextResponse.json({ message: "Verification pending" }, { status: 409, headers: HEADERS });
   const {data:recorded,error:recordError}=await admin.rpc("rtw_record_verified_protection",{p_session_id:b.sessionId,p_player_id:user.userId,p_nonce:b.nonce,p_resume_ms:b.resumeMs});
