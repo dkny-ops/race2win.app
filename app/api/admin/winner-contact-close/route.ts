@@ -30,6 +30,11 @@ export async function POST(request: Request) {
     if (awardError) throw awardError;
     if (!award || award.status !== "approved_for_payment" || award.allocation_status !== "allocated")
       return NextResponse.json({message:"Validate balance before confirming full payment"},{status:409,headers:NO_STORE_HEADERS});
+    const { data: balance, error: balanceError } = await auth.admin.from("prize_balances")
+      .select("available_cents").eq("player_id", b.playerId).maybeSingle();
+    if (balanceError) throw balanceError;
+    if (!balance || balance.available_cents < 1000)
+      return NextResponse.json({ message: "Payment unavailable: minimum $10 balance not reached." }, { status: 409, headers: NO_STORE_HEADERS });
     const {data:paidCents,error:paymentError} = await auth.admin.rpc("rtw_owner_confirm_full_balance_paid",{
       p_actor:auth.context.userId,p_player:b.playerId,p_winner:award.id,
     });
