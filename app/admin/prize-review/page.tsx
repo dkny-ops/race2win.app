@@ -1,6 +1,7 @@
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { notFound } from "next/navigation";
 import { OwnerEmailCode } from "./owner-email-code";
+import { BlockPlayerControl } from "./block-player-control";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
 import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
@@ -106,6 +107,7 @@ export default async function AdminPrizeReviewPage() {
         <h3 style={{ fontSize: "1rem" }}>Acciones del propietario</h3>
         <p></p>
         <OwnerEmailCode playerId={entry.player_id} winnerId={winner?.id} />
+        <BlockPlayerControl playerId={entry.player_id} username={name} />
         <details style={{ marginBottom: "0.85rem" }}>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
           {dailyTopScores === null ? <p>No se pudieron cargar las partidas Top 7. El resumen de premios sigue disponible.</p> : (() => {
