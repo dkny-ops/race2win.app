@@ -63,6 +63,7 @@ export function RaceToWinScene() {
   const touchStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
   const [screenState, setScreenState] = useState<ScreenState>("loading");
   const [startupError, setStartupError] = useState<string | null>(null);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
   const [countdown, setCountdown] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DisplayMetrics>(EMPTY_METRICS);
   const [officialOutcome, setOfficialOutcome] = useState<OfficialOutcome | null>(null);
@@ -258,11 +259,16 @@ export function RaceToWinScene() {
     try { world = new RaceToWinWorld(canvas); } catch (error) {
       console.error("[Race To Win] 3D initialization failed:", error);
       const reason = error instanceof Error ? error.message : String(error);
-      const webglAvailable = (() => {
-        try { const probe = document.createElement("canvas"); return Boolean(probe.getContext("webgl2") || probe.getContext("webgl")); }
-        catch { return false; }
-      })();
-      const diagnostic = `INIT-3D | WebGL: ${webglAvailable ? "available" : "unavailable"} | ${reason.slice(0, 240)}`;
+      // Do not allocate a second WebGL context just to diagnose a GPU failure.
+      // Safari may need a fresh canvas after a context has become unusable.
+      const diagnostic = `INIT-3D | Attempt ${canvasGeneration + 1} | ${reason.slice(0, 240)}`;
+      if (canvasGeneration < 2) {
+        const retry = window.setTimeout(() => {
+          setStartupError(diagnostic);
+          setCanvasGeneration((value) => value + 1);
+        }, 1200 * (canvasGeneration + 1));
+        return () => window.clearTimeout(retry);
+      }
       const frame = window.requestAnimationFrame(() => { setStartupError(diagnostic); setState("unavailable"); });
       return () => window.cancelAnimationFrame(frame);
     }
@@ -294,14 +300,14 @@ export function RaceToWinScene() {
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       resizeObserver.disconnect(); window.removeEventListener("keydown", onKeyDown); world.dispose(); audioRef.current?.dispose(); audioRef.current = null; simulationRef.current = null; worldRef.current = null;
     };
-  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, finalizeOfficialRun, requestLaneChange, setState, submitReachedCheckpoints]);
+  }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, finalizeOfficialRun, requestLaneChange, setState, submitReachedCheckpoints, canvasGeneration]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => { if (screenStateRef.current === "running" && event.pointerType === "touch") { touchStartRef.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }; event.currentTarget.setPointerCapture(event.pointerId); } };
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => { const start = touchStartRef.current; touchStartRef.current = null; if (!start || start.pointerId !== event.pointerId || event.pointerType !== "touch") return; const horizontal = event.clientX - start.x; const vertical = event.clientY - start.y; if (Math.abs(horizontal) >= 38 && Math.abs(horizontal) > Math.abs(vertical)) requestLaneChange(horizontal < 0 ? -1 : 1); };
   const officialFinalMetrics = officialOutcome ? { score: officialOutcome.score, elapsedSeconds: officialOutcome.elapsedMs / 1_000, distanceMeters: officialOutcome.distanceMillimeters / 1_000 } : null;
 
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
-    <canvas className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
+    <canvas key={canvasGeneration} className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
     <MidrunHumanCheck sessionId={officialSessionRef.current?.sessionId ?? null} running={screenState === "running"} onPauseChange={onHumanCheckPauseChange} onTimeout={handleHumanCheckTimeout} getResumeEvidence={getResumeEvidence} onVerified={onHumanCheckVerified} />
     {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div></div> : null}
     {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><p className="rtw-kicker">OFFICIAL SESSION</p><h3>RACE TO WIN</h3><p>DODGE TRAFFIC. SURVIVE. GO FARTHER.</p><div className="rtw-menu-actions"><div className="rtw-play-wrap"><button type="button" className="rtw-action rtw-action--primary rtw-action--play-glass" disabled={opportunitiesError || !opportunities || (opportunities.remaining === 0 && !opportunities.exempt)} onClick={() => void beginOfficialRun()}>PLAY</button><span className="rtw-play-count" aria-live="polite" aria-label={opportunities?.exempt ? "Test account with unlimited races" : opportunities ? `${opportunities.remaining} of 5 races remaining` : "Checking races remaining"}><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{opportunitiesError ? "—/5" : opportunities ? (opportunities.exempt ? "∞" : `${opportunities.remaining}/5`) : "…/5"}</span></div><Link className="rtw-action rtw-action--placeholder" href={ROUTES.scores}>SCORES</Link></div><div className="rtw-ad-slot"><button className="rtw-opportunities__ad" type="button" disabled title="Rewarded ads are not connected yet">▶ WATCH AD · +1 RACE <small>COMING SOON</small></button></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
@@ -312,6 +318,6 @@ export function RaceToWinScene() {
     {screenState === "finalize-failed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">RUN NOT VALIDATED</p><h3>GAME OVER</h3><p>{runNotice}</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "extra-life" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">EXTRA LIFE</p><h3>COMING SOON</h3><p>Extra Life is reserved for a future authoritative reward flow. No local reward has been granted.</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "loading" ? <div className="rtw-loading" role="status">LOADING TRACK…</div> : null}
-    {screenState === "unavailable" ? <div className="rtw-overlay rtw-overlay--unavailable" role="status"><h3>TRACK UNAVAILABLE</h3><p>The browser lost its 3D graphics context. Close other heavy tabs, then retry. If this continues, restart Safari.</p><button type="button" className="rtw-action rtw-action--primary" onClick={() => window.location.reload()}>RETRY 3D TRACK</button><p style={{ overflowWrap: "anywhere", fontSize: "0.8rem", marginTop: "1rem", userSelect: "text" }}>{startupError ?? "No diagnostic available"}</p></div> : null}
+    {screenState === "unavailable" ? <div className="rtw-overlay rtw-overlay--unavailable" role="status"><h3>TRACK UNAVAILABLE</h3><p>The browser lost its 3D graphics context. Close other heavy tabs, then retry. If this continues, restart Safari.</p><button type="button" className="rtw-action rtw-action--primary" onClick={() => { setStartupError(null); setState("loading"); setCanvasGeneration((value) => value + 1); }}>RETRY 3D TRACK</button><p style={{ overflowWrap: "anywhere", fontSize: "0.8rem", marginTop: "1rem", userSelect: "text" }}>{startupError ?? "No diagnostic available"}</p></div> : null}
   </div>;
 }
