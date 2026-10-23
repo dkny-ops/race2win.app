@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { PendingRun } from "@/components/scores/pending-run";
+import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 
 type Entry = { rank: number; username: string; weeklyTotal: number };
 type Board = { game: { name: string }; tournamentWeek: string; page: number; hasNextPage: boolean; entries: Entry[] };
@@ -20,6 +21,8 @@ function weekDays(week: string): string[] {
 }
 
 export function LeaderboardTable() {
+  const [language] = usePlayerLanguage();
+  const t = (en: string, es: string) => language === "es" ? es : en;
   const [data, setData] = useState<Board | null>(null);
   const [personal, setPersonal] = useState<Personal | null>(null);
   const [previousWeek, setPreviousWeek] = useState<PreviousWeek | null>(null);
@@ -106,12 +109,12 @@ export function LeaderboardTable() {
 
   return <div className="scores-ranking-grid">
     <section className="scores-panel scores-ranking-panel scores-ranking-panel--world" aria-label="World ranking">
-      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">GLOBAL WEEKLY LEADERBOARD</p><h2>RANKING MUNDIAL</h2></div></div>
-      <p className="scores-ranking-subtitle">BEST 7 VERIFIED RUNS EACH DAY · WEEKLY SUM</p>
-      <p className="muted" style={{ fontSize: "0.75rem" }}>El ranking se consulta cada minuto. Los resultados verificados en este dispositivo se actualizan al instante; en otros dispositivos pueden tardar hasta un minuto.</p>
-      {error ? <p className="scores-message" role="status">The world leaderboard is temporarily unavailable.</p>
-        : !data ? <p className="scores-message" role="status">LOADING WORLD RANKING…</p>
-        : data.entries.length === 0 ? <p className="scores-message">No public ranked scores for this week yet.</p>
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">{t("GLOBAL WEEKLY LEADERBOARD", "CLASIFICACIÓN SEMANAL GLOBAL")}</p><h2>{t("WORLD RANKING", "RANKING MUNDIAL")}</h2></div></div>
+      <p className="scores-ranking-subtitle">{t("BEST 7 VERIFIED RUNS EACH DAY · WEEKLY SUM", "7 MEJORES PARTIDAS VERIFICADAS POR DÍA · SUMA SEMANAL")}</p>
+      <p className="muted" style={{ fontSize: "0.75rem" }}>{t("Rankings refresh every minute. Verified results on this device update immediately; other devices may take up to one minute.", "El ranking se consulta cada minuto. Los resultados verificados en este dispositivo se actualizan al instante; en otros dispositivos pueden tardar hasta un minuto.")}</p>
+      {error ? <p className="scores-message" role="status">{t("The world leaderboard is temporarily unavailable.", "El ranking mundial no está disponible temporalmente.")}</p>
+        : !data ? <p className="scores-message" role="status">{t("LOADING WORLD RANKING…", "CARGANDO RANKING MUNDIAL…")}</p>
+        : data.entries.length === 0 ? <p className="scores-message">{t("No public ranked scores for this week yet.", "Todavía no hay puntuaciones públicas esta semana.")}</p>
         : <div className="scores-table scores-ranking-table scores-table--leaderboard" role="table" aria-label="Race To Win world ranking">
           <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
           {data.entries.map(entry => <div className={`scores-table__row ranking-row${entry.rank <= 3 ? ` ranking-row--${entry.rank}` : ""}`} role="row" key={entry.rank}>
@@ -122,12 +125,12 @@ export function LeaderboardTable() {
       <div className="scores-pagination"><button className="button button--secondary" type="button" disabled={page === 1 || !data} onClick={() => changePage(page - 1)}>PREVIOUS</button><span aria-live="polite">PAGE {data?.page ?? page}</span><button className="button button--secondary" type="button" disabled={!data?.hasNextPage} onClick={() => changePage(page + 1)}>NEXT</button></div>
     </section>
     <section className="scores-panel scores-ranking-panel" aria-label="Last week winners">
-      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">PREVIOUS WEEK · NEW YORK TIME</p><h2>LAST WEEK WINNERS</h2></div></div>
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">{t("PREVIOUS WEEK · NEW YORK TIME", "SEMANA ANTERIOR · HORA DE NUEVA YORK")}</p><h2>{t("LAST WEEK WINNERS", "GANADORES DE LA SEMANA PASADA")}</h2></div></div>
       <p className="scores-ranking-subtitle">{previousWeek ? `WEEK OF ${previousWeek.tournamentWeek}` : "LAST COMPLETED WEEK"}</p>
       <p className="muted" style={{ fontSize: "0.75rem" }}>Provisional TOP 3. Results and prize eligibility remain subject to antifraud review and manual approval. No automatic payouts.</p>
       {previousWeekError ? <p className="scores-message" role="status">Previous week's results are temporarily unavailable.</p>
-        : !previousWeek ? <p className="scores-message" role="status">LOADING LAST WEEK…</p>
-        : previousWeek.entries.length === 0 ? <p className="scores-message">No verified public scores for last week.</p>
+        : !previousWeek ? <p className="scores-message" role="status">{t("LOADING LAST WEEK…", "CARGANDO SEMANA ANTERIOR…")}</p>
+        : previousWeek.entries.length === 0 ? <p className="scores-message">{t("No verified public scores for last week.", "No hay puntuaciones públicas verificadas de la semana anterior.")}</p>
         : <div className="scores-table scores-ranking-table scores-table--leaderboard" role="table" aria-label="Previous week provisional top three">
           <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
           {previousWeek.entries.map(entry => <div className={`scores-table__row ranking-row ranking-row--${entry.rank}`} role="row" key={entry.rank}>
@@ -137,12 +140,12 @@ export function LeaderboardTable() {
         </div>}
     </section>
     <section className="scores-panel scores-ranking-panel" aria-label="My weekly score">
-      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">TOP 7 VERIFIED RUNS PER DAY</p><h2>MY WEEKLY SCORE</h2></div></div>
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">{t("TOP 7 VERIFIED RUNS PER DAY", "7 MEJORES PARTIDAS VERIFICADAS POR DÍA")}</p><h2>{t("MY WEEKLY SCORE", "MI PUNTUACIÓN SEMANAL")}</h2></div></div>
       <p className="scores-ranking-subtitle">{week ? `WEEK OF ${week} · NEW YORK TIME` : "MONDAY — SUNDAY"}</p>
       {(personal?.pendingRuns ?? []).map((run) => <PendingRun key={run.sessionId} sessionId={run.sessionId} score={run.score} day={run.tournamentDay} />)}
-      {personalStatus === "loading" ? <p className="scores-message" role="status">LOADING WEEKLY SCORES…</p>
+      {personalStatus === "loading" ? <p className="scores-message" role="status">{t("LOADING WEEKLY SCORES…", "CARGANDO PUNTUACIONES SEMANALES…")}</p>
         : personalStatus === "sign-in" ? <p className="scores-message" role="status">Sign in to see your seven daily totals and weekly score.</p>
-        : personalStatus === "unavailable" ? <p className="scores-message" role="status">Your weekly scores are temporarily unavailable.</p>
+        : personalStatus === "unavailable" ? <p className="scores-message" role="status">{t("Your weekly scores are temporarily unavailable.", "Tus puntuaciones semanales no están disponibles temporalmente.")}</p>
         : <><div className="scores-table scores-ranking-table scores-weekly-days" role="group" aria-label="Your daily top seven totals">
           <div className="scores-table__header" role="row"><span role="columnheader">DAY</span><span role="columnheader">TOP 7 RUNS</span><span role="columnheader">TOTAL</span></div>
           {days.map((day, i) => <div className={`scores-day-group${i === 6 ? " scores-day-group--sunday" : ""}`} key={day}>
@@ -153,7 +156,7 @@ export function LeaderboardTable() {
           </div>)}
         </div>{selectedDay && days.includes(selectedDay) ? <div className="scores-day-runs scores-weekly-expanded" id={`daily-runs-${days.indexOf(selectedDay)}`}>
           <p className="scores-day-runs__title">{selectedDay} · TOP 7 VERIFIED SCORES</p>
-          {runsForDay(selectedDay).length ? runsForDay(selectedDay).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span style={{ display: "inline-flex", alignItems: "center", gap: "0.65rem", justifyContent: "flex-end" }}><span aria-label="Verified" title="Verified" style={{ color: "#43dba2", fontSize: "1.25rem", fontWeight: 800 }}>✓</span><span aria-label="Run time"> {formatRunTime(run.elapsedMs)}</span></span></div>) : <p className="muted">No verified scores for this day.</p>}
+          {runsForDay(selectedDay).length ? runsForDay(selectedDay).map(run => <div className="scores-day-run" key={run.rank}><span>#{run.rank}</span><strong>{run.score.toLocaleString()}</strong><span style={{ display: "inline-flex", alignItems: "center", gap: "0.65rem", justifyContent: "flex-end" }}><span aria-label="Verified" title="Verified" style={{ color: "#43dba2", fontSize: "1.25rem", fontWeight: 800 }}>✓</span><span aria-label="Run time"> {formatRunTime(run.elapsedMs)}</span></span></div>) : <p className="muted">{t("No verified scores for this day.", "No hay puntuaciones verificadas este día.")}</p>}
         </div> : null}<div className="scores-ranking-total"><span>WEEKLY TOTAL</span><strong>{(personal?.weeklyTotal ?? 0).toLocaleString()}</strong></div></>}
     </section>
   </div>;
