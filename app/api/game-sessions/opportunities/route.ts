@@ -1,3 +1,4 @@
+import { recordAuth401, isGameAccessHeld, REVIEW_MESSAGE } from "@/lib/security/auth-401-review";
 import { NextResponse } from "next/server";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,7 +9,11 @@ export async function GET() {
   const headers = { "Cache-Control": "private, no-store" };
   try {
     const context = await getVerifiedUserContext();
-    if (!context) return NextResponse.json({ message: "Sign in required" }, { status: 401, headers });
+    if (!context) {
+      const reference = await recordAuth401("/api/game-sessions/opportunities", "unauthenticated");
+      return NextResponse.json({ message: REVIEW_MESSAGE, reference }, { status: 401, headers });
+    }
+    if (await isGameAccessHeld(context.userId)) return NextResponse.json({ message: REVIEW_MESSAGE, reviewRequired: true }, { status: 403, headers });
     const admin = createAdminClient();
     const { data: game, error: gameError } = await admin.from("games").select("id").eq("slug", RACE_TO_WIN_GAME_SLUG).single();
     if (gameError || !game) throw new Error("Game unavailable");
