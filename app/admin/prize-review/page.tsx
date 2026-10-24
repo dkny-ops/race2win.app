@@ -80,7 +80,8 @@ export default async function AdminPrizeReviewPage() {
 
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
-    <h1>Panel de revisión semanal</h1>\n    <div className="button-row" style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>\n      <Link className="button button--primary" href="/admin/prize-review/auth-401">REVISAR ACCESOS 401 →</Link>\n    </div>
+    <h1>Panel de revisión semanal</h1>
+    <div className="button-row" style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>\n      <Link className="button button--primary" href="/admin/prize-review/auth-401">REVISAR ACCESOS 401 →</Link>\n    </div>
     <p>Semana del {previousWeek} · Resumen de ganadores y premios. Solo lectura: este panel no ejecuta pagos ni modifica balances.</p>
     {(totals.data ?? []).length === 0 ? <p>No ranked players for this week.</p> : (totals.data ?? []).map((entry) => {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
