@@ -83,6 +83,7 @@ export default async function AdminPrizeReviewPage() {
     <h1>Panel de revisión semanal</h1>
     <div className="button-row" style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>
       <Link className="button button--primary" href="/admin/prize-review/auth-401">REVISAR ACCESOS 401 →</Link>
+      <Link className="button button--primary" href="/admin/prize-review/players">VER JUGADORES →</Link>
     </div>
     <p>Semana del {previousWeek} · Resumen de ganadores y premios. Solo lectura: este panel no ejecuta pagos ni modifica balances.</p>
     {(totals.data ?? []).length === 0 ? <p>No ranked players for this week.</p> : (totals.data ?? []).map((entry) => {
