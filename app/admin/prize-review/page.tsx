@@ -81,7 +81,9 @@ export default async function AdminPrizeReviewPage() {
   return <section className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · READ ONLY</p>
     <h1>Panel de revisión semanal</h1>
-    <div className="button-row" style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>\n      <Link className="button button--primary" href="/admin/prize-review/auth-401">REVISAR ACCESOS 401 →</Link>\n    </div>
+    <div className="button-row" style={{ marginTop: "1rem", marginBottom: "1.5rem" }}>
+      <Link className="button button--primary" href="/admin/prize-review/auth-401">REVISAR ACCESOS 401 →</Link>
+    </div>
     <p>Semana del {previousWeek} · Resumen de ganadores y premios. Solo lectura: este panel no ejecuta pagos ni modifica balances.</p>
     {(totals.data ?? []).length === 0 ? <p>No ranked players for this week.</p> : (totals.data ?? []).map((entry) => {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
@@ -139,7 +141,9 @@ export default async function AdminPrizeReviewPage() {
         <details>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.5rem 0" }}>Ver datos de revisión del jugador</summary>
           <div style={{ overflowWrap: "anywhere" }}>
-            <p><strong>ID de jugador:</strong> <code>{entry.player_id}</code></p>\n            <p><strong>Usuario:</strong> {identities.get(entry.player_id)?.username || "No registrado"}</p>\n            <p><strong>Correo confirmado:</strong> {identities.get(entry.player_id)?.email || "No disponible / sin confirmar"}</p>
+            <p><strong>ID de jugador:</strong> <code>{entry.player_id}</code></p>
+            <p><strong>Usuario:</strong> {identities.get(entry.player_id)?.username || "No registrado"}</p>
+            <p><strong>Correo confirmado:</strong> {identities.get(entry.player_id)?.email || "No disponible / sin confirmar"}</p>
             <p><strong>Estado del premio:</strong> {winner?.status ?? "No generado; importe previsto, no acreditado"}</p>
             <p><strong>Desempate:</strong> {entry.tie_break_status}</p>
             {playerFlags.map((flag, index) => <p key={index}><strong>Alerta:</strong> {flag.severity} · {flag.status} · {flag.signal_summary}</p>)}
