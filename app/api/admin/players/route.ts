@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   let profilesQuery = admin.from("profiles").select("user_id,username,created_at").order("created_at", { ascending: false }).limit(50);
   if (query) profilesQuery = uuid.test(query) ? profilesQuery.eq("user_id", query) : profilesQuery.ilike("username", "%" + query.replace(/[%_\\]/g, "") + "%");
   const { data: profiles, error } = await profilesQuery;
-  if (error) return NextResponse.json({ message: "No se pudo consultar jugadores" }, { status: 503, headers });
+  if (error) { console.error("Admin player lookup profiles query failed:", error.code); return NextResponse.json({ message: "No se pudo consultar jugadores" }, { status: 503, headers }); }
   const ids = (profiles ?? []).map(p => p.user_id);
   if (!ids.length) return NextResponse.json({ players: [] }, { headers });
   const [sessions, runs, totals, balances, flags] = await Promise.all([
@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
     admin.from("prize_balances").select("player_id,available_cents").in("player_id", ids),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").in("player_id", ids).order("created_at", { ascending: false }).limit(100),
   ]);
-  if ([sessions,runs,totals,balances,flags].some(r => r.error)) return NextResponse.json({ message: "No se pudo cargar la actividad" }, { status: 503, headers });
+  const failures = [sessions,runs,totals,balances,flags].map((result, index) => result.error ? ["sessions","runs","totals","balances","flags"][index] : null).filter(Boolean);
+  if (failures.length) console.error("Admin player lookup partial data failure:", failures);
+  // Optional activity sources must not prevent the owner from seeing registered players.
   const players = await Promise.all((profiles ?? []).map(async p => {
     const identity = await admin.auth.admin.getUserById(p.user_id);
     const email = !identity.error && identity.data.user?.email_confirmed_at ? identity.data.user.email ?? null : null;
