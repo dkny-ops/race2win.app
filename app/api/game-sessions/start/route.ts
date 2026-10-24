@@ -1,3 +1,4 @@
+import { recordAuth401, isGameAccessHeld, REVIEW_MESSAGE } from "@/lib/security/auth-401-review";
 import { NextResponse } from "next/server";
 import { randomInt } from "node:crypto";
 import { GAMEPLAY_VERSION } from "@/lib/game/race-to-win";
@@ -25,8 +26,10 @@ export async function POST() {
     const userId = context?.userId ?? null;
     if (!userId) {
       logSecurityEvent({ eventType: "game_session.start.rejected", route: "/api/game-sessions/start", requestId, reason: "unauthenticated", status: 401 });
-      return NextResponse.json({ message: "Sign in to start an official session." }, { status: 401, headers: CACHE });
+      const reference = await recordAuth401("/api/game-sessions/start", "unauthenticated");
+      return NextResponse.json({ message: REVIEW_MESSAGE, reference }, { status: 401, headers: CACHE });
     }
+    if (await isGameAccessHeld(userId)) return NextResponse.json({ message: REVIEW_MESSAGE, reviewRequired: true }, { status: 403, headers: CACHE });
     const { data: profile, error: profileError } = await context!.supabase.from("profiles").select("username").eq("user_id", userId).maybeSingle<{ username: string | null }>();
     if (profileError) throw profileError;
     if (!profile?.username) return NextResponse.json({ message: "Choose your player name before starting." }, { status: 403, headers: CACHE });
