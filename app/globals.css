@@ -692,3 +692,10 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-ranking-table>.ranking-row--1{background:linear-gradient(105deg,rgba(255,210,96,.28),rgba(255,210,96,.12))!important}
 .scores-page .scores-ranking-table>.ranking-row--2{background:linear-gradient(105deg,rgba(216,232,248,.25),rgba(216,232,248,.10))!important}
 .scores-page .scores-ranking-table>.ranking-row--3{background:linear-gradient(105deg,rgba(219,149,109,.28),rgba(219,149,109,.12))!important}
+
+/* FlappyRace reuses the ranking columns and translucent podium colors. */
+.flappy-ranking{margin-top:2rem;text-align:left;min-width:0}
+.flappy-ranking .scores-ranking-panel{min-width:0}
+.flappy-ranking #flappy-ranking-title{font-size:clamp(1.5rem,5vw,2.5rem)}
+.flappy-ranking .flappy-ranking__review{display:block;margin-top:.25rem;color:var(--muted);font-size:.7rem}
+@media(max-width:600px){.flappy-ranking .scores-pagination{gap:.35rem}.flappy-ranking .scores-pagination .button{padding:.55rem .5rem;font-size:.6rem}}
