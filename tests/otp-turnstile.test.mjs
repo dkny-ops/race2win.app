@@ -113,16 +113,16 @@ test("the local environment template includes the server-controlled midrun Turns
   }
 });
 
-async function loadVerifier(overrides = {}) {
+async function loadVerifier(overrides = {}, diagnosticLogs = []) {
   const source = await read("lib/security/turnstile.ts");
   const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const compiled = { exports: {} };
-  new Function("exports", "module", "require", "process", output)(compiled.exports, compiled, () => ({}), { env: {
+  new Function("exports", "module", "require", "process", "console", output)(compiled.exports, compiled, () => ({}), { env: {
     NODE_ENV: "production", NEXT_PUBLIC_TURNSTILE_SITE_KEY: "original-public", TURNSTILE_SECRET_KEY: "original-secret-".repeat(3),
     NEXT_PUBLIC_TURNSTILE_ADAPTIVE_SITE_KEY: "adaptive-public", TURNSTILE_ADAPTIVE_SECRET_KEY: "adaptive-secret-".repeat(3),
     TURNSTILE_ALLOWED_HOSTNAMES: "racetowin.app,www.racetowin.app", TURNSTILE_ENFORCEMENT_ENABLED: "true",
     TURNSTILE_ENABLED_ACTIONS: "otp_request,weekly_leader_verification", TURNSTILE_MIDRUN_ENABLED: "true", ...overrides,
-  } });
+  } }, { warn: (...args) => diagnosticLogs.push(args) });
   return compiled.exports;
 }
 
@@ -184,6 +184,16 @@ test("Managed fails closed on missing configuration, timeout, HTTP failure and m
     async () => new Response("invalid JSON"), provider({ success: "true" }), provider(null),
     async (_url, { signal }) => new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(new Error("timeout")), { once: true })),
   ]) assert.deepEqual(await api.verifyAdaptiveTurnstileToken("token", { fetchImpl, timeoutMs: 5 }), { status: "unavailable", reason: "provider_unavailable" });
+});
+
+test("Managed diagnostics log only bounded failure metadata, never provider payloads or credentials", async () => {
+  const logs = [];
+  const api = await loadVerifier({}, logs);
+  await api.verifyAdaptiveTurnstileToken("private-token", { fetchImpl: async () => new Response(JSON.stringify({
+    "error-codes": ["invalid-input-secret", "arbitrary-private-provider-message"], secret: "private-secret", token: "private-token",
+  }), { status: 400 }) });
+  assert.deepEqual(logs, [["adaptive_siteverify_unavailable", { stage: "http", status: 400, providerCodes: ["invalid-input-secret"] }]]);
+  assert.doesNotMatch(JSON.stringify(logs), /private-token|private-secret|arbitrary-private-provider-message|adaptive-secret/);
 });
 
 test("OTP never calls Auth on Siteverify failure, legacy disabled decisions, missing second token or quota failure", async () => {

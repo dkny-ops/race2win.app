@@ -80,7 +80,7 @@ export async function verifyAdaptiveTurnstileToken(
 ): Promise<Verification> {
   const config = adaptiveConfiguration();
   if (!config || !getAdaptiveTurnstileRequestWidgetConfiguration()) return { status: "unavailable", reason: "missing_configuration" };
-  return verifyConfiguredToken(token, "otp_request", config, options);
+  return verifyConfiguredToken(token, "otp_request", config, options, true);
 }
 
 export function getTurnstileWidgetConfiguration(action: TurnstileAction): Readonly<{ siteKey: string }> | null {
@@ -113,6 +113,7 @@ async function verifyConfiguredToken(
   expectedAction: TurnstileAction,
   config: Configuration,
   options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number }>,
+  adaptiveDiagnostics = false,
 ): Promise<Verification> {
   if (typeof token !== "string" || token.length === 0) return { status: "rejected", reason: "missing_token" };
   if (token.length > TOKEN_MAX_LENGTH) return { status: "rejected", reason: "invalid_token" };
@@ -127,10 +128,25 @@ async function verifyConfiguredToken(
       signal: controller.signal,
       cache: "no-store",
     });
-    if (!response.ok) return { status: "unavailable", reason: "provider_unavailable" };
+    if (!response.ok) {
+      if (adaptiveDiagnostics) {
+        let providerCodes: string[] = [];
+        try {
+          const body: unknown = await response.json();
+          const codes = body && typeof body === "object" && "error-codes" in body ? body["error-codes"] : null;
+          if (Array.isArray(codes)) providerCodes = codes.filter((code): code is string => typeof code === "string" && ["invalid-input-secret", "missing-input-secret", "bad-request", "internal-error", "invalid-input-response", "timeout-or-duplicate"].includes(code)).slice(0, 6);
+        } catch { /* Never log raw provider responses. */ }
+        console.warn("adaptive_siteverify_unavailable", { stage: "http", status: response.status, providerCodes });
+      }
+      return { status: "unavailable", reason: "provider_unavailable" };
+    }
     let result: unknown;
-    try { result = await response.json(); } catch { return { status: "unavailable", reason: "provider_unavailable" }; }
+    try { result = await response.json(); } catch {
+      if (adaptiveDiagnostics) console.warn("adaptive_siteverify_unavailable", { stage: "json" });
+      return { status: "unavailable", reason: "provider_unavailable" };
+    }
     if (typeof result !== "object" || result === null || Array.isArray(result) || typeof (result as SiteverifyResponse).success !== "boolean") {
+      if (adaptiveDiagnostics) console.warn("adaptive_siteverify_unavailable", { stage: "response_shape" });
       return { status: "unavailable", reason: "provider_unavailable" };
     }
     const body = result as SiteverifyResponse;
@@ -138,7 +154,12 @@ async function verifyConfiguredToken(
     if (body.action !== expectedAction) return { status: "rejected", reason: "action_mismatch" };
     if (typeof body.hostname !== "string" || !config.allowedHostnames.has(body.hostname.toLowerCase())) return { status: "rejected", reason: "hostname_mismatch" };
     return { status: "verified" };
-  } catch {
+  } catch (error) {
+    if (adaptiveDiagnostics) {
+      const cause = error instanceof Error ? (error as Error & { cause?: { code?: unknown } }).cause?.code : undefined;
+      const code = typeof cause === "string" && ["ENOTFOUND", "ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "UND_ERR_CONNECT_TIMEOUT"].includes(cause) ? cause : "unknown";
+      console.warn("adaptive_siteverify_unavailable", { stage: controller.signal.aborted ? "timeout" : "network", code });
+    }
     return { status: "unavailable", reason: "provider_unavailable" };
   } finally {
     clearTimeout(timeout);
