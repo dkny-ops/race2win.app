@@ -17,8 +17,6 @@ export function RaceToWinGame({ canStartOfficial }: { canStartOfficial: boolean 
       <div className="rtw-game-frame">
         {canStartOfficial ? <RaceToWinScene /> : <RaceToWinScene guest />}
       </div>
-        )}
-      </div>
       <p className="rtw-local-note">Official sessions validate the final result on the server. The live HUD is display-only.</p>
     </section>
   );
