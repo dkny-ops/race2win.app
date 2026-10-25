@@ -62,7 +62,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <div className="button-row">
               <Link className="button button--primary" href={playHref}>{t.play}</Link>
               {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
-              {authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">{t.profile}</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">{t.signIn}</ButtonLink>}
+              {!authenticated ? <ButtonLink href={ROUTES.signIn} variant="secondary">{t.signIn}</ButtonLink> : null}
             </div>
             <p className="play-note">{t.playNote}</p>
           </div>
