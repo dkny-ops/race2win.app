@@ -41,6 +41,8 @@ export async function SiteHeader() {
           ))}
         </nav>
         <div className="header-actions">{isPrizeAdmin ? <Link href="/admin/prize-review">ADMIN PANEL</Link> : null}{authenticated ? <><Link className="profile-link" href={ROUTES.profile} aria-label="Open player profile"><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <ButtonLink href={ROUTES.signIn} variant="text">SIGN IN</ButtonLink>}</div>
+        <div className="mobile-header-actions" style={{ display: "flex", alignItems: "center", gap: "1rem", marginLeft: "auto" }}>
+          {!authenticated ? <Link href={ROUTES.signIn} className="mobile-header-sign-in" style={{ color: "#fff", fontWeight: 800, letterSpacing: ".09em", whiteSpace: "nowrap", fontSize: ".85rem" }}>SIGN IN</Link> : null}
         <MobileMenu>
           <nav aria-label="Mobile navigation">
             {PRIMARY_NAVIGATION.map((item) => (
@@ -48,9 +50,10 @@ export async function SiteHeader() {
             ))}
             {isPrizeAdmin ? <Link href="/admin/prize-review">ADMIN PANEL</Link> : null}
             <SiteLanguageSettings />
-            {authenticated ? <><Link className="profile-link" href={ROUTES.profile}><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <Link href={ROUTES.signIn}>SIGN IN</Link>}
+            {authenticated ? <><Link className="profile-link" href={ROUTES.profile}><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : null}
           </nav>
         </MobileMenu>
+        </div>
       </div>
     </header>
   );
