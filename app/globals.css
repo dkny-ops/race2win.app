@@ -684,3 +684,6 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
   .hero .prize-promo{margin:16px auto 24px!important}
   .hero .button-row{margin-top:1.2rem}
 }
+
+.mobile-header-actions{display:none}
+@media(max-width:980px){.mobile-header-actions{display:flex;align-items:center;gap:1rem;margin-left:auto}.mobile-header-actions .mobile-menu{margin-left:0}}
