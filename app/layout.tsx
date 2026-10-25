@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   robots: { index: true, follow: true },
+  verification: {
+    other: {
+      monetag: "6485308ae3dd661336cbe0bcac06f668",
+    },
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
