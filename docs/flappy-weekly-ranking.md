@@ -1,5 +1,11 @@
 # FlappyRace weekly ranking: read-only staging
 
+> Historical report for commit 21c254d. The gated authoritative engine and session
+> infrastructure added in 78a92ef are documented in
+> [flappy-authoritative-validation.md](flappy-authoritative-validation.md).
+> Competition remains closed; the proposed migration has not been applied to production.
+> The audit below describes the earlier read-only stage, not the current engine.
+
 ## Scope and audit
 FlappyMini currently uses browser state, Math.random(), variable render time and client-only collision/scoring. It does not submit official sessions or scores. Authentication alone cannot make its results authoritative.
 
