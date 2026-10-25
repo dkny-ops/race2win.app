@@ -687,3 +687,8 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 
 .mobile-header-actions{display:none}
 @media(max-width:980px){.mobile-header-actions{display:flex;align-items:center;gap:1rem;margin-left:auto}.mobile-header-actions .mobile-menu{margin-left:0}}
+
+/* Translucent podium colors for the existing Race To Win ranking rows. */
+.scores-page .scores-ranking-table>.ranking-row--1{background:linear-gradient(105deg,rgba(255,210,96,.28),rgba(255,210,96,.12))!important}
+.scores-page .scores-ranking-table>.ranking-row--2{background:linear-gradient(105deg,rgba(216,232,248,.25),rgba(216,232,248,.10))!important}
+.scores-page .scores-ranking-table>.ranking-row--3{background:linear-gradient(105deg,rgba(219,149,109,.28),rgba(219,149,109,.12))!important}
