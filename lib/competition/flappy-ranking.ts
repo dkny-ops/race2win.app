@@ -25,6 +25,11 @@ export async function readFlappyRanking(page: number): Promise<FlappyRanking> {
     officialEnabled: FLAPPY_OFFICIAL_ENABLED, entries: [],
   };
   const admin = createAdminClient();
+  if (FLAPPY_OFFICIAL_ENABLED) {
+    const { data, error } = await admin.rpc("flappy_read_ranking", { p_week: week, p_page: page });
+    if (error || !data || !Array.isArray(data.entries) || typeof data.hasNextPage !== "boolean") throw new Error("Ranking unavailable");
+    return { ...base, entries: data.entries, hasNextPage: data.hasNextPage };
+  }
   const { data: game, error: gameError } = await admin.from("games")
     .select("id").eq("slug", FLAPPY_GAME_SLUG).eq("status", "active").maybeSingle();
   if (gameError) throw gameError;

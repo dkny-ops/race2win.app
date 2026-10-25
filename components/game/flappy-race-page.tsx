@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { FlappyMini } from "./flappy-mini";
+import { FlappyVerifiedCanvas } from "./flappy-verified-canvas";
 import { FlappyRankingTable } from "@/components/scores/flappy-ranking";
 
 export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
@@ -10,5 +10,5 @@ export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
   const locale = stored === "en" || stored === "es" ? stored : navigator.languages?.[0] || navigator.language || "en";
   setLanguage(locale.toLowerCase().startsWith("es") ? "es" : "en");
  }, []);
- return <div style={{ marginTop: "1.5rem" }}><FlappyMini language={language} authenticated={authenticated} /><FlappyRankingTable language={language} /></div>;
+ return <div style={{ marginTop: "1.5rem" }}><FlappyVerifiedCanvas language={language} authenticated={authenticated} /><FlappyRankingTable language={language} /></div>;
 }
