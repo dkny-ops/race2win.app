@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   robots: { index: true, follow: true },
+  other: {
+    "google-adsense-account": "ca-pub-9717962248903800",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
