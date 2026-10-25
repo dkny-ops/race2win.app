@@ -8,6 +8,7 @@ type Pipe = { x: number; gap: number; passed: boolean };
 const W = 360, H = 480, BIRD_X = 82, GAP = 150, PIPE_W = 54;
 export function FlappyMini({ language, authenticated = false }: { language: "en" | "es"; authenticated?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [expanded, setExpanded] = useState(false);
   const game = useRef({ y: 220, vy: 0, pipes: [] as Pipe[], score: 0, running: false, over: false, frame: 0 });
   const [status, setStatus] = useState<"ready" | "running" | "over">("ready");
   const [score, setScore] = useState(0);
@@ -21,7 +22,9 @@ export function FlappyMini({ language, authenticated = false }: { language: "en"
     g.vy = -5.5;
   }, []);
   const startGame = useCallback(() => {
+    if (countdownTimer.current !== null || game.current.running) return;
     if (!authenticated && !claimGuestTrial()) { setGuestBlocked(true); return; }
+    setExpanded(true);
     if (countdownTimer.current !== null) clearInterval(countdownTimer.current);
     Object.assign(game.current, { y: 220, vy: 0, pipes: [], score: 0, running: false, over: false, frame: 0 });
     setScore(0); setStatus("ready"); setCountdown(3);
@@ -78,13 +81,16 @@ export function FlappyMini({ language, authenticated = false }: { language: "en"
   }, [flap]);
   return <div style={{ textAlign: "center" }}>
     <p style={{ marginBottom: 12 }}>{language === "es" ? "Toca para volar. Evita los obstáculos." : "Tap to fly. Dodge the obstacles."}</p>
-    <div style={{ position: "relative", maxWidth: 360, margin: "auto" }}>
-    <canvas ref={canvasRef} width={W} height={H} tabIndex={0} aria-label="Flappy mini game" onPointerDown={flap} style={{ display: "block", width: "100%", maxWidth: 360, height: "auto", margin: "auto", border: "1px solid #23617c", borderRadius: 12, touchAction: "manipulation", cursor: "pointer" }} />
-    {countdown !== null ? <div aria-live="assertive" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: "5rem", fontWeight: 900, color: "#fff", textShadow: "0 3px 12px #000", pointerEvents: "none" }}>{countdown}</div> : null}
+    <div style={expanded ? { position: "fixed", inset: 0, zIndex: 9999, background: "#071a2c", width: "100vw", height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" } : { position: "relative", maxWidth: 360, margin: "auto" }}>
+      <canvas ref={canvasRef} width={W} height={H} tabIndex={0} aria-label="Flappy mini game" onPointerDown={flap} style={expanded ? { display: "block", width: "100%", height: "100%", objectFit: "contain", touchAction: "none", cursor: "pointer" } : { display: "block", width: "100%", maxWidth: 360, height: "auto", margin: "auto", border: "1px solid #23617c", borderRadius: 12, touchAction: "manipulation", cursor: "pointer" }} />
+      {!expanded && status === "ready" && countdown === null && !guestBlocked ? <button type="button" onClick={startGame} aria-label={language === "es" ? "Jugar" : "Play"} style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", borderRadius: 999, border: "2px solid #67e8f9", background: "#0865d8", color: "white", padding: "1rem 2rem", fontSize: "1.3rem", fontWeight: 900, cursor: "pointer", boxShadow: "0 0 30px #0369a1" }}>▶ PLAY</button> : null}
+      {countdown !== null ? <div aria-live="assertive" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontSize: "5rem", fontWeight: 900, color: "#fff", textShadow: "0 3px 12px #000", pointerEvents: "none" }}>{countdown}</div> : null}
+      {expanded && status === "running" ? <div style={{ position: "absolute", top: "max(1rem, env(safe-area-inset-top))", left: 16, padding: "0.5rem 1rem", color: "white", background: "#071a2ccc", borderRadius: 12, pointerEvents: "none", fontWeight: 800 }}>SCORE: {score}</div> : null}
+      {expanded && status === "over" ? <div role="status" style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "#06121de8", color: "white", padding: 20 }}><h2>GAME OVER</h2><p>SCORE: {score}</p>{!authenticated ? <><p style={{ maxWidth: 300 }}>{language === "es" ? "La prueba no cuenta para torneos ni premios." : "Guest play does not count for tournaments or prizes."}</p><Link className="button button--primary" href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link></> : <button type="button" className="button button--primary" onClick={() => { setExpanded(false); startGame(); }}>PLAY AGAIN</button>}<button type="button" className="button button--secondary" onClick={() => setExpanded(false)}>{language === "es" ? "SALIR" : "EXIT"}</button></div> : null}
     </div>
     <p style={{ marginTop: 12 }}>{language === "es" ? "Puntos" : "Score"}: <strong>{score}</strong> · {status === "over" ? (language === "es" ? "Fin de partida" : "Game over") : status === "ready" ? (language === "es" ? "Preparado" : "Ready") : (language === "es" ? "Jugando" : "Playing")}</p>
     {!authenticated && (guestBlocked || status === "over") ? <p role="status" style={{ marginTop: 12 }}>{language === "es" ? "La prueba gratuita no participa en torneos ni genera premios. Inicia sesión para continuar." : "Guest play does not count for tournaments or prizes. Sign in to continue."} <Link href="/sign-in?next=%2Fgames%2Fflappy-race" className="button button--primary" style={{ marginTop: 10 }}>SIGN IN</Link></p> : null}
-    <button type="button" className="button button--secondary" onClick={startGame} disabled={countdown !== null || status === "running" || (!authenticated && (guestBlocked || status === "over"))} style={{ marginTop: 10 }}>{status === "over" ? (language === "es" ? "VOLVER A JUGAR" : "PLAY AGAIN") : (language === "es" ? "PLAY · INICIAR" : "PLAY · START")}</button>
+
     <p style={{ marginTop: 10, opacity: 0.75, fontSize: "0.85rem" }}>{language === "es" ? "Demo sin premios ni clasificación." : "Demo without prizes or leaderboard."}</p>
   </div>;
 }
