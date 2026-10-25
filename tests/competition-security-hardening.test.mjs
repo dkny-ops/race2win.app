@@ -150,8 +150,10 @@ test("new mutation routes use the bounded parser and database-backed rate gate",
   for (const route of routes) assert.doesNotMatch(route, /request\.json\(/);
   assert.match(routes[0], /readBoundedJson\(request\)/);
   assert.match(routes[1], /readBoundedJson\(request\)/);
-  assert.match(routes[2], /hasEmptyBoundedBody\(request\)/);
-  for (const route of routes) assert.match(route, /consumeCompetitionActionRateLimit/);
+  // The retired balance endpoint rejects every call before any mutation.
+  assert.match(routes[2], /status: 403/);
+  assert.doesNotMatch(routes[2], /createAdminClient|\.rpc\(|\.from\(/);
+  for (const route of routes.slice(0, 2)) assert.match(route, /consumeCompetitionActionRateLimit/);
 
   const startRoute = await readFile(new URL("app/api/game-sessions/start/route.ts", root), "utf8");
   assert.match(startRoute, /rtw_start_official_game_session/);

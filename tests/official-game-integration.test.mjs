@@ -37,7 +37,7 @@ test("the gameplay client supplies evidence only and renders only a returned off
   assert.doesNotMatch(scene, /userId/);
 });
 
-test("anonymous entry is gated and the post-OTP redirect is a fixed allowlist", async () => {
+test("anonymous runs stay separate from official sessions and post-OTP redirect is a fixed allowlist", async () => {
   const game = await read("components/game/race-to-win/race-to-win-game.tsx");
   const page = await read("app/games/race-to-win/page.tsx");
   const nextPath = await read("lib/auth/post-auth-path.ts");
@@ -45,7 +45,11 @@ test("anonymous entry is gated and the post-OTP redirect is a fixed allowlist", 
   const verifyCode = await read("app/api/auth/verify-code/route.ts");
   assert.match(page, /getVerifiedUserContext\(\)/);
   assert.match(game, /canStartOfficial/);
-  assert.match(game, /SIGN IN TO RACE/);
+  assert.match(game, /canStartOfficial \? <RaceToWinScene \/> : <RaceToWinScene guest \/>/);
+  const scene = await read("components/game/race-to-win/race-to-win-scene.tsx");
+  assert.match(scene, /SIGN IN TO CONTINUE/);
+  assert.match(scene, /if \(guest\) \{[\s\S]*?officialSessionRef\.current = null/);
+  assert.match(scene, /!guest \? <MidrunHumanCheck/);
   assert.match(nextPath, /value === ROUTES\.raceToWinGame/);
   assert.match(requestCode, /safePostAuthPath/);
   assert.match(requestCode, /rtw_otp_next/);

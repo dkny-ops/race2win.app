@@ -56,7 +56,8 @@ test("oversized or malformed Auth/Profile bodies fail before their sensitive pro
     "@/lib/observability/security-event": observability,
     "@/lib/auth/post-auth-path": { safePostAuthPath: () => "/" },
     "@/lib/competition/request-body": body,
-    "@/lib/security/turnstile": { verifyTurnstileToken: async () => ({ status: "rejected", reason: "missing_token" }) },
+    "@/lib/security/turnstile": { verifyAdaptiveTurnstileToken: async () => ({ status: "rejected", reason: "missing_token" }) },
+    "@/lib/auth/otp-abuse": { consumeOtpAbuseLimit: async () => { throw new Error("Must not check quota for oversized input"); } },
   });
   const requestCodeResponse = await requestCode.POST(otpOversized());
   assert.equal(requestCodeResponse.status, 202);
@@ -65,6 +66,7 @@ test("oversized or malformed Auth/Profile bodies fail before their sensitive pro
 
   let verifyProviderCalls = 0;
   const verifyCode = await loadRoute("app/api/auth/verify-code/route.ts", {
+    "@/lib/auth/otp-abuse": { consumeOtpAbuseLimit: async () => { throw new Error("Must not check quota for oversized input"); } },
     "@supabase/ssr": { createServerClient: () => { verifyProviderCalls += 1; return {}; } },
     "next/server": next,
     "@/lib/observability/security-event": observability,

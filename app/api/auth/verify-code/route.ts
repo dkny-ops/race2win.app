@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
 import { readBoundedJson } from "@/lib/competition/request-body";
+import { consumeOtpAbuseLimit } from "@/lib/auth/otp-abuse";
 
 const OTP_PATTERN = /^\d{6}$/;
 const INVALID_CODE_MESSAGE = "That code is invalid or expired. Request a new code and try again.";
@@ -27,7 +28,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: INVALID_CODE_MESSAGE }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  let response = NextResponse.json({ nextPath }, { headers: { "Cache-Control": "no-store" } });
+  const quota = await consumeOtpAbuseLimit("otp_verify", email);
+  if (quota !== "allowed") {
+    const status = quota === "blocked" ? 429 : 503;
+    logSecurityEvent({ eventType: "auth.verify_code.rejected", route: "/api/auth/verify-code", requestId, reason: quota === "blocked" ? "rate_limited" : "database_operation_failed", status });
+    return NextResponse.json({ message: quota === "blocked" ? "Please wait a minute before trying again." : "Verification temporarily unavailable. Try again shortly." }, { status, headers: { "Cache-Control": "no-store", "Retry-After": "60" } });
+  }
+
+  const response = NextResponse.json({ nextPath }, { headers: { "Cache-Control": "no-store" } });
   const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll() { return request.cookies.getAll(); },

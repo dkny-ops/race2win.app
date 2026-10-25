@@ -6,6 +6,7 @@ import "server-only";
  * errors are never accepted as logging metadata.
  */
 export type SecurityEventType =
+  | "auth.request_code.verified"
   | "auth.request_code.rejected"
   | "auth.request_code.failed"
   | "auth.verify_code.rejected"
@@ -54,6 +55,7 @@ export type SecurityEventRoute =
   | "/api/prizes/balance-claim";
 
 export type SecurityEventReason =
+  | "turnstile_verified"
   | "invalid_request"
   | "unauthenticated"
   | "rate_limited"

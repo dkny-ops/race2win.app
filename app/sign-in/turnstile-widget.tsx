@@ -28,7 +28,8 @@ export function TurnstileScript({ onReady, onError }: Readonly<{ onReady: () => 
 }
 
 /** Collects a token only. The server verifies it and controls authorization. */
-export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange, action = "otp_request" }: Readonly<{
+export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange, action = "otp_request", adaptive = false }: Readonly<{
+  adaptive?: boolean;
   action?: "otp_request" | "weekly_leader_verification";
   siteKey: string;
   scriptReady: boolean;
@@ -50,13 +51,14 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     onTokenChange(null);
     const id = api.render(containerRef.current, {
       sitekey: siteKey, action, size: "flexible",
+      ...(adaptive ? { appearance: "interaction-only" as const } : {}),
       callback: (token) => { if (active) onTokenChange(token); },
       "expired-callback": () => { if (active) clearAndReset(); },
       "error-callback": () => { if (active) clearAndReset(); },
     });
     widgetIdRef.current = id;
     return () => { active = false; widgetIdRef.current = null; onTokenChange(null); api.remove(id); };
-  }, [action, clearAndReset, onTokenChange, scriptReady, siteKey]);
+  }, [action, adaptive, clearAndReset, onTokenChange, scriptReady, siteKey]);
 
   useEffect(() => {
     if (resetNonce > 0 && widgetIdRef.current && window.turnstile) {

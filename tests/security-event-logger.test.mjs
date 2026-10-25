@@ -80,7 +80,6 @@ test("sensitive mutation routes use server-side security events", async () => {
     ["../app/api/game-sessions/finalize/route.ts", "game_session.anti_cheat_rejected"],
     ["../app/api/referrals/attach/route.ts", "referral.attach"],
     ["../app/api/prizes/claim/route.ts", "prize.claim"],
-    ["../app/api/prizes/balance-claim/route.ts", "payout_hold.operation_failed"],
   ];
   for (const [relativePath, eventName] of routes) {
     const route = await readFile(new URL(relativePath, import.meta.url), "utf8");

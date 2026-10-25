@@ -58,6 +58,31 @@ export function getTurnstileRequestWidgetConfiguration(): Readonly<{ siteKey: st
   return getTurnstileWidgetConfiguration("otp_request");
 }
 
+function adaptiveConfiguration(): Configuration | null {
+  const secret = process.env.TURNSTILE_ADAPTIVE_SECRET_KEY?.trim();
+  const hostnames = parseHostnames(process.env.TURNSTILE_ALLOWED_HOSTNAMES);
+  if (!secret || secret.length < 16 || hostnames.length === 0 || hostnames.some((hostname) => !validHostname(hostname))) return null;
+  return { secret, allowedHostnames: new Set(hostnames) };
+}
+
+/** OTP uses Managed; gameplay and Supabase Auth retain their original widget. */
+export function getAdaptiveTurnstileRequestWidgetConfiguration(): Readonly<{ siteKey: string; supabaseSiteKey: string }> | null {
+  const key = process.env.NEXT_PUBLIC_TURNSTILE_ADAPTIVE_SITE_KEY?.trim();
+  const originalKey = siteKey();
+  return adaptiveConfiguration() && key && originalKey && key !== originalKey
+    ? { siteKey: key, supabaseSiteKey: originalKey } : null;
+}
+
+/** Mandatory independently of the legacy gameplay enforcement switches. */
+export async function verifyAdaptiveTurnstileToken(
+  token: unknown,
+  options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number }> = {},
+): Promise<Verification> {
+  const config = adaptiveConfiguration();
+  if (!config || !getAdaptiveTurnstileRequestWidgetConfiguration()) return { status: "unavailable", reason: "missing_configuration" };
+  return verifyConfiguredToken(token, "otp_request", config, options);
+}
+
 export function getTurnstileWidgetConfiguration(action: TurnstileAction): Readonly<{ siteKey: string }> | null {
   if (process.env.TURNSTILE_ENFORCEMENT_ENABLED !== "true") return null;
   const key = siteKey();
@@ -80,6 +105,15 @@ export async function verifyTurnstileToken(
   if (process.env.TURNSTILE_ENFORCEMENT_ENABLED !== "true") return { status: "unavailable", reason: "disabled" };
   const config = configuration(expectedAction);
   if (!config || !siteKey()) return { status: "unavailable", reason: "missing_configuration" };
+  return verifyConfiguredToken(token, expectedAction, config, options);
+}
+
+async function verifyConfiguredToken(
+  token: unknown,
+  expectedAction: TurnstileAction,
+  config: Configuration,
+  options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number }>,
+): Promise<Verification> {
   if (typeof token !== "string" || token.length === 0) return { status: "rejected", reason: "missing_token" };
   if (token.length > TOKEN_MAX_LENGTH) return { status: "rejected", reason: "invalid_token" };
 

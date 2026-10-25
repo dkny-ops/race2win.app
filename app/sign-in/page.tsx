@@ -5,7 +5,7 @@ import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { ROUTES } from "@/lib/routes";
 import { SignInForm } from "./sign-in-form";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
-import { getTurnstileRequestWidgetConfiguration } from "@/lib/security/turnstile";
+import { getAdaptiveTurnstileRequestWidgetConfiguration } from "@/lib/security/turnstile";
 
 export const metadata: Metadata = { title: "Sign In" };
 
@@ -17,6 +17,6 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     if (error) throw new Error("Unable to verify player profile.");
     redirect(profile?.username ? nextPath === ROUTES.home ? ROUTES.profile : nextPath : ROUTES.profile);
   }
-  const turnstile = getTurnstileRequestWidgetConfiguration();
-  return <section className="sign-in-page"><div className="sign-in-panel"><p className="eyebrow">RACE CONTROL</p><h1>SIGN IN</h1><p className="page-lede">Enter your email to request a one-time sign-in code.</p><SignInForm nextPath={nextPath} turnstileSiteKey={turnstile?.siteKey} /><p className="sign-in-footnote">Use the code from your inbox to complete sign-in.</p><p className="sign-in-footnote">Access error 401? <Link href="/support/access">CONTACTAR SOPORTE</Link></p></div></section>;
+  const turnstile = getAdaptiveTurnstileRequestWidgetConfiguration();
+  return <section className="sign-in-page"><div className="sign-in-panel"><p className="eyebrow">RACE CONTROL</p><h1>SIGN IN</h1><p className="page-lede">Enter your email to request a one-time sign-in code.</p><SignInForm nextPath={nextPath} turnstileSiteKey={turnstile?.supabaseSiteKey} adaptiveSiteKey={turnstile?.siteKey} /><p className="sign-in-footnote">Use the code from your inbox to complete sign-in.</p><p className="sign-in-footnote">Access error 401? <Link href="/support/access">CONTACTAR SOPORTE</Link></p></div></section>;
 }

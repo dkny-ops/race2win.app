@@ -3,12 +3,13 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
 import { safePostAuthPath } from "@/lib/auth/post-auth-path";
 import { readBoundedJson } from "@/lib/competition/request-body";
-import { verifyTurnstileToken } from "@/lib/security/turnstile";
+import { verifyAdaptiveTurnstileToken } from "@/lib/security/turnstile";
+import { consumeOtpAbuseLimit } from "@/lib/auth/otp-abuse";
 
 const GENERIC_MESSAGE = "If this email can receive a sign-in code, check your inbox shortly.";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function turnstileSecurityReason(turnstile: Awaited<ReturnType<typeof verifyTurnstileToken>>) {
+function turnstileSecurityReason(turnstile: Awaited<ReturnType<typeof verifyAdaptiveTurnstileToken>>) {
   if (turnstile.status === "unavailable") {
     return turnstile.reason === "missing_configuration"
       ? "missing_configuration" as const
@@ -50,14 +51,16 @@ export async function POST(request: Request) {
   if (!EMAIL_PATTERN.test(email) || email.length > 320) {
     logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: "invalid_request", status: 202 });
   } else {
-    const turnstile = await verifyTurnstileToken(turnstileToken, "otp_request");
-    const captchaDisabled = turnstile.status === "unavailable" && turnstile.reason === "disabled";
+    const turnstile = await verifyAdaptiveTurnstileToken(turnstileToken);
+    if (turnstile.status === "verified") {
+      logSecurityEvent({ eventType: "auth.request_code.verified", route: "/api/auth/request-code", requestId, reason: "turnstile_verified", status: 202 });
+    }
     // Siteverify consumes its token. Supabase Auth receives another fresh one.
     const hasIndependentSupabaseToken = typeof supabaseCaptchaToken === "string"
       && supabaseCaptchaToken.trim().length > 0
       && supabaseCaptchaToken.length <= 2048
       && supabaseCaptchaToken !== turnstileToken;
-    if (!captchaDisabled && (turnstile.status !== "verified" || !hasIndependentSupabaseToken)) {
+    if (turnstile.status !== "verified" || !hasIndependentSupabaseToken) {
       // A missing second token is distinct from a failed Siteverify decision.
       // Only these fixed categories reach server logs; opaque token values do not.
       const reason = !hasIndependentSupabaseToken
@@ -68,12 +71,17 @@ export async function POST(request: Request) {
       logSecurityEvent({ eventType: "auth.request_code.failed", route: "/api/auth/request-code", requestId, reason: "missing_configuration", status: 202 });
     } else {
       try {
+        const quota = await consumeOtpAbuseLimit("otp_request", email);
+        if (quota !== "allowed") {
+          logSecurityEvent({ eventType: "auth.request_code.rejected", route: "/api/auth/request-code", requestId, reason: quota === "blocked" ? "rate_limited" : "database_operation_failed", status: quota === "blocked" ? 429 : 503 });
+          return NextResponse.json({ message: quota === "blocked" ? "Please wait a minute before requesting another code." : "Verification temporarily unavailable. Try again shortly.", nextStep: false }, { status: quota === "blocked" ? 429 : 503, headers: { "Cache-Control": "no-store", "Retry-After": "60", "X-Request-Id": requestId } });
+        }
         const supabase = await createClient();
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
             shouldCreateUser: true,
-            ...(turnstile.status === "verified" ? { captchaToken: supabaseCaptchaToken as string } : {}),
+            captchaToken: supabaseCaptchaToken as string,
           },
         });
         requestAccepted = !error;
@@ -85,7 +93,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const response = NextResponse.json({ message: GENERIC_MESSAGE, nextStep: requestAccepted }, { status: 202, headers: { "Cache-Control": "no-store" } });
+  const response = NextResponse.json({ message: GENERIC_MESSAGE, nextStep: requestAccepted }, { status: 202, headers: { "Cache-Control": "no-store", "X-Request-Id": requestId } });
   if (requestAccepted) {
     response.cookies.set("rtw_otp_email", email, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 600, path: "/" });
     response.cookies.set("rtw_otp_next", nextPath, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 600, path: "/" });
