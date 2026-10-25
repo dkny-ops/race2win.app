@@ -9,10 +9,6 @@ export default function RulesPage() {
       <p className="eyebrow">RACE TO WIN · PLAYER RULES</p>
       <h1>Know the rules before you race.</h1>
       <p className="page-lede">Read the scoring format, fair-play requirements, and prize conditions below. Official standings and any awards remain subject to verification and human review.</p>
-      <div className="notice">
-        <h2>Cash-prize status</h2>
-        <p>The current published Terms and Prizes page do not confirm an active cash-prize competition. No weekly cash amounts are confirmed here. Official prize rules, eligibility, amounts, dates, and payment conditions must be finalized and approved before prize entry opens. A leaderboard position or displayed amount alone does not guarantee an award or payment.</p>
-      </div>
       <div className="rule-grid">
         <article>
           <h2>Official play</h2>
