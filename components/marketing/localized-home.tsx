@@ -46,7 +46,6 @@ const copy = {
 
 export function LocalizedHome({ username, authenticated, owner, playHref }: Props) {
   const [language, setLanguage] = usePlayerLanguage();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => { document.documentElement.lang = language; }, [language]);
   const t = copy[language];
   return (
@@ -64,9 +63,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <Link className="button button--primary" href={playHref}>{t.play}</Link>
               {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
               {authenticated ? <ButtonLink href={ROUTES.profile} variant="secondary">{t.profile}</ButtonLink> : <ButtonLink href={ROUTES.signIn} variant="secondary">{t.signIn}</ButtonLink>}
-              <button type="button" className="button button--secondary" onClick={() => setSettingsOpen(value => !value)} aria-expanded={settingsOpen} aria-controls="rtw-home-settings">{language === "es" ? "CONFIGURACIÓN" : "SETTINGS"}</button>
             </div>
-            {settingsOpen ? <div id="rtw-home-settings" style={{ marginTop: "1rem", padding: "1rem", border: "1px solid rgba(255,255,255,.25)", borderRadius: 12, background: "rgba(0,0,0,.55)", maxWidth: 360 }}><label htmlFor="rtw-home-language" style={{ display: "block", fontWeight: 700, marginBottom: ".5rem" }}>{language === "es" ? "IDIOMA" : "LANGUAGE"}</label><select id="rtw-home-language" value={language} onChange={event => setLanguage(event.target.value === "es" ? "es" : "en")} style={{ width: "100%", padding: ".7rem", borderRadius: 8, background: "#101827", color: "#fff", border: "1px solid #94a3b8" }}><option value="en">English</option><option value="es">Español</option></select></div> : null}
             <p className="play-note">{t.playNote}</p>
           </div>
         </div>
