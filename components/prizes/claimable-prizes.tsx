@@ -14,7 +14,7 @@ function prizeAmount(cents: number) {
 }
 
 export function ClaimablePrizes() {
-  const [language, setLanguage] = usePlayerLanguage();
+  const [language] = usePlayerLanguage();
   const es = language === "es";
   const [data, setData] = useState<ClaimablePrizeResponse | null>(null);
   const [winnerContact, setWinnerContact] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function ClaimablePrizes() {
   return <section className="profile-card" aria-labelledby="claim-prize-title">
     <p className="eyebrow">{es ? "RECLAMAR PREMIO" : "PRIZE CLAIM"}</p>
     <h2 id="claim-prize-title">{es ? "MI BILLETERA" : "MY WALLET"}</h2>
-    <label className="profile-warning">{es ? "Idioma" : "Language"} <select aria-label="Language / Idioma" value={language} onChange={(event) => setLanguage(event.target.value === "es" ? "es" : "en")}><option value="en">English</option><option value="es">Español</option></select></label>
+    
     <p className="profile-warning">{es ? "SALDO DISPONIBLE" : "AVAILABLE BALANCE"} · {prizeAmount(data?.eligibleBalanceCents ?? 0)}</p>
     {weeklyPrizeCents > 0 ? <p className="profile-warning">{weeklyRank === 1 ? (es ? "1.er lugar" : "1st place") : weeklyRank === 2 ? (es ? "2.º lugar" : "2nd place") : weeklyRank === 3 ? (es ? "3.er lugar" : "3rd place") : (es ? "Premio semanal" : "Weekly prize")} · {prizeAmount(weeklyPrizeCents)}</p> : null}
     <p className="profile-warning">{es ? "RETIRO MÍNIMO" : "MINIMUM WITHDRAWAL"} · $10.00</p>
