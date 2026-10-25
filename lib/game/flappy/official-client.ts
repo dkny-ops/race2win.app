@@ -4,6 +4,7 @@ export type FlappySession = { sessionId: string; seed: number; version: string; 
 export type FlappyResult = { score: number; collisionTick: number; eligibility: "under_review"; verification: "replay_verified" };
 async function post(action: string, body: unknown) {
   const response = await fetch(`/api/flappy-race/sessions/${action}`, {
+    signal: AbortSignal.timeout(10_000),
     method: "POST", credentials: "same-origin", cache: "no-store",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });

@@ -37,10 +37,10 @@ sql("create database "+db,"postgres");
 try{
  file("supabase/verification/local-auth-bootstrap.sql");
  const migrations=readdirSync(new URL("supabase/migrations",root)).filter(p=>/^\d+_.+\.sql$/.test(p)).sort();
- for(const p of migrations.filter(p=>!p.includes("flappy_authoritative")))file("supabase/migrations/"+p);
+ for(const p of migrations.filter(p=>!p.includes("flappy_")))file("supabase/migrations/"+p);
  const fingerprint=()=>sql("select md5(string_agg(pg_get_functiondef(p.oid),'|' order by p.oid)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.proname not like 'flappy_%'");
  const before=fingerprint();
- for(const p of migrations.filter(p=>p.includes("flappy_authoritative")))file("supabase/migrations/"+p);
+ for(const p of migrations.filter(p=>p.includes("flappy_")))file("supabase/migrations/"+p);
  assert.equal(fingerprint(),before);pass("Race To Win function bodies unchanged by additive migration");
  assert.equal(sql("select enabled from private.flappy_control"),"f");
  assert.equal((await rpc("flappy_consume_quota",{p_player:A,p_action:"start"})).data,false);pass("database gate defaults closed");
@@ -51,17 +51,17 @@ try{
  sql("insert into public.profiles(user_id,username) values("+lit(A)+",'Alpha'),("+lit(B)+",'Beta'),("+lit(C)+",'Gamma'),("+lit(D)+",'Delta')");
  sql("insert into public.games(slug,display_name) values('flappy-race','FlappyRace')");
  sql("update private.flappy_control set enabled=true");
- const ids=["private.flappy_sessions","private.flappy_runs","private.flappy_quotas","private.flappy_control"];
+ const ids=["private.flappy_sessions","private.flappy_runs","private.flappy_quotas","private.flappy_control","private.flappy_reward_reservations"];
  for(const role of ["anon","authenticated","service_role"]){
   for(const table of ids){
     assert.equal(sql("select has_table_privilege("+lit(role)+","+lit(table)+",'SELECT,INSERT,UPDATE,DELETE')"),"f");
     if(role!=="service_role")assert.throws(()=>sql("set role "+role+"; select public.flappy_read_session("+lit(A)+",gen_random_uuid())"));
   }
  }
- assert.equal(sql("select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname in ('flappy_control','flappy_sessions','flappy_runs','flappy_quotas') and c.relrowsecurity"),"4");
- sql("grant usage on schema private to authenticated; grant select on private.flappy_control,private.flappy_sessions,private.flappy_runs,private.flappy_quotas to authenticated");
+ assert.equal(sql("select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname in ('flappy_control','flappy_sessions','flappy_runs','flappy_quotas','flappy_reward_reservations') and c.relrowsecurity"),"5");
+ sql("grant usage on schema private to authenticated; grant select on private.flappy_control,private.flappy_sessions,private.flappy_runs,private.flappy_quotas,private.flappy_reward_reservations to authenticated");
  for(const table of ids)assert.equal(sql("set role authenticated; select count(*) from "+table),"0");
- sql("revoke select on private.flappy_control,private.flappy_sessions,private.flappy_runs,private.flappy_quotas from authenticated; revoke usage on schema private from authenticated");
+ sql("revoke select on private.flappy_control,private.flappy_sessions,private.flappy_runs,private.flappy_quotas,private.flappy_reward_reservations from authenticated; revoke usage on schema private from authenticated");
  pass("real PostgreSQL browser EXECUTE revoked, direct table privileges denied and RLS still denies accidental SELECT grants");
  const start=await handle("start",{});assert.equal(start.status,200);const session=await start.json();
  const id=session.sessionId;
@@ -128,5 +128,34 @@ try{
  assert.equal((await handle("finalize",{sessionId:active.sessionId,inputs:[],throughTick:e.tick},C)).status,409);
  assert.equal(sql("select status from private.flappy_sessions where id="+lit(active.sessionId)),"active");
  pass("forced insert failure rolls back finalization atomically");
+
+ // New admin access is active-admin checked, server-only, independent of rewards.
+ assert.ok((await rpc("flappy_admin_read",{p_actor:A,p_page:1,p_session:null})).error);
+ sql("insert into private.admin_users(user_id,is_active) values("+lit(D)+",true)");
+ const list=(await rpc("flappy_admin_read",{p_actor:D,p_page:1,p_session:null})).data;
+ assert.ok(Array.isArray(list)&&list.length>0);assert.ok(list.every(r=>r.seed===null&&r.inputs===null));
+ const detail=(await rpc("flappy_admin_read",{p_actor:D,p_page:1,p_session:id})).data;
+ assert.equal(detail.length,1);assert.equal(detail[0].session_id,id);
+ assert.deepEqual(detail[0].inputs,[]);assert.equal(detail[0].seed,session.seed);
+ const audit=compile("lib/game/flappy/admin-review.ts",{"server-only":{},"./engine":engine});
+ const summary=audit.summarizeFlappyAudit(detail[0]);assert.equal(summary.replayMatches,true);assert.equal("inputs" in summary,false);assert.equal("seed" in summary,false);
+ assert.ok((await rpc("flappy_admin_read",{p_actor:D,p_page:0,p_session:id})).error);
+ for(const role of ["anon","authenticated"])assert.throws(()=>sql("set role "+role+"; select public.flappy_admin_read("+lit(D)+",1,null)"));
+ sql("update private.admin_users set is_active=false where user_id="+lit(D));
+ assert.ok((await rpc("flappy_admin_read",{p_actor:D,p_page:1,p_session:id})).error);
+ pass("admin detail/list require active admin and server role; anonymous/authenticated EXECUTE denied");
+ // Ledger is a non-granting reservation only. No provider callbacks or consumers.
+ sql("insert into private.flappy_reward_reservations(session_id,kind) values("+lit(id)+",'extra_life')");
+ assert.throws(()=>sql("insert into private.flappy_reward_reservations(session_id,kind) values("+lit(id)+",'extra_life')"));
+ assert.throws(()=>sql("insert into private.flappy_reward_reservations(session_id,kind) values("+lit(fresh.sessionId)+",'double_points')"));
+ assert.throws(()=>sql("set role service_role; insert into private.flappy_reward_reservations(session_id,kind) values("+lit(fresh.sessionId)+",'extra_life')"));
+ assert.equal(sql("select score from private.flappy_runs where session_id="+lit(id)),String(empty.score));
+ assert.equal(sql("select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'flappy_%reward%'"),"0");
+ const reservationSql="insert into private.flappy_reward_reservations(session_id,kind) values("+lit(fresh.sessionId)+",'extra_life')";
+ const reservationRace=await Promise.allSettled([0,1].map(()=>exec("psql",[...flags,"-d",db,"-c",reservationSql],{env,encoding:"utf8"})));
+ assert.equal(reservationRace.filter(r=>r.status==="fulfilled").length,1);
+ assert.equal(sql("select count(*) from private.flappy_reward_reservations where session_id="+lit(fresh.sessionId)),"1");
+ pass("one reward slot per session; unsupported multipliers denied; no service/browser grant or consume path");
+
  console.log("PASS real PostgreSQL integration: "+checks+" groups; "+sql("select version()"));
 }finally{sql("drop database "+db,"postgres");}
