@@ -6,6 +6,9 @@
 > Competition remains closed; the proposed migration has not been applied to production.
 > The audit below describes the earlier read-only stage, not the current engine.
 
+> Latest comparison, production verification and approval plan:
+> [flappy-parity-audit.md](flappy-parity-audit.md).
+
 ## Scope and audit
 FlappyMini currently uses browser state, Math.random(), variable render time and client-only collision/scoring. It does not submit official sessions or scores. Authentication alone cannot make its results authoritative.
 

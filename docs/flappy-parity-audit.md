@@ -103,8 +103,7 @@ Typecheck, production build and targeted ESLint: PASS. Automated suite: 90/90 PA
 Real PostgreSQL: 16 integration groups PASS, including actual roles/RLS, concurrent
 finalization/start/quota/reward-slot uniqueness, admin authorization and independent
 replay of persisted detail. RTW non-Flappy function fingerprints unchanged.
-Git diff whitespace validation: PASS. Browser/deployment results are recorded in a
-follow-up below once the main production deployment is ready.
+Git diff whitespace validation: PASS. Browser/deployment results are recorded in the production verification section below.
 
 Tests use a disposable Vercel Sandbox
 under the principal project, real PostgreSQL 17.11, no production database credentials
@@ -148,3 +147,38 @@ load certification. A replay match means evidence consistency, not human play.
 - tests/integration/flappy-postgres.mjs
 - tests/flappy-parity.test.mjs
 - docs/flappy-parity-audit.md
+
+## Production verification follow-up
+
+Implementation commit: 84732eba8b5651f3ff64eeb00b479de1fc4fc971 on main.
+Principal Vercel production deployment dpl_76bj3PLaWZdNdLZkWbYJhBFnYXqH:
+READY, target production, aliases include www.racetowin.app and racetowin.app.
+No new branch, Vercel project or Supabase project was created.
+
+Read-only live checks:
+- /games/flappy-race: HTTP 200 with new EXTRA LIFE UI.
+- /api/flappy-race/leaderboard: HTTP 200, officialEnabled:false, entries:[].
+- /api/leaderboard: HTTP 200, existing RTW ranking remains available.
+- /admin/prize-review/flappy-race: HTTP 404 for unauthenticated visitor.
+- Official START/CHECKPOINT/FINALIZE without a session: HTTP 401, bounded generic
+  error, no competitive write. Authenticated gate behavior is covered in isolated tests;
+  production signed-in official requests were not exercised.
+- Public sign-in form renders with return-to-Flappy URL. No email/OTP/CAPTCHA submitted;
+  this does not certify the full authentication round trip.
+
+Browser QA: canonical public page at 1280×900 and 390×844, no horizontal overflow.
+Verified expanded unavailable-ad explanation and disabled WATCH AD, truthful empty
+ranking, guest sign-in gate, countdown and Game Over. Keyboard focus is CANVAS after
+PLAY; SPACE was pressed during active practice and upward movement observed.
+Pointer/canvas input and collision/Game Over were exercised at mobile width on an
+existing alias of the same principal production deployment. Open Game Over reward
+explanation stayed open beyond the ordinary dismissal period, with no ad or life grant.
+These were practice-only checks, not official score writes; obstacle generation and
+deterministic collisions are additionally covered by engine/real-PG tests. No claims
+of a long obstacle-clearing browser run, physical-device Safari QA, full signed-in
+official flow, automated load certification or a solved bot problem are made.
+
+Backup dashboard check redirected to Supabase sign-in. The connector exposes no
+backup creation/listing capability. Backup/PITR availability and recoverability remain
+unverified; do not apply either migration until the owner supplies/validates that
+precondition and explicitly authorizes the named production migration plan.

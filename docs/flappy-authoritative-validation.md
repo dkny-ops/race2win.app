@@ -1,5 +1,9 @@
 # FlappyRace authoritative infrastructure (flappy-v1)
 
+> Foundation report for commit 78a92ef. For the latest production audit, safe EXTRA LIFE
+> interface, read-only admin integration and migration approval plan, see
+> [flappy-parity-audit.md](flappy-parity-audit.md). The status below describes that foundation stage.
+
 ## Status
 Competition remains blocked in reviewed source code and independently in PostgreSQL. No environment variable can activate it. No production migration has been applied. No ads, EXTRA LIFE, automatic prizes, balances, wallets, payments or prize-admin changes.
 
