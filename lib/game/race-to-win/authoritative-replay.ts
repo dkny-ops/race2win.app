@@ -54,6 +54,9 @@ export function replayAuthoritativeProgress(gameplayVersion: unknown, seed: numb
   }
   const snapshot = simulation.snapshot();
   if (snapshot.state !== "running" && snapshot.state !== "crashed") return null;
+  // A crashed replay must not include queued or ignored inputs. Comparing only
+  // rounded timestamps misses events at the collision tick's rounded boundary.
+  if (snapshot.state === "crashed" && simulation.runRecord().inputs.length !== inputs.length) return null;
   return {
     score: snapshot.metrics.score,
     distanceMillimeters: Math.round(snapshot.metrics.distanceMeters * 1000),

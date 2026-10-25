@@ -93,3 +93,18 @@ test("the mobile form uses two responsive widgets and exposes no secret", async 
   assert.doesNotMatch(`${form}\n${widget}`, /TURNSTILE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(css, /\.turnstile-widget\{[^}]*max-width:100%/);
 });
+
+test("the local environment template includes the server-controlled midrun Turnstile switch", async () => {
+  const template = await read(".env.example");
+  for (const key of [
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+    "TURNSTILE_SECRET_KEY",
+    "TURNSTILE_ENFORCEMENT_ENABLED",
+    "TURNSTILE_MIDRUN_ENABLED",
+    "TURNSTILE_ALLOWED_HOSTNAMES",
+    "TURNSTILE_ENABLED_ACTIONS",
+  ]) {
+    assert.match(template, new RegExp(`^${key}=`, "m"));
+  }
+});
