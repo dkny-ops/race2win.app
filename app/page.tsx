@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   let username: string | null = null;
   let authenticated = false;
-  let playHref: string = `${ROUTES.signIn}?next=${encodeURIComponent(ROUTES.raceToWinGame)}`;
+  let playHref: string = ROUTES.raceToWinGame;
   const owner = await getAuthorizedPrizeAdmin().catch(() => null);
   try {
       const context = await getVerifiedUserContext();
