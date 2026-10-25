@@ -16,7 +16,7 @@ export function RaceToWinGame({ canStartOfficial }: { canStartOfficial: boolean 
   return (
     <section className="rtw-game-section rtw-game-section--dedicated" id={RACE_TO_WIN_GAME_SECTION_ID} aria-label="Race To Win game">
       <div className="rtw-game-frame">
-        {canStartOfficial ? <RaceToWinScene /> : (
+        {canStartOfficial ? <RaceToWinScene /> : <RaceToWinScene guest />}{false ? (
           <div className="rtw-overlay rtw-overlay--ready rtw-auth-gate">
             <p className="rtw-kicker">OFFICIAL PLAY</p>
             <h3>SIGN IN TO RACE</h3>
