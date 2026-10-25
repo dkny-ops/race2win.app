@@ -20,7 +20,6 @@ export const ROUTES = {
 
 export const PRIMARY_NAVIGATION = [
   { href: ROUTES.howItWorks, label: "HOW IT WORKS" },
-  { href: ROUTES.prizes, label: "PRIZES" },
   { href: ROUTES.rules, label: "RULES" },
   { href: ROUTES.faq, label: "FAQ" },
 ] as const;
