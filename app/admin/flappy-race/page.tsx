@@ -2,6 +2,7 @@ import { CompetitionIdentityEvidence } from "@/components/game/competition-ident
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FlappyWinnerCaseControls } from "@/components/game/flappy-winner-case-controls";
+import { FlappyPrizeCaseControls } from "@/components/game/flappy-prize-case-controls";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { parseFlappyWeek, previousFlappyWeek } from "@/lib/game/flappy/tournament";
 
@@ -31,6 +32,12 @@ export default async function FlappyRaceAdminPage({ searchParams }: { searchPara
   });
   const dossier = !error && isRecord(data) ? data : null;
   const candidates = dossier ? rows(dossier.candidates).filter(candidate => typeof candidate.effectiveRank === "number" && candidate.effectiveRank >= 1 && candidate.effectiveRank <= 3) : [];
+  const { data: prizeData, error: prizeError } = await authorization.admin.rpc("flappy_admin_read_prize_cases", {
+    p_actor: authorization.context.userId,
+    p_week: week,
+  });
+  const prizeDossier = !prizeError && isRecord(prizeData) ? prizeData : null;
+  const prizeCandidates = prizeDossier ? rows(prizeDossier.candidates).filter(candidate => typeof candidate.effectiveRank === "number" && candidate.effectiveRank >= 1 && candidate.effectiveRank <= 3) : [];
 
   return <section className="page-section shell narrow">
     <Link href="/admin/prize-review">← Administración</Link>
@@ -73,5 +80,25 @@ export default async function FlappyRaceAdminPage({ searchParams }: { searchPara
         </article>;
       })}
     </>}
+
+    <section style={{ marginTop: 36, borderTop: "1px solid #334155", paddingTop: 24 }}>
+      <h2>FlappyRace · premios del período</h2>
+      {!prizeDossier ? <p role="status">The prize-period dossier is unavailable.</p> : <>
+        <p>Program: <strong>{prizeDossier.enabled === true ? "active" : "disabled"}</strong> · Effective server time: {text(prizeDossier.activatedAt)} · Inaugural week: {text(prizeDossier.inauguralWeekStart)}</p>
+        <p>Only runs started after activation are eligible. Approving eligibility does not create money; the separate shared-balance credit action remains owner-only. Payments are never automatic.</p>
+        {!prizeCandidates.length ? <p>No monetary-prize candidates are available until an eligible prize period closes.</p> : prizeCandidates.map((candidate) => {
+          const playerId = text(candidate.playerId, "");
+          const state = text(candidate.state);
+          return <article key={"prize-" + playerId} style={{ border: "1px solid #b8860b", borderRadius: 12, padding: 16, marginBlock: 16 }}>
+            <h3>#{text(candidate.effectiveRank)} · {text(candidate.username)}</h3>
+            <p>Prize-period weekly total: <strong>{text(candidate.weeklyTotal)}</strong> · State: <strong>{state}</strong></p>
+            <Scores value={candidate.scores} />
+            {rows(candidate.history).length ? <ul>{rows(candidate.history).map((event, index) => <li key={index}>{text(event.at)} · {text(event.decision)} · {text(event.note)}</li>)}</ul> : null}
+            {(state === "pending_review" || state === "needs_additional_review" || state === "approved")
+              ? <FlappyPrizeCaseControls week={week} playerId={playerId} state={state} /> : null}
+          </article>;
+        })}
+      </>}
+    </section>
   </section>;
 }
