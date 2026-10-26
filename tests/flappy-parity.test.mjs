@@ -38,33 +38,11 @@ test("official transport sets bounded timeout and refuses unavailable service",a
   await assert.rejects(client.startFlappyOfficial());assert.equal(calls,1);
  }finally{globalThis.fetch=original;}
 });
-
-test("admin page rejects an unauthorized request before reading evidence",async()=>{
- let queries=0;
+test("legacy individual Flappy review route is unavailable before any data access",async()=>{
  const sentinel=new Error("NOT_FOUND");
- const page=load("app/admin/prize-review/flappy-race/page.tsx",{
-  "@/lib/security/prize-admin":{getAuthorizedPrizeAdmin:async()=>null},
-  "next/navigation":{notFound:()=>{throw sentinel;}},
-  "@/lib/game/flappy/admin-review":{summarizeFlappyAudit:()=>{queries++;}},
- });
- await assert.rejects(page.default({searchParams:Promise.resolve({})}),err=>err===sentinel);
- assert.equal(queries,0);
+ const page=load("app/admin/prize-review/flappy-race/page.tsx",{"next/navigation":{notFound:()=>{throw sentinel;}}});
+ await assert.rejects(page.default({searchParams:Promise.resolve({session:"00000000-0000-4000-8000-000000000000"})}),err=>err===sentinel);
 });
-test("authorized admin sees a truthful unavailable state before migration; invalid pages never query",async()=>{
- let queries=0;
- const sentinel=new Error("NOT_FOUND");
- const page=load("app/admin/prize-review/flappy-race/page.tsx",{
-  "@/lib/security/prize-admin":{getAuthorizedPrizeAdmin:async()=>({context:{userId:"admin"},admin:{rpc:async()=>{queries++;return{data:null,error:{code:"PGRST202"}};}}})},
-  "next/navigation":{notFound:()=>{throw sentinel;}},
-  "@/lib/game/flappy/admin-review":{summarizeFlappyAudit:()=>assert.fail("No fabricated rows")},
- });
- for(const params of [{page:"0"},{page:"101"},{session:"bad"}])await assert.rejects(page.default({searchParams:Promise.resolve(params)}),err=>err===sentinel);
- assert.equal(queries,0);
- const view=await page.default({searchParams:Promise.resolve({})});
- const html=require("react-dom/server").renderToStaticMarkup(view);
- assert.match(html,/Revisión no disponible temporalmente/);assert.equal(queries,1);
-});
-
 test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
  const client=load("lib/game/flappy/official-client.ts",{"./engine":engine});
  const original=globalThis.fetch;
