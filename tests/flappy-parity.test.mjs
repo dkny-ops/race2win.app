@@ -78,3 +78,13 @@ test("FlappyRace ranking keeps live rows and pagination without public tournamen
  assert.doesNotMatch(source,/Authenticated official runs\. Only results approved after review count toward the ranking\./);
  assert.doesNotMatch(source,/Your weekly score sums your best 7 verified scores each day\./);
 });
+
+
+test("FlappyRace shows the public leaderboard before the authenticated personal weekly score",()=>{
+ const page=readFileSync(new URL("../components/game/flappy-race-page.tsx",import.meta.url),"utf8");
+ const board=page.indexOf("<FlappyRankingTable");
+ const personal=page.indexOf("<FlappyPersonalWeeklyScore");
+ assert.ok(board>=0 && personal>board);
+ const ranking=readFileSync(new URL("../components/scores/flappy-ranking.tsx",import.meta.url),"utf8");
+ assert.match(ranking,/>LEADERBOARD<\/h2>/);
+});

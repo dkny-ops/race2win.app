@@ -32,7 +32,7 @@ export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
   return <section className="scores-page flappy-ranking" aria-labelledby="flappy-ranking-title">
     <div className="scores-panel scores-ranking-panel">
       <p className="eyebrow">FLAPPYRACE</p>
-      <h2 id="flappy-ranking-title">{es ? "RANKING SEMANAL" : "WEEKLY RANKING"}</h2>
+      <h2 id="flappy-ranking-title">LEADERBOARD</h2>
       {error ? <p role="status" className="scores-message">{es ? "El ranking no está disponible temporalmente." : "The ranking is temporarily unavailable."}</p>
         : !board ? <p role="status" className="scores-message">{es ? "Cargando ranking…" : "Loading ranking…"}</p>
         : board.entries.length === 0 ? <p role="status" className="scores-message">{es ? "Todavía no hay puntuaciones oficiales verificadas de FlappyRace esta semana." : "No verified official FlappyRace scores this week yet."}</p>

@@ -8,7 +8,7 @@ export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
  const [language] = usePlayerLanguage();
  return <div style={{ marginTop: ".75rem" }}>
    <FlappyVerifiedCanvas language={language} authenticated={authenticated} />
-   <FlappyPersonalWeeklyScore language={language} authenticated={authenticated} />
    <FlappyRankingTable language={language} />
+   <FlappyPersonalWeeklyScore language={language} authenticated={authenticated} />
  </div>;
 }
