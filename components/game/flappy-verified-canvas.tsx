@@ -229,8 +229,5 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       </div> : null}
     </div>
     {officialError ? <p role="alert">{errorMessage(officialError)} {officialError==="terms_required" ? <Link href="/terms/accept">TERMS</Link> : officialError==="review_required" ? <Link href="/support/access">SUPPORT</Link> : officialError==="unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}</p> : null}
-    <FlappyRewardOptions es={es} />
-    <p style={{marginTop:12}}>{es ? "Puntuación en curso · pendiente de validación" : "In-progress score · awaiting validation"}: <strong>{score}</strong></p>
-    <p className="muted">{es ? "Solo cuentan resultados oficiales verificados y aprobados. Sin premios retirables." : "Only verified, reviewed official results count. No withdrawable prizes."}</p>
   </div>;
 }

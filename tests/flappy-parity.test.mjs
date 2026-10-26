@@ -52,3 +52,12 @@ test("official client accepts server clock scheduling and rejects a missing serv
   globalThis.fetch=async()=>Response.json({...session,serverNow:undefined});await assert.rejects(client.startFlappyOfficial());
  }finally{globalThis.fetch=original;}
 });
+
+
+test("FlappyRace keeps Extra Life inside the terminal overlay and removes stale public score copy",()=>{
+ const source=readFileSync(new URL("../components/game/flappy-verified-canvas.tsx",import.meta.url),"utf8");
+ assert.equal((source.match(/<FlappyRewardOptions es=\{es\}/g)||[]).length,1);
+ assert.match(source,/\{terminal \? <FlappyRewardOptions es=\{es\} onOpenChange=\{setRewardExpanded\} \/> : null\}/);
+ assert.doesNotMatch(source,/In-progress score · awaiting validation/);
+ assert.doesNotMatch(source,/Only verified, reviewed official results count\. No withdrawable prizes\./);
+});
