@@ -8,7 +8,7 @@ const require=createRequire(import.meta.url);
 function load(path,imports={}){
  const m={exports:{}};
  const code=ts.transpileModule(readFileSync(new URL("../"+path,import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- new Function("exports","module","require",code)(m.exports,m,n=>n in imports?imports[n]:require(n));return m.exports;
+ new Function("exports","module","require",code)(m.exports,m,n=>n in imports?imports[n]:n==="@/components/game/flappy-admin-controls"?{FlappyAdminControls:()=>null,FlappyWeekCloseControl:()=>null}:n==="@/lib/game/flappy/tournament"?{previousFlappyWeek:()=>"2026-10-19"}:require(n));return m.exports;
 }
 const engine=load("lib/game/flappy/engine.ts");
 const audit=load("lib/game/flappy/admin-review.ts",{"server-only":{},"./engine":engine});
@@ -62,5 +62,5 @@ test("authorized admin sees a truthful unavailable state before migration; inval
  assert.equal(queries,0);
  const view=await page.default({searchParams:Promise.resolve({})});
  const html=require("react-dom/server").renderToStaticMarkup(view);
- assert.match(html,/pendiente de autorización/);assert.equal(queries,1);
+ assert.match(html,/Revisión no disponible temporalmente/);assert.equal(queries,1);
 });

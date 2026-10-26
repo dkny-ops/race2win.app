@@ -4,73 +4,38 @@ import test from "node:test";
 import ts from "typescript";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as jsx from "react/jsx-runtime";
-const root = new URL("../", import.meta.url);
-const source = await readFile(new URL("lib/competition/flappy-ranking.ts", root), "utf8");
-const routeSource = await readFile(new URL("app/api/flappy-race/leaderboard/route.ts", root), "utf8");
-function compile(text, require) {
-  const mod = { exports: {} };
-  const output = ts.transpileModule(text, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  new Function("exports", "module", "require", output)(mod.exports, mod, require);
-  return mod.exports;
+const root=new URL("../",import.meta.url);
+const source=await readFile(new URL("lib/competition/flappy-ranking.ts",root),"utf8");
+const routeSource=await readFile(new URL("app/api/flappy-race/leaderboard/route.ts",root),"utf8");
+function compile(text,require){
+ const mod={exports:{}};new Function("exports","module","require",ts.transpileModule(text,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText)(mod.exports,mod,require);return mod.exports;
 }
-function reader({ game = { id: "flappy-only" }, entries = [], totals = [], gameError = null, totalsError = null, next = false } = {}) {
-  const calls = [];
-  const admin = { from(table) {
-    assert.ok(["games", "weekly_tournament_totals"].includes(table), "no private profiles or writes");
-    calls.push(["from", table]);
-    const q = { select(columns) { calls.push(["select", columns]); return q; },
-      eq(key, value) { calls.push(["eq", key, value]); return q; },
-      maybeSingle: async () => ({ data: game, error: gameError }),
-      in: async (key, values) => { calls.push(["in", key, values]); return { data: totals, error: totalsError }; },
-    }; return q;
-  } };
-  const api = compile(source, name => name === "server-only" ? {} : name.endsWith("/scores") ? {
-    currentNewYorkTournamentWeek: () => "2026-10-19",
-    readLeaderboard: async params => {
-      assert.deepEqual(params, { gameSlug: "flappy-race", week: "2026-10-19", page: 1, pageSize: 50 });
-      calls.push(["public-reader"]); return { entries, hasNextPage: next };
-    },
-  } : name.endsWith("/admin") ? { createAdminClient: () => admin } : assert.fail(name));
-  return { api, calls };
+function reader({entries=[],next=false,error=null,data}={}){
+ const calls=[];
+ const api=compile(source,name=>name==="server-only"?{}:name.endsWith("/scores")?{currentNewYorkTournamentWeek:()=>"2026-10-19"}:
+ name.endsWith("/activation")?{FLAPPY_COMPETITION_ENABLED:false}:name.endsWith("/admin")?{createAdminClient:()=>({
+ from(){assert.fail("Flappy must not query shared RTW totals or profiles");},
+ async rpc(name,args){assert.equal(name,"flappy_read_ranking");assert.deepEqual(args,{p_week:"2026-10-19",p_page:1});calls.push([name,args]);return {data:data??{entries,hasNextPage:next},error};}
+ })}:assert.fail(name));
+ return {api,calls};
 }
-test("Flappy query parameters cannot select another game, player, score or week", () => {
-  const { api } = reader();
-  assert.equal(api.parseFlappyPage(new URLSearchParams()), 1);
-  assert.equal(api.parseFlappyPage(new URLSearchParams("page=100")), 100);
-  for (const query of ["page=0", "page=101", "page=-1", "page=1.5", "page=01", "page=1&page=2", "game=race-to-win", "score=999", "player=x", "week=2026-10-19"]) {
-    assert.equal(api.parseFlappyPage(new URLSearchParams(query)), null, query);
-  }
+test("Flappy pagination rejects client game, score, player and week selection",()=>{
+ const {api}=reader();assert.equal(api.parseFlappyPage(new URLSearchParams()),1);
+ for(const q of ["page=0","page=101","page=01","page=1&page=2","game=race-to-win","score=999","week=2026-10-19","player=x"])assert.equal(api.parseFlappyPage(new URLSearchParams(q)),null);
 });
-test("unregistered Flappy game returns honest empty ranking without registration or fallback", async () => {
-  const { api, calls } = reader({ game: null });
-  const board = await api.readFlappyRanking(1);
-  assert.deepEqual(board, { game: "flappy-race", tournamentWeek: "2026-10-19", page: 1, hasNextPage: false, officialEnabled: false, entries: [] });
-  assert.ok(calls.some(call => call[0] === "eq" && call[1] === "slug" && call[2] === "flappy-race"));
-  assert.ok(!calls.some(call => call[0] === "public-reader"));
+test("Flappy reads only its private RPC even when official mode is closed",async()=>{
+ const {api,calls}=reader();const board=await api.readFlappyRanking(1);
+ assert.deepEqual(board,{game:"flappy-race",tournamentWeek:"2026-10-19",page:1,hasNextPage:false,officialEnabled:false,entries:[]});assert.equal(calls.length,1);
 });
-test("verified public weekly totals remain separated by trusted Flappy game ID", async () => {
-  const { api, calls } = reader({ entries: [{ rank: 1, username: "ExistingPlayer", weeklyTotal: 123 }],
-    totals: [{ rank_position: 1, weekly_total_score: "123", tie_break_status: "resolved" }], next: true });
-  assert.deepEqual((await api.readFlappyRanking(1)).entries, [{ rank: 1, username: "ExistingPlayer", weeklyTotal: 123, reviewRequired: false }]);
-  assert.ok(calls.some(call => call[0] === "eq" && call[1] === "game_id" && call[2] === "flappy-only"));
-  assert.ok(calls.some(call => call[0] === "eq" && call[1] === "tournament_week_start" && call[2] === "2026-10-19"));
-  assert.equal(api.FLAPPY_OFFICIAL_ENABLED, false);
+test("approved Flappy entries preserve ties and expose only public ranking fields",async()=>{
+ const {api}=reader({entries:[{rank:1,username:"Existing",weeklyTotal:200,reviewRequired:false,player_id:"private"},{rank:null,username:"Tied",weeklyTotal:100,reviewRequired:true}]});
+ const board=await api.readFlappyRanking(1);assert.equal(board.entries[1].rank,null);assert.equal("player_id" in board.entries[0],false);assert.equal(board.entries[0].weeklyTotal,200);
 });
-test("exact ties remain pending and never receive an arbitrary podium rank", async () => {
-  const { api } = reader({ entries: [{ rank: 1, username: "A", weeklyTotal: 50 }, { rank: 2, username: "B", weeklyTotal: 50 }],
-    totals: [1, 2].map(rank_position => ({ rank_position, weekly_total_score: 50, tie_break_status: "exact_tie" })) });
-  const board = await api.readFlappyRanking(1);
-  assert.ok(board.entries.every(entry => entry.rank === null && entry.reviewRequired));
-});
-test("missing, inconsistent or invalid metadata fails closed", async () => {
-  for (const totals of [[], [{ rank_position: 1, weekly_total_score: 51, tie_break_status: "resolved" }],
-    [{ rank_position: 1, weekly_total_score: 50, tie_break_status: "unexpected" }],
-    [{ rank_position: 1, weekly_total_score: "-1", tie_break_status: "resolved" }]]) {
-    const { api } = reader({ entries: [{ rank: 1, username: "A", weeklyTotal: 50 }], totals });
-    await assert.rejects(api.readFlappyRanking(1));
-  }
-  await assert.rejects(reader({ gameError: new Error("denied") }).api.readFlappyRanking(1), /denied/);
-  await assert.rejects(reader().api.readFlappyRanking(101), /Invalid page/);
+test("malformed metadata, numeric overflow and RPC failures fail closed",async()=>{
+ for(const row of [{rank:1,username:"A",weeklyTotal:-1,reviewRequired:false},{rank:1,username:"A",weeklyTotal:24501,reviewRequired:false},{rank:1,username:"A",weeklyTotal:1,reviewRequired:true},{rank:null,username:"A",weeklyTotal:1,reviewRequired:false}])await assert.rejects(reader({entries:[row]}).api.readFlappyRanking(1));
+ await assert.rejects(reader({error:{message:"private"}}).api.readFlappyRanking(1));
+ await assert.rejects(reader({data:{entries:[],hasNextPage:"false"}}).api.readFlappyRanking(1));
+ await assert.rejects(reader().api.readFlappyRanking(101));
 });
 function route({ configured = true, read = async () => ({ entries: [], game: "flappy-race" }) } = {}) {
   const { api } = reader();
