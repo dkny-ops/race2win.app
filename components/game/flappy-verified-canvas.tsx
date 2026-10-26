@@ -1,17 +1,9 @@
 "use client";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlappyRewardOptions } from "./flappy-reward-options";
 import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
 import { startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
-import { claimGuestTrial, guestTrialUsed } from "@/lib/game/guest-trial";
-
-function subscribeGuestTrial(notify: () => void) {
-  window.addEventListener("storage", notify);
-  return () => window.removeEventListener("storage", notify);
-}
-const unusedGuestTrialOnServer = () => false;
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated }: { language: "en" | "es"; authenticated: boolean }) {
@@ -28,15 +20,12 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const [expanded, setExpanded] = useState(false);
   const [rewardExpanded, setRewardExpanded] = useState(false);
   const [result, setResult] = useState<FlappyResult | null>(null);
-  const [guestBlocked, setGuestBlocked] = useState(false);
-  const guestConsumed = useSyncExternalStore(subscribeGuestTrial, guestTrialUsed, unusedGuestTrialOnServer);
   const [mode, setMode] = useState<"practice" | "official">("practice");
   const fail = useCallback(() => { running.current = false; if (mounted.current) { setResult(null); setStatus("rejected"); } }, []);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
   const start = useCallback(async () => {
     if (busy.current || running.current) return;
-    if (!authenticated && !claimGuestTrial()) { setGuestBlocked(true); return; }
     busy.current = true;
     setRewardExpanded(false); setStatus("starting"); setResult(null); setScore(0);
     try {
@@ -54,7 +43,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch { fail(); }
     finally { busy.current = false; }
-  }, [authenticated, mode, fail]);
+  }, [mode, fail]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -152,7 +141,6 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       running.current=false; official.current=null; pendingFlap.current=false;
       engine.current=initialFlappy(0); inputs.current=[];
       setExpanded(false);setScore(0);setCountdown(null);setResult(null);setStatus("ready");
-      if (!authenticated) setGuestBlocked(guestTrialUsed());
     },5000);
     return () => window.clearTimeout(timer);
   },[status,authenticated,rewardExpanded]);
@@ -162,7 +150,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
     {FLAPPY_COMPETITION_ENABLED && authenticated ? <label>{es ? "Modo" : "Mode"} <select value={mode} disabled={["starting", "running", "validating"].includes(status)} onChange={event => setMode(event.target.value === "official" ? "official" : "practice")}><option value="practice">{es ? "Práctica" : "Practice"}</option><option value="official">{es ? "Competición" : "Competition"}</option></select></label> : null}
     <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",maxWidth:360,margin:"auto"}}>
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
-      {!expanded ? ((!guestBlocked && !guestConsumed) || authenticated ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : "▶ PLAY"}</button> : <Link className="button button--primary" href="/sign-in?next=%2Fgames%2Fflappy-race" style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>SIGN IN TO PLAY</Link>) : null}
+      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : "▶ PLAY"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
@@ -171,8 +159,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {status==="rejected" ? <p>{es ? "La partida no se ha añadido al ranking." : "This run was not added to the ranking."}</p> : null}
         {terminal ? <FlappyRewardOptions es={es} onOpenChange={setRewardExpanded} /> : null}
-        {terminal && authenticated ? <button className="button button--primary" type="button" onClick={() => {void start();}}>PLAY AGAIN</button> : null}
-        {terminal && !authenticated ? <Link className="button button--primary" href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}
+        {terminal ? <button className="button button--primary" type="button" onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
     <FlappyRewardOptions es={es} />
