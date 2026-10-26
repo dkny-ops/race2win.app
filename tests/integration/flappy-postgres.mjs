@@ -26,8 +26,8 @@ function compile(path,imports){
  new Function("exports","module","require",ts.transpileModule(s,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(m.exports,m,n=>n in imports?imports[n]:require(n));return m.exports;
 }
 const engine=compile("lib/game/flappy/engine.ts",{});
-const bounded=compile("lib/competition/request-body.ts",{"server-only":{}});
-const api=compile("lib/game/flappy/server.ts",{"server-only":{},"@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},"@/lib/competition/request-body":bounded,"@/lib/supabase/admin":{createAdminClient:()=>({rpc})},"@/lib/supabase/server":{getVerifiedUserContext:async()=>null},"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":engine});
+const bounded=compile("lib/competition/request-body.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"}});
+const api=compile("lib/game/flappy/server.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"},"@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},"@/lib/competition/request-body":bounded,"@/lib/supabase/admin":{createAdminClient:()=>({rpc})},"@/lib/supabase/server":{getVerifiedUserContext:async()=>null},"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":engine});
 const A="11111111-1111-4111-8111-111111111111",B="22222222-2222-4222-8222-222222222222";
 const C="33333333-3333-4333-8333-333333333333",D="44444444-4444-4444-8444-444444444444";
 function request(body){return new Request("https://test/api",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});}
@@ -137,7 +137,7 @@ try{
  const detail=(await rpc("flappy_admin_read",{p_actor:D,p_page:1,p_session:id})).data;
  assert.equal(detail.length,1);assert.equal(detail[0].session_id,id);
  assert.deepEqual(detail[0].inputs,[]);assert.equal(detail[0].seed,session.seed);
- const audit=compile("lib/game/flappy/admin-review.ts",{"server-only":{},"./engine":engine});
+ const audit=compile("lib/game/flappy/admin-review.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"},"./engine":engine});
  const summary=audit.summarizeFlappyAudit(detail[0]);assert.equal(summary.replayMatches,true);assert.equal("inputs" in summary,false);assert.equal("seed" in summary,false);
  assert.ok((await rpc("flappy_admin_read",{p_actor:D,p_page:0,p_session:id})).error);
  for(const role of ["anon","authenticated"])assert.throws(()=>sql("set role "+role+"; select public.flappy_admin_read("+lit(D)+",1,null)"));

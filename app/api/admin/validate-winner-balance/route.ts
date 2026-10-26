@@ -5,6 +5,7 @@ import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
+    if (request.headers.get("origin") !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") return NextResponse.json({message:"Unavailable"},{status:403,headers:NO_STORE_HEADERS});
     const auth = await getAuthorizedPrizeAdmin();
     if (!auth) return NextResponse.json({message:"Not found"},{status:404,headers:NO_STORE_HEADERS});
     const body = await readBoundedJson(request);
@@ -16,7 +17,8 @@ export async function POST(request: Request) {
     const week = monday.toISOString().slice(0,10);
     const {data:game,error:gameError} = await auth.admin.from("games").select("id").eq("slug","race-to-win").single();
     if (gameError || !game) throw new Error("Game unavailable");
-    const {data:rank,error:rankError} = await auth.admin.from("weekly_tournament_totals").select("rank_position,tie_break_status").eq("game_id",game.id).eq("tournament_week_start",week).eq("player_id",b.playerId).gte("rank_position",1).lte("rank_position",3).maybeSingle();
+    const {data:candidates,error:rankError} = await auth.admin.rpc("rtw_admin_read_winner_candidates", {p_actor:auth.context.userId,p_week:week});
+    const rank = Array.isArray(candidates) ? candidates.find((candidate: {player_id:string}) => candidate.player_id === b.playerId) : null;
     if (rankError || !rank || rank.tie_break_status !== "resolved") return NextResponse.json({message:"Ranking not finalized"},{status:409,headers:NO_STORE_HEADERS});
     let {data:award,error:awardError} = await auth.admin.from("provisional_winners").select("id,status,allocation_status,amount_cents").eq("game_id",game.id).eq("tournament_week_start",week).eq("player_id",b.playerId).eq("award_type","weekly_tournament").maybeSingle();
     if (awardError) throw awardError;

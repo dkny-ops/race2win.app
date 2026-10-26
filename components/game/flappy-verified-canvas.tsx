@@ -61,6 +61,8 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   }, [refreshAvailability]);
   const errorMessage = (code: string) => {
     const messages: Record<string, [string, string]> = {
+      verified_email_required: ["Verifica tu correo antes de competir.", "Verify your email before competing."],
+      identity_conflict: ["Esta identidad ya está asociada a otra cuenta. Contacta con administración.", "This identity is already associated with another account. Contact administration."],
       attempts_exhausted: ["No quedan partidas disponibles. Espera a recuperar un intento.", "No races remaining. Wait for your next attempt."],
       unauthenticated: ["Inicia sesión para jugar una partida oficial.", "Sign in to play an official race."],
       session_active: ["Ya tienes una partida oficial activa. Espera a que termine o caduque.", "You already have an active official race. Wait for it to finish or expire."],

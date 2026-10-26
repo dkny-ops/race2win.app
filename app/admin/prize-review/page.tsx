@@ -1,3 +1,5 @@
+import { RtwCandidateRejection } from "@/components/game/rtw-candidate-rejection";
+import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { notFound } from "next/navigation";
 import { OwnerEmailCode } from "./owner-email-code";
@@ -28,16 +30,14 @@ export default async function AdminPrizeReviewPage() {
   if (gameError || !game) throw new Error("Prize review unavailable");
 
   const [totals, winners, flags, payouts] = await Promise.all([
-    admin.from("weekly_tournament_totals")
-      .select("player_id,rank_position,weekly_total_score,tie_break_status")
-      .eq("game_id", game.id).eq("tournament_week_start", previousWeek)
-      .lte("rank_position", 3).order("rank_position"),
+    admin.rpc("rtw_admin_read_winner_candidates", { p_actor: authorization.context.userId, p_week: previousWeek })
+      .then(result => ({ ...result, data: result.data as Array<{ player_id: string; rank_position: number; weekly_total_score: number; tie_break_status: string; history: Array<{ decision: string; note: string; at: string }> }> | null })),
     admin.from("provisional_winners")
       .select("id,player_id,rank_position,amount_cents,status,allocation_status,award_type")
       .eq("game_id", game.id).eq("tournament_week_start", previousWeek),
     admin.from("fraud_flags")
       .select("player_id,severity,status,signal_summary")
-      .eq("game_id", game.id).neq("status", "resolved").limit(300),
+      .eq("game_id", game.id).in("status", ["open", "under_review", "confirmed"]).limit(300),
     admin.from("payouts")
       .select("id,player_id,amount_cents,status,requested_at")
       .in("status", ["requested", "under_review", "approved"])
@@ -51,6 +51,7 @@ export default async function AdminPrizeReviewPage() {
     .select("player_id,tournament_day,daily_rank,score,validated_run_id")
     .eq("game_id", game.id)
     .eq("tournament_week_start", previousWeek)
+    .in("player_id", (totals.data ?? []).map(entry => entry.player_id))
     .lte("daily_rank", 7)
     .order("tournament_day", { ascending: true })
     .order("daily_rank", { ascending: true })
@@ -109,10 +110,16 @@ export default async function AdminPrizeReviewPage() {
             <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{playerFlags.length}</p>
           </div>
         </div>
+        <CompetitionIdentityEvidence actor={authorization.context.userId} player={entry.player_id} week={previousWeek} />
         <h3 style={{ fontSize: "1rem" }}>Acciones del propietario</h3>
         <p></p>
         <OwnerEmailCode playerId={entry.player_id} winnerId={winner?.id} />
         <BlockPlayerControl playerId={entry.player_id} username={name} />
+        <RtwCandidateRejection player={entry.player_id} week={previousWeek} />
+        <details><summary>Historial de decisiones del expediente semanal</summary>
+          <p>Estado de aprobación: {winner?.status ?? "Pendiente de revisión administrativa"}</p>
+          {(entry.history ?? []).map((event, index) => <p key={index}>{event.at} · {event.decision} · {event.note}</p>)}
+        </details>
         <details style={{ marginBottom: "0.85rem" }}>
           <summary style={{ cursor: "pointer", fontWeight: 700, padding: "0.75rem 0" }}>Ver Top 7 de cada día</summary>
           {dailyTopScores === null ? <p>No se pudieron cargar las partidas Top 7. El resumen de premios sigue disponible.</p> : (() => {

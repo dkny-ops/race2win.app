@@ -1,3 +1,4 @@
+import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FlappyWinnerCaseControls } from "@/components/game/flappy-winner-case-controls";
@@ -29,7 +30,7 @@ export default async function FlappyRaceAdminPage({ searchParams }: { searchPara
     p_week: week,
   });
   const dossier = !error && isRecord(data) ? data : null;
-  const candidates = dossier ? rows(dossier.candidates) : [];
+  const candidates = dossier ? rows(dossier.candidates).filter(candidate => typeof candidate.effectiveRank === "number" && candidate.effectiveRank >= 1 && candidate.effectiveRank <= 3) : [];
 
   return <section className="page-section shell narrow">
     <Link href="/admin/prize-review">← Administración</Link>
@@ -62,6 +63,7 @@ export default async function FlappyRaceAdminPage({ searchParams }: { searchPara
             </p>)}
           </details>) : <p>Sin carreras contables.</p>}
 
+        <CompetitionIdentityEvidence actor={authorization.context.userId} player={playerId} week={week} />
           <h3>Señales y decisiones</h3>
           <p>La puntuación procede de replay autoritativo. Esto confirma integridad física, no humanidad. No se muestran semillas ni entradas crudas al navegador.</p>
           {history.length ? <ul>{history.map((event, index) => <li key={index}>{text(event.at)} · {text(event.decision)} · {text(event.note)}</li>)}</ul> : <p>Aún no hay decisiones administrativas.</p>}

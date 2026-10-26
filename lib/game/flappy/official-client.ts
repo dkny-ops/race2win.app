@@ -15,7 +15,7 @@ async function request(url: string, body?: unknown) {
   }); } catch { throw new FlappyOfficialError("connection_error"); }
   if (!response.ok) {
     let code = "service_unavailable";
-    try { const error = await response.json(); if (["unauthenticated","terms_required","review_required","rate_limited","start_rejected","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED"].includes(error.code)) code = error.code; } catch {}
+    try { const error = await response.json(); if (["verified_email_required","identity_conflict","unauthenticated","terms_required","review_required","rate_limited","start_rejected","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED"].includes(error.code)) code = error.code; } catch {}
     throw new FlappyOfficialError(code);
   }
   return response.json();

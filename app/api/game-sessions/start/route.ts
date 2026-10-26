@@ -1,3 +1,5 @@
+import { hasEmptyBoundedBody } from "@/lib/competition/request-body";
+import { recordCompetitionAccess, competitionAccessMessage } from "@/lib/security/competition-access";
 import { recordAuth401, isGameAccessHeld, REVIEW_MESSAGE } from "@/lib/security/auth-401-review";
 import { NextResponse } from "next/server";
 import { randomInt } from "node:crypto";
@@ -18,10 +20,13 @@ function seedFromServer(): number {
 
 
 
-export async function POST() {
+export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   let failureStage = "authentication";
   try {
+    const origin = request.headers.get("origin");
+    if ((origin && origin !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") return NextResponse.json({ message: "Request unavailable." }, { status: 403, headers: CACHE });
+    if (!await hasEmptyBoundedBody(request)) return NextResponse.json({ message: "Invalid request." }, { status: 400, headers: CACHE });
     const context = await getVerifiedUserContext();
     const userId = context?.userId ?? null;
     if (!userId) {
@@ -49,6 +54,8 @@ export async function POST() {
 
     // The database serializes the verified player's count-and-insert under an
     // advisory transaction lock, which remains correct across server instances.
+    const access = await recordCompetitionAccess(userId, "race-to-win", request);
+    if (access !== "allowed") return NextResponse.json({ message: competitionAccessMessage(access), code: access }, { status: access === "unavailable" ? 503 : 403, headers: CACHE });
     failureStage = "session_rpc";
     const { data, error } = await createAdminClient().rpc("rtw_start_official_game_session_v3", {
       p_player_id: userId,

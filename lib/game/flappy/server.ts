@@ -1,3 +1,4 @@
+import { recordCompetitionAccess, competitionAccessMessage } from "@/lib/security/competition-access";
 import "server-only";
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
@@ -44,6 +45,8 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const b = body as Record<string, unknown>;
     if (action === "start") {
       if (Object.keys(b).length) return reject(action, 400, "invalid_body");
+      const identity = await recordCompetitionAccess(player, "flappy-race", request);
+      if (identity !== "allowed") return NextResponse.json({ message: competitionAccessMessage(identity), code: identity }, { status: identity === "unavailable" ? 503 : 403, headers });
       const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: randomInt(0x100000000), p_version: FLAPPY_VERSION });
       // Match only known database errors; never expose SQL/error details.
       if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");

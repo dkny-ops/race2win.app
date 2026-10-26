@@ -38,9 +38,9 @@ test("incremental rendering and replay agree for recorded real-time inputs",()=>
   }
   assert.deepEqual(e.replayFlappy(0xabcdef,inputs,s.tick),s);
 });
-const bounded=load("lib/competition/request-body.ts",{"server-only":{}});
+const bounded=load("lib/competition/request-body.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"}});
 const api=load("lib/game/flappy/server.ts",{
- "server-only":{},"@/lib/competition/request-body":bounded,
+ "server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"},"@/lib/competition/request-body":bounded,
  "@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},
  "@/lib/supabase/admin":{createAdminClient:()=>assert.fail("unconfigured database")},
  "@/lib/supabase/server":{getVerifiedUserContext:async()=>null},
@@ -86,7 +86,7 @@ test("player access reuses the existing hold and terms policy scoped to verified
  for(const policy of [{held:true,terms:"2026-10-18",expected:"review_required"},{held:false,terms:null,expected:"terms_required"},{held:false,terms:"2026-10-18",expected:"allowed"}]){
   let reads=0;
   const access=load("lib/game/flappy/server.ts",{
-   "server-only":{},"@/lib/competition/request-body":bounded,"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":e,
+   "server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"},"@/lib/competition/request-body":bounded,"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":e,
    "@/lib/supabase/server":{getVerifiedUserContext:async()=>null},
    "@/lib/security/auth-401-review":{isGameAccessHeld:async id=>{assert.equal(id,"verified-player");return policy.held;}},
    "@/lib/supabase/admin":{createAdminClient:()=>({from(table){assert.equal(table,"player_terms_acceptances");reads++;return{select:()=>({eq:(key,id)=>{assert.equal(key,"player_id");assert.equal(id,"verified-player");return{maybeSingle:async()=>({data:policy.terms?{terms_version:policy.terms}:null,error:null})};}})};}})},
