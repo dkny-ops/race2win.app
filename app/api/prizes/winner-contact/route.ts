@@ -1,43 +1,55 @@
 import { NextResponse } from "next/server";
-import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
 import { getVerifiedPlayerId, getWhatsAppClaimUrl, NO_STORE_HEADERS } from "@/lib/competition/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
+function safeCents(value: unknown): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
 export async function GET() {
   try {
     const playerId = await getVerifiedPlayerId();
     if (!playerId) return NextResponse.json({ eligible: false }, { status: 401, headers: NO_STORE_HEADERS });
-    const whatsappConfigured = Boolean(getWhatsAppClaimUrl());
     if (!isAdminConfigured()) return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
-    const currentWeek = currentNewYorkTournamentWeek();
-    const monday = new Date(currentWeek + "T12:00:00Z");
-    monday.setUTCDate(monday.getUTCDate() - 7);
-    const finishedWeek = monday.toISOString().slice(0, 10);
+
     const admin = createAdminClient();
-    const { data: game, error: gameError } = await admin.from("games").select("id").eq("slug", "race-to-win").maybeSingle();
-    if (gameError || !game) throw new Error("Game unavailable");
-    const { data: winner, error } = await admin.from("weekly_tournament_totals")
-      .select("rank_position,tie_break_status").eq("game_id", game.id)
-      .eq("tournament_week_start", finishedWeek).eq("player_id", playerId)
-      .gte("rank_position", 1).lte("rank_position", 3).maybeSingle();
-    if (error) throw error;
-    const { data: award, error: awardError } = await admin.from("provisional_winners")
-      .select("id,status,paid_at,amount_cents,allocation_status").eq("game_id", game.id)
-      .eq("tournament_week_start", finishedWeek).eq("player_id", playerId)
-      .eq("award_type", "weekly_tournament").maybeSingle();
-    if (awardError) throw awardError;
-    const { data: contactClosed, error: closureError } = award ? await admin.rpc("rtw_is_winner_contact_closed", { p_winner: award.id }) : { data: false, error: null };
-    if (closureError) throw closureError;
-    const { data: profile, error: profileError } = await admin.from("profiles").select("username").eq("user_id", playerId).maybeSingle();
-    if (profileError) throw profileError;
-    const whatsappUrl = whatsappConfigured ? getWhatsAppClaimUrl(profile?.username ?? undefined) : null;
-    const alreadyPaid = Boolean(award && (award.status === "paid" || award.paid_at !== null || contactClosed === true));
-    const awardBlocked = Boolean(award && (award.allocation_status !== "allocated" || ["disqualified", "expired"].includes(award.status)));
-    const eligible = Boolean(winner && winner.tie_break_status === "resolved" && !alreadyPaid && !awardBlocked);
-    const prizeCents = eligible && award?.status !== "approved_for_payment" ? (typeof award?.amount_cents === "number" && award.amount_cents > 0 ? award.amount_cents : winner?.rank_position === 1 ? 1500 : winner?.rank_position === 2 ? 300 : winner?.rank_position === 3 ? 200 : 0) : 0;
-    return NextResponse.json({ eligible, prizeCents, rankPosition: eligible ? winner?.rank_position : null, whatsappUrl: eligible && whatsappUrl ? whatsappUrl : null }, { headers: NO_STORE_HEADERS });
+    const [{ data: balance, error: balanceError }, { data: profile, error: profileError }] = await Promise.all([
+      admin.from("prize_balances").select("available_cents").eq("player_id", playerId).maybeSingle(),
+      admin.from("profiles").select("username").eq("user_id", playerId).maybeSingle(),
+    ]);
+    if (balanceError || profileError || safeCents(balance?.available_cents) < 1000) {
+      return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
+    }
+
+    const { data: award, error } = await admin.from("provisional_winners")
+      .select("id,status,paid_at,amount_cents,allocation_status,rank_position,game_id,games!inner(display_name,slug)")
+      .eq("player_id", playerId)
+      .eq("award_type", "weekly_tournament")
+      .eq("status", "approved_for_payment")
+      .eq("allocation_status", "allocated")
+      .is("paid_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !award || typeof award.id !== "string" || typeof award.amount_cents !== "number") {
+      return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
+    }
+
+    const { data: contactClosed, error: closureError } = await admin.rpc("rtw_is_winner_contact_closed", { p_winner: award.id });
+    if (closureError || contactClosed === true) return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
+
+    const game = award.games as unknown;
+    const gameName = game && typeof game === "object" && "display_name" in game && (game as { display_name?: unknown }).display_name === "FlappyRace"
+      ? "FlappyRace" : "Race To Win";
+    const whatsappUrl = getWhatsAppClaimUrl(profile?.username ?? undefined, gameName);
+    return NextResponse.json({
+      eligible: Boolean(whatsappUrl),
+      prizeCents: award.amount_cents,
+      rankPosition: award.rank_position === 1 || award.rank_position === 2 || award.rank_position === 3 ? award.rank_position : null,
+      whatsappUrl: whatsappUrl ?? null,
+    }, { headers: NO_STORE_HEADERS });
   } catch {
     return NextResponse.json({ eligible: false }, { status: 503, headers: NO_STORE_HEADERS });
   }
