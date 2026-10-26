@@ -38,10 +38,10 @@ test("official transport sets bounded timeout and refuses unavailable service",a
   await assert.rejects(client.startFlappyOfficial());assert.equal(calls,1);
  }finally{globalThis.fetch=original;}
 });
-test("legacy individual Flappy review route is unavailable before any data access",async()=>{
+test("legacy individual Flappy review route is unavailable before any data access",()=>{
  const sentinel=new Error("NOT_FOUND");
  const page=load("app/admin/prize-review/flappy-race/page.tsx",{"next/navigation":{notFound:()=>{throw sentinel;}}});
- await assert.rejects(page.default({searchParams:Promise.resolve({session:"00000000-0000-4000-8000-000000000000"})}),err=>err===sentinel);
+ assert.throws(()=>page.default({searchParams:Promise.resolve({session:"00000000-0000-4000-8000-000000000000"})}),err=>err===sentinel);
 });
 test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
  const client=load("lib/game/flappy/official-client.ts",{"./engine":engine});
