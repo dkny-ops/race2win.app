@@ -46,11 +46,12 @@ export function normalizeReferralCode(value: unknown): string | null {
   return /^[A-Z0-9]{10,32}$/.test(code) ? code : null;
 }
 
-export function getWhatsAppClaimUrl(username?: string): string | null {
+export function getWhatsAppClaimUrl(username?: string, gameName = "Race To Win"): string | null {
   const destination = process.env.WHATSAPP_CLAIM_DESTINATION?.trim();
   if (!destination || !/^[1-9]\d{7,14}$/.test(destination)) return null;
   const safeUsername = typeof username === "string" ? username.trim().slice(0, 32).replace(/[\r\n\u0000-\u001f]/g, "") : "";
-  const message = `Hello, I am ${safeUsername || "a Race To Win player"}. I won a prize in Race To Win and would like to request validation.`;
+  const safeGameName = gameName === "FlappyRace" ? "FlappyRace" : "Race To Win";
+  const message = `Hello, I am ${safeUsername || "a player"}. I won a prize in ${safeGameName} and would like to request validation.`;
   return `https://wa.me/${destination}?text=${encodeURIComponent(message)}`;
 }
 
