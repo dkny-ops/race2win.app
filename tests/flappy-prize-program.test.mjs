@@ -11,7 +11,7 @@ test("Flappy prize program keeps post-activation-only scoring, exact awards, RLS
   }
   assert.match(sql, /s\.starts_at >= p\.activated_at/);
   assert.match(sql, /when 1 then 1500 when 2 then 300 when 3 then 200/);
-  assert.match(sql, /if c\.state<>'approved' then raise exception 'Candidate approval unavailable'/);
+  assert.match(sql, /c\.state<>'approved' then raise exception 'Candidate approval unavailable'/);
   assert.match(sql, /'paymentsEnabled',false/);
   assert.match(sql, /perform public\.rtw_admin_transition_winner/);
   assert.match(sql, /on conflict\(week,player_id\) do nothing/);
