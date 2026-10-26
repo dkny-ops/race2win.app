@@ -24,7 +24,7 @@ function expectedDays(week: ScoreWeek): string[] {
 }
 
 function isScore(value: unknown): value is number {
-  return Number.isSafeInteger(value) && value >= 0 && value <= MAX_DAILY_SCORE;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= MAX_DAILY_SCORE;
 }
 
 function parsePersonalWeek(raw: unknown, week: ScoreWeek): FlappyPersonalWeek {
