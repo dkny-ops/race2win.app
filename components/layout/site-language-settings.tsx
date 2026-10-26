@@ -2,9 +2,9 @@
 
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 
-export function SiteLanguageSettings() {
+export function SiteLanguageSettings({ desktop = false }: { desktop?: boolean }) {
   const [language, setLanguage] = usePlayerLanguage();
-  return <details className="site-language-settings">
+  return <details className={`site-language-settings${desktop ? " site-language-settings--desktop" : ""}`}>
     <summary className="site-language-settings__trigger">SETTINGS</summary>
     <div className="site-language-settings__panel">
       <label className="site-language-settings__label" htmlFor="site-menu-language">LANGUAGE / IDIOMA</label>
