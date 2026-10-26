@@ -4,7 +4,6 @@ export const RACE_TO_WIN_GAME_SECTION_ID = "race-to-win-game";
 export const ROUTES = {
   home: "/",
   games: "/games",
-  prizes: "/prizes",
   rules: "/rules",
   faq: "/faq",
   terms: "/legal/terms",
