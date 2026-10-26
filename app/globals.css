@@ -700,3 +700,31 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .flappy-ranking #flappy-ranking-title{font-size:clamp(1.5rem,5vw,2.5rem)}
 .flappy-ranking .flappy-ranking__review{display:block;margin-top:.25rem;color:var(--muted);font-size:.7rem}
 @media(max-width:600px){.flappy-ranking .scores-pagination{gap:.35rem}.flappy-ranking .scores-pagination .button{padding:.55rem .5rem;font-size:.6rem}}
+
+/* FlappyRace personal weekly score: server-provided verified totals only. */
+.flappy-personal-weekly{padding-top:clamp(1.35rem,3vw,2.4rem)}
+.flappy-personal-weekly__panel{position:relative;overflow:hidden;border-color:rgba(39,169,255,.62);background:linear-gradient(135deg,rgba(4,17,34,.96),rgba(6,34,69,.88));box-shadow:inset 0 0 52px rgba(39,169,255,.08),0 0 32px rgba(24,143,255,.11)}
+.flappy-personal-weekly__panel:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(112deg,transparent 0 38%,rgba(39,169,255,.07) 39% 40%,transparent 41% 100%)}
+.flappy-personal-weekly__heading{position:relative;display:flex;align-items:end;justify-content:space-between;gap:1.25rem;margin-bottom:1rem}
+.flappy-personal-weekly__heading h2{margin-bottom:.35rem;font-size:clamp(2rem,4.2vw,3.75rem);text-shadow:0 0 24px rgba(39,169,255,.19)}
+.flappy-personal-weekly__period,.flappy-personal-weekly__rule{margin:0;color:#b6cbe1;font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.flappy-personal-weekly__rule{position:relative;margin:1.15rem 0 1.35rem;padding:.65rem .85rem;border-left:2px solid var(--electric);background:rgba(3,12,25,.56);color:#d1e8fb}
+.flappy-personal-weekly__total{min-width:min(100%,205px);padding:1rem 1.15rem;border:1px solid rgba(39,169,255,.68);border-radius:14px;background:rgba(2,10,21,.72);box-shadow:inset 0 0 20px rgba(39,169,255,.1),0 0 20px rgba(39,169,255,.13);text-align:right}
+.flappy-personal-weekly__total span,.flappy-personal-weekly__day footer span{display:block;color:var(--electric);font:800 .64rem monospace;letter-spacing:.12em}
+.flappy-personal-weekly__total strong{display:block;color:#ffe7a1;font-size:clamp(1.8rem,3.5vw,2.7rem);line-height:1.05;text-shadow:0 0 18px rgba(255,191,55,.31)}
+.flappy-personal-weekly__days{position:relative;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.68rem}
+.flappy-personal-weekly__day{min-width:0;border:1px solid rgba(144,211,255,.33);border-radius:13px;background:linear-gradient(155deg,rgba(15,49,85,.84),rgba(3,13,27,.88));box-shadow:inset 0 0 18px rgba(39,169,255,.055);overflow:hidden}
+.flappy-personal-weekly__day:nth-child(even){background:linear-gradient(155deg,rgba(21,62,104,.7),rgba(5,19,39,.92))}
+.flappy-personal-weekly__day header,.flappy-personal-weekly__day footer{display:flex;align-items:center;justify-content:space-between;gap:.45rem;padding:.65rem .7rem;background:rgba(2,10,21,.62)}
+.flappy-personal-weekly__day header span{color:#d7efff;font:900 .7rem monospace;letter-spacing:.1em}
+.flappy-personal-weekly__day header strong{color:#ffe7a1;font-size:.85rem}
+.flappy-personal-weekly__day ol{display:grid;gap:.18rem;margin:0;padding:.62rem .7rem;list-style:none}
+.flappy-personal-weekly__day li{display:flex;justify-content:space-between;gap:.35rem;padding:.14rem 0;border-bottom:1px solid rgba(176,221,255,.1);font-size:.68rem}
+.flappy-personal-weekly__day li:last-child{border-bottom:0}
+.flappy-personal-weekly__day li span{color:#9fc5e2;font:800 .59rem monospace;letter-spacing:.07em}
+.flappy-personal-weekly__day li strong{color:#edf8ff;font-variant-numeric:tabular-nums}
+.flappy-personal-weekly__day footer{border-top:1px solid rgba(39,169,255,.24)}
+.flappy-personal-weekly__day footer strong{color:#ffe7a1;font-size:.78rem}
+@media(max-width:1120px){.flappy-personal-weekly__days{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:700px){.flappy-personal-weekly__heading{align-items:stretch;flex-direction:column}.flappy-personal-weekly__total{text-align:left}.flappy-personal-weekly__days{grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}.flappy-personal-weekly__day header,.flappy-personal-weekly__day footer,.flappy-personal-weekly__day ol{padding-left:.6rem;padding-right:.6rem}}
+@media(max-width:370px){.flappy-personal-weekly__days{grid-template-columns:1fr}}

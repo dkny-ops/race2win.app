@@ -35,7 +35,9 @@ export type SecurityEventType =
   | "prize.claim.failed"
   | "balance_claim.rejected"
   | "balance_claim.failed"
-  | "payout_hold.operation_failed";
+  | "payout_hold.operation_failed"
+  | "flappy.personal.rejected"
+  | "flappy.personal.failed";
 
 export type SecurityEventRoute =
   | "/api/auth/request-code"
@@ -52,7 +54,8 @@ export type SecurityEventRoute =
   | "/api/referrals/attach"
   | "/api/prizes/claimable"
   | "/api/prizes/claim"
-  | "/api/prizes/balance-claim";
+  | "/api/prizes/balance-claim"
+  | "/api/flappy-race/personal";
 
 export type SecurityEventReason =
   | "turnstile_verified"
@@ -80,7 +83,8 @@ export type SecurityEventReason =
   | "eligibility_rejected"
   | "database_operation_failed"
   | "unexpected_response"
-  | "unexpected_error";
+  | "unexpected_error"
+  | "read_failed";
 
 export type SecurityEvent = Readonly<{
   eventType: SecurityEventType;
