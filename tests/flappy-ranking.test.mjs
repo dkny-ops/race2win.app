@@ -84,7 +84,7 @@ test("Flappy UI renders public rows, review ties and podium classes without samp
   assert.match(html, /&lt;Existing&gt;/);
   assert.match(html, /Empate absoluto/);
   assert.doesNotMatch(html, /ranking-row--null/);
-  assert.match(html, /no se guardan en el ranking/);
+  assert.doesNotMatch(html, /no se guardan en el ranking/);
 });
 
 test("public availability requires both the reviewed code and effective database gates",async()=>{
