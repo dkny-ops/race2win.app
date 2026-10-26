@@ -31,8 +31,8 @@ export default function RulesPage() {
           <p>Cheating, bots or unfair automation, score manipulation, exploiting vulnerabilities, evading limits through account sharing, collusion, and fraudulent claims are prohibited. Suspected violations may place results or awards on hold. Confirmed intentional violations may lead to disqualification, forfeiture of ineligible awards, or permanent suspension after documented human review, subject to the Terms and applicable law. Players may request human reconsideration through an official support channel.</p>
         </article>
         <article>
-          <h2>FlappyRace: practice only</h2>
-          <p><strong>PRACTICE ONLY — no prizes and no official tournament.</strong> FlappyRace practice scores do not qualify for Race To Win standings, prize balances, or payments. Its official competition remains unavailable until game-specific authoritative server validation is completed, reviewed, and explicitly activated. Practice results will not be converted into verified tournament entries.</p>
+          <h2>FlappyRace: official tournament</h2>
+          <p>FlappyRace now offers an official weekly tournament. Eligible server-verified runs count toward FlappyRace standings, separate from Race To Win. Weekly prize eligibility and credits require administrator review and approval; payments remain manual. Only sessions started after the official prize activation time qualify for the inaugural prize period.</p>
         </article>
       </div>
       <p className="muted">These player rules summarize the current published format. Any future prize event must publish its official conditions before entry opens. Relevant changes will be announced before they apply.</p>
