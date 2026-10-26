@@ -91,3 +91,28 @@ Official countdown scheduling now uses the server START response clock reference
 plus performance.now(), not the player's wall clock. This avoids legitimate clock
 skew creating premature input evidence. The database still enforces elapsed time
 and leases; the client never chooses an official start time.
+
+## Non-financial activation
+
+At f381c418, production typecheck, 98/98 automated tests and Next build passed,
+including holds, terms policy and server-clock scheduling tests.
+Production migration 20261026042207_flappy_activate_reviewed_nonfinancial_competition
+verified RLS, browser EXECUTE denial, absence of direct table privileges, function
+search_path/definer configuration, owner review availability and zero retained
+fixture data before setting Flappy catalogue active and its private database gate true.
+The independent source-code gate is enabled in the accompanying reviewed commit.
+
+This enables authenticated official play; every FINALIZE still creates under_review.
+Only explicit owner approval can enter the ranking. Closure remains manual and
+requires complete review. No economic rules, prize amounts, payable balances,
+automatic award/payment job, ad provider or extra-life grant were enabled.
+
+Production SQL verification used existing identities and real roles inside rollback
+transactions; it does not replace an actual signed-in browser playthrough. The
+current browser session is unauthenticated, so the first authenticated browser run
+and owner-panel button interaction are not claimed as completed. Negative endpoint,
+public ranking/tournament and desktop/mobile language checks are verified separately.
+The old fresh-install behavior fixture was not rerun: the user explicitly forbids
+local/alternate test environments and general migration-history replay. Its prior
+hourly-quota fixture failure is historical, not evidence that runtime quotas were
+weakened or that the complete historical migration harness now passes.
