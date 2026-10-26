@@ -27,11 +27,11 @@ function compile(path,imports){
 }
 const engine=compile("lib/game/flappy/engine.ts",{});
 const bounded=compile("lib/competition/request-body.ts",{"server-only":{}});
-const api=compile("lib/game/flappy/server.ts",{"server-only":{},"@/lib/competition/request-body":bounded,"@/lib/supabase/admin":{createAdminClient:()=>({rpc})},"@/lib/supabase/server":{getVerifiedUserContext:async()=>null},"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":engine});
+const api=compile("lib/game/flappy/server.ts",{"server-only":{},"@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},"@/lib/competition/request-body":bounded,"@/lib/supabase/admin":{createAdminClient:()=>({rpc})},"@/lib/supabase/server":{getVerifiedUserContext:async()=>null},"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":engine});
 const A="11111111-1111-4111-8111-111111111111",B="22222222-2222-4222-8222-222222222222";
 const C="33333333-3333-4333-8333-333333333333",D="44444444-4444-4444-8444-444444444444";
 function request(body){return new Request("https://test/api",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});}
-function handle(action,body,player=A){return api.handleFlappy(action,request(body),{enabled:true,user:async()=>player,admin:()=>({rpc}),now:Date.now});}
+function handle(action,body,player=A){return api.handleFlappy(action,request(body),{access:async()=>"allowed",enabled:true,user:async()=>player,admin:()=>({rpc}),now:Date.now});}
 let checks=0;function pass(name){checks++;console.log("PASS "+name);}
 sql("create database "+db,"postgres");
 try{

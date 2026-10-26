@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { readBoundedJson } from "@/lib/competition/request-body";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { summarizeFlappyAudit } from "./admin-review";
+import { isGameAccessHeld } from "@/lib/security/auth-401-review";
 import { parseFlappyWeek } from "./tournament";
 const headers={"Cache-Control":"private, no-store"};
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -28,6 +29,7 @@ export async function mutateFlappyAdmin(action:"review"|"close-week",request:Req
   if(error||!Array.isArray(data)||data.length!==1)return response(409,"Evidence unavailable.");
   const audit=summarizeFlappyAudit(data[0]);
   if(audit.status!=="finalized"||(b.decision==="valid"&&audit.replayMatches!==true))return response(409,"Replay evidence does not permit approval.");
+  if(b.decision==="valid"&&await isGameAccessHeld(audit.player_id))return response(409,"Player access requires review.");
   const reviewed=await authorization.admin.rpc("flappy_review_run",{p_actor:actor,p_session:b.sessionId,p_decision:b.decision,p_note:b.note.trim()});
   return reviewed.error?response(409,"Review conflict or week closed."):response(200,"Review recorded. No prizes or payments generated.");
  }catch{return response(503,"Review temporarily unavailable.");}

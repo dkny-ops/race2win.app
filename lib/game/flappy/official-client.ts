@@ -2,13 +2,20 @@
 import { FLAPPY_VERSION, type FlappyState, MAX_INPUTS } from "./engine";
 export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; expiresAt: string };
 export type FlappyResult = { score: number; collisionTick: number; eligibility: "under_review"; verification: "replay_verified" };
+export class FlappyOfficialError extends Error {
+ constructor(public code: string) { super("Official FlappyRace request unavailable."); }
+}
 async function post(action: string, body: unknown) {
   const response = await fetch(`/api/flappy-race/sessions/${action}`, {
     signal: AbortSignal.timeout(10_000),
     method: "POST", credentials: "same-origin", cache: "no-store",
     headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error("Official FlappyRace service unavailable.");
+  if (!response.ok) {
+    let code = "service_unavailable";
+    try { const error = await response.json(); if (["unauthenticated","terms_required","review_required","rate_limited","start_rejected"].includes(error.code)) code = error.code; } catch {}
+    throw new FlappyOfficialError(code);
+  }
   return response.json();
 }
 export async function startFlappyOfficial(): Promise<FlappySession> {

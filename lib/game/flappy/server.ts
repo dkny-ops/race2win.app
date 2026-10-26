@@ -4,11 +4,18 @@ import { NextResponse } from "next/server";
 import { readBoundedJson } from "@/lib/competition/request-body";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
+import { isGameAccessHeld } from "@/lib/security/auth-401-review";
 import { FLAPPY_COMPETITION_ENABLED } from "./activation";
 import { FLAPPY_VERSION, MAX_TICKS, parseFlaps, replayFlappy } from "./engine";
 type Action = "start" | "checkpoint" | "finalize";
-type Deps = { enabled: boolean; user: () => Promise<string | null>; admin: typeof createAdminClient; now: () => number };
-const defaults: Deps = { enabled: FLAPPY_COMPETITION_ENABLED, user: async () => (await getVerifiedUserContext())?.userId ?? null, admin: createAdminClient, now: Date.now };
+type Deps = { access: (player: string) => Promise<"allowed" | "review_required" | "terms_required">; enabled: boolean; user: () => Promise<string | null>; admin: typeof createAdminClient; now: () => number };
+export async function flappyPlayerAccess(player: string): Promise<"allowed" | "review_required" | "terms_required"> {
+  if (await isGameAccessHeld(player)) return "review_required";
+  const { data, error } = await createAdminClient().from("player_terms_acceptances").select("terms_version").eq("player_id", player).maybeSingle();
+  if (error) throw new Error("Access unavailable");
+  return data?.terms_version === "2026-10-18" ? "allowed" : "terms_required";
+}
+const defaults: Deps = { access: flappyPlayerAccess, enabled: FLAPPY_COMPETITION_ENABLED, user: async () => (await getVerifiedUserContext())?.userId ?? null, admin: createAdminClient, now: Date.now };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function flapDigest(inputs: number[]): string { return createHash("sha256").update(JSON.stringify(inputs)).digest("hex"); }
 const headers = { "Cache-Control": "private, no-store" };
@@ -26,6 +33,8 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const player = await deps.user();
     if (!player) return reject(action, 401, "unauthenticated");
     if (!deps.enabled) return reject(action, 403, "FLAPPY_OFFICIAL_DISABLED");
+    const access = await deps.access(player);
+    if (access !== "allowed") return reject(action, 403, access);
     const admin = deps.admin();
     const quota = await admin.rpc("flappy_consume_quota", { p_player: player, p_action: action });
     if (quota.error) return reject(action, 503, "quota_unavailable");

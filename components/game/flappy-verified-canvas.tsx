@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { FlappyRewardOptions } from "./flappy-reward-options";
 import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
-import { startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
+import { FlappyOfficialError, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated }: { language: "en" | "es"; authenticated: boolean }) {
@@ -20,6 +21,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const [expanded, setExpanded] = useState(false);
   const [rewardExpanded, setRewardExpanded] = useState(false);
   const [result, setResult] = useState<FlappyResult | null>(null);
+  const [officialError, setOfficialError] = useState<string | null>(null);
   const [mode, setMode] = useState<"practice" | "official">("practice");
   const fail = useCallback(() => { running.current = false; if (mounted.current) { setResult(null); setStatus("rejected"); } }, []);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
@@ -27,8 +29,9 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const start = useCallback(async () => {
     if (busy.current || running.current) return;
     busy.current = true;
-    setRewardExpanded(false); setStatus("starting"); setResult(null); setScore(0);
+    setOfficialError(null); setRewardExpanded(false); setStatus("starting"); setResult(null); setScore(0);
     try {
+      if (mode === "official" && !authenticated) throw new FlappyOfficialError("unauthenticated");
       const session = mode === "official" ? await startFlappyOfficial() : null;
       if (!mounted.current) return;
       official.current = session;
@@ -41,9 +44,9 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       setExpanded(true); setCountdown(Math.ceil((origin.current - performance.now()) / 1000));
       canvas.current?.focus({ preventScroll: true });
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
-    } catch { fail(); }
+    } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
     finally { busy.current = false; }
-  }, [mode, fail]);
+  }, [authenticated, mode, fail]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -162,8 +165,9 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         {terminal ? <button className="button button--primary" type="button" onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
+    {status==="rejected" && !expanded ? <p role="alert">{officialError==="terms_required" ? (es ? "Acepta los términos antes de competir." : "Accept the Terms before competing.") : officialError==="review_required" ? (es ? "Acceso pendiente de revisión administrativa." : "Game access awaits administrative review.") : (es ? "No se pudo iniciar la partida oficial. Revisa tu sesión, cuota y conexión." : "Official run could not start. Check your session, allowance and connection.")} <Link href={officialError==="terms_required" ? "/terms/accept" : officialError==="review_required" ? "/support/access" : "/sign-in?next=%2Fgames%2Fflappy-race"}>{officialError==="terms_required" ? "TERMS" : officialError==="review_required" ? "SUPPORT" : "SIGN IN"}</Link></p> : null}
     <FlappyRewardOptions es={es} />
     <p style={{marginTop:12}}>{es ? "Puntos de práctica / en curso" : "Practice / in-progress score"}: <strong>{score}</strong></p>
-    <p className="muted">{es ? "Modo práctica. Las puntuaciones no cuentan para el ranking ni generan premios." : "Practice mode. Scores do not count toward the ranking or prizes."}</p>
+    <p className="muted">{mode==="official" ? (es ? "Modo oficial: solo cuentan resultados verificados y aprobados. Sin premios retirables." : "Official mode: only verified, reviewed results count. No withdrawable prizes.") : es ? "Modo práctica. Las puntuaciones no cuentan para el ranking ni generan premios." : "Practice mode. Scores do not count toward the ranking or prizes."}</p>
   </div>;
 }

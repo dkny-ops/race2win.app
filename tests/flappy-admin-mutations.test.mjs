@@ -4,10 +4,10 @@ import {createRequire} from "node:module";
 import test from "node:test";
 import ts from "typescript";
 const require=createRequire(import.meta.url),source=readFileSync(new URL("../lib/game/flappy/admin-mutations.ts",import.meta.url),"utf8");
-function load({authorized=true,replay=true,status="finalized",failure=false}={}){
+function load({authorized=true,replay=true,status="finalized",failure=false,held=false}={}){
  const calls=[],m={exports:{}};
  const rpc=async(name,args)=>{calls.push({name,args});return name==="flappy_admin_read"?{data:[{}],error:null}:{data:null,error:failure?{}:null};};
- const imports={"server-only":{},"next/server":require("next/server"),"@/lib/competition/request-body":{readBoundedJson:async r=>r.json()},"@/lib/security/prize-admin":{getAuthorizedPrizeAdmin:async()=>authorized?{context:{userId:"verified-owner"},admin:{rpc}}:null},"./admin-review":{summarizeFlappyAudit:()=>({replayMatches:replay,status})},"./tournament":{parseFlappyWeek:v=>v==="2026-10-19"?v:null}};
+ const imports={"server-only":{},"@/lib/security/auth-401-review":{isGameAccessHeld:async()=>held},"next/server":require("next/server"),"@/lib/competition/request-body":{readBoundedJson:async r=>r.json()},"@/lib/security/prize-admin":{getAuthorizedPrizeAdmin:async()=>authorized?{context:{userId:"verified-owner"},admin:{rpc}}:null},"./admin-review":{summarizeFlappyAudit:()=>({replayMatches:replay,status,player_id:"verified-player"})},"./tournament":{parseFlappyWeek:v=>v==="2026-10-19"?v:null}};
  new Function("exports","module","require",ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(m.exports,m,n=>n in imports?imports[n]:assert.fail(n));
  return {api:m.exports,calls};
 }
@@ -27,4 +27,8 @@ test("closed/review-conflict errors stay fail-closed and closure uses the verifi
  const failure=load({failure:true});assert.equal((await failure.api.mutateFlappyAdmin("review",request())).status,409);
  const closure=load();assert.equal((await closure.api.mutateFlappyAdmin("close-week",request({week:"2026-10-19",confirmed:true}))).status,200);assert.deepEqual(closure.calls[0],{name:"flappy_close_week",args:{p_actor:"verified-owner",p_week:"2026-10-19"}});
  const invalid=load();assert.equal((await invalid.api.mutateFlappyAdmin("close-week",request({week:"bad",confirmed:true}))).status,400);assert.equal(invalid.calls.length,0);
+});
+
+test("a held player cannot be approved even when the replay matches",async()=>{
+ const a=load({held:true});assert.equal((await a.api.mutateFlappyAdmin("review",request())).status,409);assert.equal(a.calls.length,1);
 });

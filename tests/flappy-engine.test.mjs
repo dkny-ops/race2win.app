@@ -41,6 +41,7 @@ test("incremental rendering and replay agree for recorded real-time inputs",()=>
 const bounded=load("lib/competition/request-body.ts",{"server-only":{}});
 const api=load("lib/game/flappy/server.ts",{
  "server-only":{},"@/lib/competition/request-body":bounded,
+ "@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},
  "@/lib/supabase/admin":{createAdminClient:()=>assert.fail("unconfigured database")},
  "@/lib/supabase/server":{getVerifiedUserContext:async()=>null},
  "./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":e,
@@ -48,11 +49,11 @@ const api=load("lib/game/flappy/server.ts",{
 function req(body){return new Request("https://test/api",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});}
 test("official endpoints remain locked by reviewed code and require live identity",async()=>{
   const db=()=>assert.fail("closed endpoint must not access DB");
-  assert.equal((await api.handleFlappy("start",req({}),{enabled:false,user:async()=>null,admin:db,now:Date.now})).status,401);
-  assert.equal((await api.handleFlappy("start",req({}),{enabled:false,user:async()=>"player",admin:db,now:Date.now})).status,403);
+  assert.equal((await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:false,user:async()=>null,admin:db,now:Date.now})).status,401);
+  assert.equal((await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:false,user:async()=>"player",admin:db,now:Date.now})).status,403);
 });
 test("authority fields, wrong seeds, forged score and hostile origins cannot enter session APIs",async()=>{
-  const deps={enabled:true,user:async()=>"player",admin:()=>({rpc:async()=>({data:true,error:null})}),now:Date.now};
+  const deps={access:async()=>"allowed",enabled:true,user:async()=>"player",admin:()=>({rpc:async()=>({data:true,error:null})}),now:Date.now};
   for(const body of [{score:9999},{seed:1},{sessionId:"not-uuid",throughTick:10,inputs:[]}]){
     assert.equal((await api.handleFlappy("finalize",req(body),deps)).status,400);
   }
@@ -70,4 +71,26 @@ test("an automated controller can generate a physically valid replay: replay is 
   while(!s.dead&&s.tick<e.MAX_TICKS)e.stepFlappy(s,false);
   assert.ok(s.score>0);assert.equal(s.dead,true);
   assert.deepEqual(e.replayFlappy(0,inputs,s.tick),s);
+});
+
+test("access holds and missing tournament consent deny sessions before quota or storage",async()=>{
+ for(const reason of ["review_required","terms_required"]){
+  const response=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>reason,admin:()=>assert.fail("Access rejection must precede quota"),now:Date.now});
+  assert.equal(response.status,403);assert.equal((await response.json()).code,reason);
+ }
+ const failure=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>{throw new Error("unavailable");},admin:()=>assert.fail("Access failure must fail closed"),now:Date.now});
+ assert.equal(failure.status,503);
+});
+
+test("player access reuses the existing hold and terms policy scoped to verified identity",async()=>{
+ for(const policy of [{held:true,terms:"2026-10-18",expected:"review_required"},{held:false,terms:null,expected:"terms_required"},{held:false,terms:"2026-10-18",expected:"allowed"}]){
+  let reads=0;
+  const access=load("lib/game/flappy/server.ts",{
+   "server-only":{},"@/lib/competition/request-body":bounded,"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":e,
+   "@/lib/supabase/server":{getVerifiedUserContext:async()=>null},
+   "@/lib/security/auth-401-review":{isGameAccessHeld:async id=>{assert.equal(id,"verified-player");return policy.held;}},
+   "@/lib/supabase/admin":{createAdminClient:()=>({from(table){assert.equal(table,"player_terms_acceptances");reads++;return{select:()=>({eq:(key,id)=>{assert.equal(key,"player_id");assert.equal(id,"verified-player");return{maybeSingle:async()=>({data:policy.terms?{terms_version:policy.terms}:null,error:null})};}})};}})},
+  });
+  assert.equal(await access.flappyPlayerAccess("verified-player"),policy.expected);assert.equal(reads,policy.held?0:1);
+ }
 });

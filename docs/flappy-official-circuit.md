@@ -66,3 +66,23 @@ A physically valid bot remains a known risk; all finalized runs start under_revi
 Status and final verification are appended after execution. No successful build
 alone certifies the official circuit or removes the independent activation gates.
 Rewarded EXTRA LIFE/2X, withdrawable prizes and automatic payments remain disabled.
+
+## Verified production results (before activation)
+
+Migration 20261026041054_flappy_review_and_weekly_closure applied successfully.
+Typecheck, all 93 tests at cb2c455, and Next production build passed in Vercel.
+Production transaction assertions passed: real START/checkpoint/finalize, immutable
+prefix, duplicate FINALIZE, default under_review, admin authorization, exact review
+retry, conflicting review rejection, rejection audit, pending-review closure block,
+current-week closure block, top-seven daily total, individual vectors, absolute ties,
+canonical closure retry, frozen standings, and a 169-hour DST week.
+Anonymous EXECUTE and authenticated private-table access were rejected using actual
+roles. All eight private Flappy tables have RLS, all nine public RPCs deny browser
+roles, and service_role has no direct Flappy table privileges.
+After ROLLBACK: runs=0, review_events=0, closures=0, gate=false, catalogue=paused.
+Non-Flappy function digest remained 7908d6342ceb4ea7d88d386934f870eb.
+
+Before activation, official server operations are being aligned with the existing
+live access-hold and 2026-10-18 terms policy. Held players cannot be approved.
+The canonical HTTP GET checks use the public browser URL; the Vercel fetch connector
+adds a share query that strict API validation intentionally rejects with 400.
