@@ -13,7 +13,7 @@ function weekday(day: string, language: "en" | "es") {
   return new Intl.DateTimeFormat(language === "es" ? "es-ES" : "en-US", {
     weekday: "short",
     timeZone: "UTC",
-  }).format(new Date(`${day}T12:00:00.000Z")).toUpperCase();
+  }).format(new Date(`${day}T12:00:00.000Z`)).toUpperCase();
 }
 
 export function FlappyPersonalWeeklyScore({
