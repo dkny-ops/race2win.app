@@ -37,7 +37,7 @@ function reader({ data, error = null } = {}) {
     name.endsWith("/scores") ? { currentNewYorkTournamentWeek: () => "2026-10-26" } :
     name.endsWith("/admin") ? { createAdminClient: () => ({
       async rpc(fn, args) { calls.push([fn, args]); return { data, error }; },
-    }) : assert.fail(name));
+    }) } : assert.fail(name));
   return { api, calls };
 }
 
