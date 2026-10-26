@@ -1,22 +1,28 @@
 "use client";
 import { FLAPPY_VERSION, type FlappyState, MAX_INPUTS } from "./engine";
+import { parseFlappyAvailability, type FlappyAvailability } from "./availability";
 export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; serverNow: string; expiresAt: string };
 export type FlappyResult = { score: number; collisionTick: number; eligibility: "under_review"; verification: "replay_verified" };
 export class FlappyOfficialError extends Error {
  constructor(public code: string) { super("Official FlappyRace request unavailable."); }
 }
-async function post(action: string, body: unknown) {
-  const response = await fetch(`/api/flappy-race/sessions/${action}`, {
+async function request(url: string, body?: unknown) {
+  let response: Response;
+  try { response = await fetch(url, {
     signal: AbortSignal.timeout(10_000),
-    method: "POST", credentials: "same-origin", cache: "no-store",
-    headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-  });
+    method: body === undefined ? "GET" : "POST", credentials: "same-origin", cache: "no-store",
+    headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body),
+  }); } catch { throw new FlappyOfficialError("connection_error"); }
   if (!response.ok) {
     let code = "service_unavailable";
-    try { const error = await response.json(); if (["unauthenticated","terms_required","review_required","rate_limited","start_rejected"].includes(error.code)) code = error.code; } catch {}
+    try { const error = await response.json(); if (["unauthenticated","terms_required","review_required","rate_limited","start_rejected","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED"].includes(error.code)) code = error.code; } catch {}
     throw new FlappyOfficialError(code);
   }
   return response.json();
+}
+function post(action: string, body: unknown) { return request(`/api/flappy-race/sessions/${action}`, body); }
+export async function readFlappyAvailability(): Promise<FlappyAvailability> {
+  return parseFlappyAvailability(await request("/api/flappy-race/opportunities"));
 }
 export async function startFlappyOfficial(): Promise<FlappySession> {
   const session = await post("start", {}) as FlappySession;

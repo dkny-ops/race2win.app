@@ -8,9 +8,9 @@ export const metadata: Metadata = { title: "Flappy Race | Race To Win", descript
 export const dynamic = "force-dynamic";
 export default async function Page() {
  const authenticated = Boolean(await getVerifiedUserContext().catch(() => null));
- return <main className="page-section shell narrow" style={{ textAlign: "center" }}>
-  <nav style={{ textAlign: "left", marginBottom: "1rem" }}><Link href="/" className="button button--secondary">← BACK TO HOME</Link></nav>
-  <h1>FLAPPY RACE</h1>
+ return <main className="page-section shell narrow" style={{ textAlign: "center", paddingTop: "1rem" }}>
+  <nav style={{ textAlign: "left", marginBottom: ".5rem" }}><Link href="/" className="button button--secondary">← BACK TO HOME</Link></nav>
+  <h1 style={{fontSize:"clamp(1.75rem, 8vw, 3rem)", margin:".5rem 0"}}>FLAPPY RACE</h1>
   <FlappyRacePage authenticated={authenticated} />
  </main>;
 }

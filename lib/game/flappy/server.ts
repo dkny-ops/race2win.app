@@ -45,6 +45,9 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     if (action === "start") {
       if (Object.keys(b).length) return reject(action, 400, "invalid_body");
       const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: randomInt(0x100000000), p_version: FLAPPY_VERSION });
+      // Match only known database errors; never expose SQL/error details.
+      if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");
+      if (error?.code === "P0001" && error.message === "Concurrent session") return reject(action, 409, "session_active");
       if (error || !data) return reject(action, error?.code === "P0001" ? 409 : 503, "start_rejected");
       return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString() }, { headers });
     }

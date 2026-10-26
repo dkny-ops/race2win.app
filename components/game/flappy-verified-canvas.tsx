@@ -4,7 +4,9 @@ import Link from "next/link";
 import { FlappyRewardOptions } from "./flappy-reward-options";
 import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
-import { FlappyOfficialError, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
+import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
+
+import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated }: { language: "en" | "es"; authenticated: boolean }) {
@@ -22,21 +24,70 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const [rewardExpanded, setRewardExpanded] = useState(false);
   const [result, setResult] = useState<FlappyResult | null>(null);
   const [officialError, setOfficialError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"practice" | "official">(FLAPPY_COMPETITION_ENABLED && authenticated ? "official" : "practice");
+  const [availability, setAvailability] = useState<FlappyAvailability | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState<number | null>(null);
+  const snapshot = useRef<{ data: FlappyAvailability; received: number } | null>(null);
+  const reading = useRef(false);
+  const refreshAvailability = useCallback(async () => {
+    if (!authenticated || reading.current) return;
+    reading.current = true;
+    try {
+      const data = await readFlappyAvailability();
+      if (mounted.current) {
+        snapshot.current = { data, received: performance.now() };
+        setAvailability(data); setAvailabilityError(null);
+      }
+    } catch (error) { if (mounted.current) setAvailabilityError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); }
+    finally { reading.current = false; }
+  }, [authenticated]);
+  useEffect(() => {
+    const initial = window.setTimeout(() => void refreshAvailability(), 0);
+    const tick = () => {
+      const current = snapshot.current;
+      if (current) {
+        const until = current.data.nextAvailableAt;
+        // Monotonic elapsed time animates server data only. It never grants an attempt.
+        const now = Date.parse(current.data.serverNow) + performance.now() - current.received;
+        setSeconds(until ? Math.max(0, Math.ceil((Date.parse(until) - now) / 1000)) : null);
+        if ((until && now >= Date.parse(until)) || (current.data.activeUntil && now >= Date.parse(current.data.activeUntil))) void refreshAvailability();
+      }
+    };
+    const timer = window.setInterval(tick, 1000);
+    const poll = window.setInterval(() => { if (document.visibilityState === "visible") void refreshAvailability(); }, 15000);
+    const focus = () => { void refreshAvailability(); };
+    window.addEventListener("focus", focus); document.addEventListener("visibilitychange", focus);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); window.clearInterval(poll); window.removeEventListener("focus", focus); document.removeEventListener("visibilitychange", focus); };
+  }, [refreshAvailability]);
+  const errorMessage = (code: string) => {
+    const messages: Record<string, [string, string]> = {
+      attempts_exhausted: ["No quedan partidas disponibles. Espera a recuperar un intento.", "No races remaining. Wait for your next attempt."],
+      unauthenticated: ["Inicia sesión para jugar una partida oficial.", "Sign in to play an official race."],
+      session_active: ["Ya tienes una partida oficial activa. Espera a que termine o caduque.", "You already have an active official race. Wait for it to finish or expire."],
+      connection_error: ["No hay conexión. Comprueba tu conexión e inténtalo de nuevo.", "Connection failed. Check your connection and try again."],
+      terms_required: ["Acepta los términos antes de competir.", "Accept the Terms before competing."],
+      review_required: ["Acceso pendiente de revisión administrativa.", "Game access awaits administrative review."],
+      rate_limited: ["Demasiadas solicitudes. Espera unos segundos y vuelve a intentarlo.", "Too many requests. Wait a few seconds and try again."],
+      FLAPPY_OFFICIAL_DISABLED: ["La competición oficial no está disponible en este momento.", "Official competition is currently unavailable."],
+    };
+    return (messages[code] ?? ["Error del servidor. Vuelve a intentarlo en unos momentos.", "Server error. Please try again shortly."])[es ? 0 : 1];
+  };
+  const blocked = !authenticated || !FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || availability.remaining === 0 || availability.activeUntil !== null;
+  const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const fail = useCallback(() => { running.current = false; if (mounted.current) { setResult(null); setStatus("rejected"); } }, []);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
   const start = useCallback(async () => {
-    if (busy.current || running.current) return;
+    if (busy.current || running.current || blocked) return;
     busy.current = true;
     setOfficialError(null); setRewardExpanded(false); setStatus("starting"); setResult(null); setScore(0);
     try {
-      if (mode === "official" && !authenticated) throw new FlappyOfficialError("unauthenticated");
-      const session = mode === "official" ? await startFlappyOfficial() : null;
+      if (!authenticated) throw new FlappyOfficialError("unauthenticated");
+      const session = await startFlappyOfficial();
+      void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
-      // Practice randomness is explicitly non-authoritative.
-      const seed = session?.seed ?? crypto.getRandomValues(new Uint32Array(1))[0];
+      const seed = session.seed;
       engine.current = initialFlappy(seed); inputs.current = []; pendingFlap.current = false;
       nextCheckpoint.current = 300;
       origin.current = session ? performance.now() + (Date.parse(session.startsAt) - Date.parse(session.serverNow)) : performance.now() + 3000;
@@ -45,8 +96,8 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       canvas.current?.focus({ preventScroll: true });
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
-    finally { busy.current = false; }
-  }, [authenticated, mode, fail]);
+    finally { busy.current = false; void refreshAvailability(); }
+  }, [authenticated, blocked, fail, refreshAvailability]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -147,28 +198,39 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
     },5000);
     return () => window.clearTimeout(timer);
   },[status,authenticated,rewardExpanded]);
+  useEffect(() => {
+    if (status !== "over" && status !== "rejected") return;
+    const timer = window.setTimeout(() => void refreshAvailability(), 0);
+    return () => window.clearTimeout(timer);
+  }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
     <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
     {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
-    {FLAPPY_COMPETITION_ENABLED && authenticated ? <label>{es ? "Modo" : "Mode"} <select value={mode} disabled={["starting", "running", "validating"].includes(status)} onChange={event => setMode(event.target.value === "official" ? "official" : "practice")}><option value="practice">{es ? "Práctica" : "Practice"}</option><option value="official">{es ? "Competición" : "Competition"}</option></select></label> : null}
+    <div style={{margin:"1rem auto",maxWidth:360}}>
+      <p style={{margin:".5rem 0"}}>{es ? "Partidas disponibles" : "Races available"}: <span className="rtw-play-count" style={{position:"static"}} aria-live="polite"><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{availabilityError ? "—" : availability?.remaining ?? "…"}/5</span></p>
+      {availability?.nextAvailableAt ? <p style={{margin:".5rem 0"}}>{es ? "Próxima partida disponible en" : "Next race available in"}: <strong>{recovery}</strong></p> : null}
+      {availability?.remaining === 0 ? <p role="status">{errorMessage("attempts_exhausted")}</p> : null}
+      {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
+      {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
+    </div>
     <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",maxWidth:360,margin:"auto"}}>
-      <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
-      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : "▶ PLAY"}</button> : null}
+      <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",maxHeight:"42svh",objectFit:"contain",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
+      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : "▶ PLAY"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
         <h2>{status==="validating" ? (es ? "VALIDANDO…" : "VALIDATING…") : "GAME OVER"}</h2>
-        <p>{result ? (es ? "Verificado por servidor" : "Server verified") + ": " + result.score : mode==="practice" ? "SCORE: "+score : (es ? "Sin resultado oficial" : "No official result")}</p>
+        <p>{result ? (es ? "Verificado por servidor" : "Server verified") + ": " + result.score : (es ? "Sin resultado oficial" : "No official result")}</p>
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {status==="rejected" ? <p>{es ? "La partida no se ha añadido al ranking." : "This run was not added to the ranking."}</p> : null}
         {terminal ? <FlappyRewardOptions es={es} onOpenChange={setRewardExpanded} /> : null}
-        {terminal ? <button className="button button--primary" type="button" onClick={() => {void start();}}>PLAY AGAIN</button> : null}
+        {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
-    {status==="rejected" && !expanded ? <p role="alert">{officialError==="terms_required" ? (es ? "Acepta los términos antes de competir." : "Accept the Terms before competing.") : officialError==="review_required" ? (es ? "Acceso pendiente de revisión administrativa." : "Game access awaits administrative review.") : (es ? "No se pudo iniciar la partida oficial. Revisa tu sesión, cuota y conexión." : "Official run could not start. Check your session, allowance and connection.")} <Link href={officialError==="terms_required" ? "/terms/accept" : officialError==="review_required" ? "/support/access" : "/sign-in?next=%2Fgames%2Fflappy-race"}>{officialError==="terms_required" ? "TERMS" : officialError==="review_required" ? "SUPPORT" : "SIGN IN"}</Link></p> : null}
+    {officialError ? <p role="alert">{errorMessage(officialError)} {officialError==="terms_required" ? <Link href="/terms/accept">TERMS</Link> : officialError==="review_required" ? <Link href="/support/access">SUPPORT</Link> : officialError==="unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}</p> : null}
     <FlappyRewardOptions es={es} />
-    <p style={{marginTop:12}}>{mode==="official" ? (es ? "Puntuación en curso · pendiente de validación" : "In-progress score · awaiting validation") : es ? "Puntos de práctica / en curso" : "Practice / in-progress score"}: <strong>{score}</strong></p>
-    <p className="muted">{mode==="official" ? (es ? "Modo oficial: solo cuentan resultados verificados y aprobados. Sin premios retirables." : "Official mode: only verified, reviewed results count. No withdrawable prizes.") : es ? "Modo práctica. Las puntuaciones no cuentan para el ranking ni generan premios." : "Practice mode. Scores do not count toward the ranking or prizes."}</p>
+    <p style={{marginTop:12}}>{es ? "Puntuación en curso · pendiente de validación" : "In-progress score · awaiting validation"}: <strong>{score}</strong></p>
+    <p className="muted">{es ? "Solo cuentan resultados oficiales verificados y aprobados. Sin premios retirables." : "Only verified, reviewed official results count. No withdrawable prizes."}</p>
   </div>;
 }

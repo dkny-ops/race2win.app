@@ -30,7 +30,7 @@ test("reward panel exposes unavailable state and never grants or simulates an ad
  assert.match(html,/EXTRA LIFE/);assert.match(html,/PRÓXIMAMENTE/);assert.match(html,/aria-expanded="false"/);
 });
 test("official transport sets bounded timeout and refuses unavailable service",async()=>{
- const client=load("lib/game/flappy/official-client.ts",{"./engine":engine});
+ const client=load("lib/game/flappy/official-client.ts",{"./engine":engine,"./availability":load("lib/game/flappy/availability.ts")});
  const original=globalThis.fetch;
  let calls=0;
  try{
@@ -44,7 +44,7 @@ test("legacy individual Flappy review route is unavailable before any data acces
  assert.throws(()=>page.default({searchParams:Promise.resolve({session:"00000000-0000-4000-8000-000000000000"})}),err=>err===sentinel);
 });
 test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
- const client=load("lib/game/flappy/official-client.ts",{"./engine":engine});
+ const client=load("lib/game/flappy/official-client.ts",{"./engine":engine,"./availability":load("lib/game/flappy/availability.ts")});
  const original=globalThis.fetch;
  const session={sessionId:"11111111-1111-4111-8111-111111111111",version:"flappy-v1",seed:42,serverNow:"2026-10-26T04:00:00Z",startsAt:"2026-10-26T04:00:03Z",expiresAt:"2026-10-26T04:10:03Z"};
  try{

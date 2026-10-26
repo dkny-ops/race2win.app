@@ -6,5 +6,5 @@ import { FlappyTournamentStatus } from "./flappy-tournament-status";
 
 export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
  const [language] = usePlayerLanguage();
- return <div style={{ marginTop: "1.5rem" }}><FlappyVerifiedCanvas language={language} authenticated={authenticated} /><FlappyRankingTable language={language} /><FlappyTournamentStatus language={language} /></div>;
+ return <div style={{ marginTop: ".75rem" }}><FlappyVerifiedCanvas language={language} authenticated={authenticated} /><FlappyRankingTable language={language} /><FlappyTournamentStatus language={language} /></div>;
 }

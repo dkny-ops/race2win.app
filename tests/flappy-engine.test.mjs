@@ -101,3 +101,10 @@ test("official START returns a server clock reference for monotonic client sched
  const r=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now});
  assert.equal(r.status,200);assert.equal((await r.json()).serverNow,new Date(now).toISOString());
 });
+
+test("start reports exhausted rolling limit, active session and server errors separately", async () => {
+ for (const [message, dbcode, status, code] of [["Hourly limit","P0001",429,"attempts_exhausted"],["Concurrent session","P0001",409,"session_active"],["secret SQL failure","XX000",503,"start_rejected"]]) {
+  const response = await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now});
+  assert.equal(response.status,status); assert.equal((await response.json()).code,code);
+ }
+});
