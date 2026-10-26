@@ -38,7 +38,6 @@ export default function RulesPage() {
       <p className="muted">These player rules summarize the current published format. Any future prize event must publish its official conditions before entry opens. Relevant changes will be announced before they apply.</p>
       <div className="button-row">
         <Link className="button button--secondary" href="/legal/terms">Terms &amp; Conditions</Link>
-        <Link className="button button--secondary" href="/prizes">Prize status</Link>
       </div>
     </section>
   );
