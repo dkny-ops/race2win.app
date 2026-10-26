@@ -11,7 +11,7 @@ test("live public Flappy status is bounded, game-isolated, and never enables aut
  assert.equal(ranking.status,200);const board=await ranking.json();assert.equal(board.game,"flappy-race");assert.equal(typeof board.officialEnabled,"boolean");assert.ok(Array.isArray(board.entries));
  for(const row of board.entries)assert.deepEqual(Object.keys(row).sort(),["rank","reviewRequired","username","weeklyTotal"].sort());
  assert.equal(tournament.status,200);const closed=await tournament.json();assert.equal(typeof closed.prizesEnabled,"boolean");assert.equal(closed.paymentsEnabled,false);assert.ok(Array.isArray(closed.winners));
- if(closed.prizesEnabled){assert.equal(typeof closed.prizeEffectiveAt,"string");assert.match(closed.prizeEffectiveAt,/^20\\d{2}-\\d{2}-\\d{2}T/);assert.match(closed.prizeInauguralWeekStart,/^20\\d{2}-\\d{2}-\\d{2}$/);}
+ if(closed.prizesEnabled){assert.equal(typeof closed.prizeEffectiveAt,"string");assert.match(closed.prizeEffectiveAt,/^20\d{2}-\d{2}-\d{2}T/);assert.match(closed.prizeInauguralWeekStart,/^20\d{2}-\d{2}-\d{2}$/);}
  assert.equal(rtw.status,200);assert.equal((await rtw.json()).game.slug,"race-to-win");assert.equal(bad.status,400);
 });
 test("live unauthenticated START/CHECKPOINT/FINALIZE and raw score POST never write",async()=>{
