@@ -10,12 +10,12 @@ const routeSource=await readFile(new URL("app/api/flappy-race/leaderboard/route.
 function compile(text,require){
  const mod={exports:{}};new Function("exports","module","require",ts.transpileModule(text,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText)(mod.exports,mod,require);return mod.exports;
 }
-function reader({entries=[],next=false,error=null,data}={}){
+function reader({entries=[],next=false,error=null,data,codeEnabled=false,dbEnabled=false}={}){
  const calls=[];
  const api=compile(source,name=>name==="server-only"?{}:name.endsWith("/scores")?{currentNewYorkTournamentWeek:()=>"2026-10-19"}:
- name.endsWith("/activation")?{FLAPPY_COMPETITION_ENABLED:false}:name.endsWith("/admin")?{createAdminClient:()=>({
+ name.endsWith("/activation")?{FLAPPY_COMPETITION_ENABLED:codeEnabled}:name.endsWith("/admin")?{createAdminClient:()=>({
  from(){assert.fail("Flappy must not query shared RTW totals or profiles");},
- async rpc(name,args){assert.equal(name,"flappy_read_ranking");assert.deepEqual(args,{p_week:"2026-10-19",p_page:1});calls.push([name,args]);return {data:data??{entries,hasNextPage:next},error};}
+ async rpc(name,args){assert.equal(name,"flappy_read_ranking");assert.deepEqual(args,{p_week:"2026-10-19",p_page:1});calls.push([name,args]);return {data:data??{entries,hasNextPage:next,officialEnabled:dbEnabled},error};}
  })}:assert.fail(name));
  return {api,calls};
 }
@@ -85,4 +85,10 @@ test("Flappy UI renders public rows, review ties and podium classes without samp
   assert.match(html, /Empate absoluto/);
   assert.doesNotMatch(html, /ranking-row--null/);
   assert.match(html, /no se guardan en el ranking/);
+});
+
+test("public availability requires both the reviewed code and effective database gates",async()=>{
+ for(const [codeEnabled,dbEnabled,expected] of [[true,true,true],[true,false,false],[false,true,false]]){
+  assert.equal((await reader({codeEnabled,dbEnabled}).api.readFlappyRanking(1)).officialEnabled,expected);
+ }
 });

@@ -116,3 +116,32 @@ The old fresh-install behavior fixture was not rerun: the user explicitly forbid
 local/alternate test environments and general migration-history replay. Its prior
 hourly-quota fixture failure is historical, not evidence that runtime quotas were
 weakened or that the complete historical migration harness now passes.
+
+## Effective public state and remaining limits
+
+Migration 20261026042525_flappy_publish_effective_tournament_state exposes the
+effective private gate AND active Flappy catalogue as a boolean in the restricted
+ranking RPC. The HTTP reader additionally requires the reviewed source-code gate.
+While the status request is loading, the page displays “Checking tournament status”
+instead of prematurely claiming the tournament is disabled.
+
+Public browser verification after activation: leaderboard game=flappy-race,
+week=2026-10-26, officialEnabled=true, entries=[]; previous-week closure status
+ready_to_close with no winners, prizesEnabled=false and paymentsEnabled=false.
+No real week or winner was fabricated. Final UI/deployment checks are recorded in chat.
+
+Known Supabase advisory: pre-existing leaked-password protection is disabled;
+this delivery does not change Auth settings. [Remediation](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
+RLS/no-policy INFO notices are intentional deny-browser tables with explicit grants
+verified, not a reason to grant browser access.
+
+Commits for this mission: Settings 32af7baa, immediate language synchronization
+3ebebb5b, official review/closure cb2c4557, access/registered migration 045cfac4,
+server-clock client f381c418, reviewed activation 9494ffd1, unique Settings selects
+f725a593, plus this effective-state verification commit. Other concurrent navigation
+and Settings styling changes on main were preserved.
+
+Not enabled: ad-based extra life/2X, economic prize rules, withdrawable Flappy balances
+or automatic payments. Weekly closure is manual, with exact ties pending review.
+A real signed-in browser run and owner-panel click-through still need the user's
+authenticated session; SQL/authorization/replay checks are not misreported as that test.

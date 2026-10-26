@@ -20,7 +20,7 @@ export async function readFlappyRanking(page:number):Promise<FlappyRanking>{
  if(!Number.isSafeInteger(page)||page<1||page>100)throw new Error("Invalid page");
  const week=currentNewYorkTournamentWeek();
  const {data,error}=await createAdminClient().rpc("flappy_read_ranking",{p_week:week,p_page:page});
- if(error||!data||!Array.isArray(data.entries)||data.entries.length>50||typeof data.hasNextPage!=="boolean")throw new Error("Ranking unavailable");
+ if(error||!data||!Array.isArray(data.entries)||data.entries.length>50||typeof data.hasNextPage!=="boolean"||typeof data.officialEnabled!=="boolean")throw new Error("Ranking unavailable");
  const names=new Set<string>();
  const entries=data.entries.map((row:FlappyRanking["entries"][number])=>{
   if(!row||typeof row.username!=="string"||!row.username.trim()||names.has(row.username)||
@@ -29,5 +29,5 @@ export async function readFlappyRanking(page:number):Promise<FlappyRanking>{
   names.add(row.username);
   return {rank:row.rank,username:row.username,weeklyTotal:row.weeklyTotal,reviewRequired:row.reviewRequired};
  });
- return {game:FLAPPY_GAME_SLUG,tournamentWeek:week,page,hasNextPage:data.hasNextPage,officialEnabled:FLAPPY_OFFICIAL_ENABLED,entries};
+ return {game:FLAPPY_GAME_SLUG,tournamentWeek:week,page,hasNextPage:data.hasNextPage,officialEnabled:FLAPPY_OFFICIAL_ENABLED && data.officialEnabled,entries};
 }
