@@ -6,11 +6,12 @@ if(process.env.VERCEL_ENV!=="production")throw new Error("Principal Vercel produ
 const base="https://www.racetowin.app";
 async function get(path){return fetch(base+path,{signal:AbortSignal.timeout(15000),redirect:"manual",cache:"no-store"});}
 async function post(path,origin=base){return fetch(base+path,{method:"POST",signal:AbortSignal.timeout(15000),redirect:"manual",headers:{origin,"content-type":"application/json"},body:"{}"});}
-test("live public Flappy status is bounded, independent and non-financial; RTW remains available",async()=>{
+test("live public Flappy status is bounded, game-isolated, and never enables automatic payments; RTW remains available",async()=>{
  const [ranking,tournament,rtw,bad]=await Promise.all([get("/api/flappy-race/leaderboard"),get("/api/flappy-race/tournament"),get("/api/leaderboard"),get("/api/flappy-race/tournament?week=bad")]);
  assert.equal(ranking.status,200);const board=await ranking.json();assert.equal(board.game,"flappy-race");assert.equal(typeof board.officialEnabled,"boolean");assert.ok(Array.isArray(board.entries));
  for(const row of board.entries)assert.deepEqual(Object.keys(row).sort(),["rank","reviewRequired","username","weeklyTotal"].sort());
- assert.equal(tournament.status,200);const closed=await tournament.json();assert.equal(closed.prizesEnabled,false);assert.equal(closed.paymentsEnabled,false);assert.ok(Array.isArray(closed.winners));
+ assert.equal(tournament.status,200);const closed=await tournament.json();assert.equal(typeof closed.prizesEnabled,"boolean");assert.equal(closed.paymentsEnabled,false);assert.ok(Array.isArray(closed.winners));
+ if(closed.prizesEnabled){assert.equal(typeof closed.prizeEffectiveAt,"string");assert.match(closed.prizeEffectiveAt,/^20\\d{2}-\\d{2}-\\d{2}T/);assert.match(closed.prizeInauguralWeekStart,/^20\\d{2}-\\d{2}-\\d{2}$/);}
  assert.equal(rtw.status,200);assert.equal((await rtw.json()).game.slug,"race-to-win");assert.equal(bad.status,400);
 });
 test("live unauthenticated START/CHECKPOINT/FINALIZE and raw score POST never write",async()=>{
