@@ -46,7 +46,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       if (Object.keys(b).length) return reject(action, 400, "invalid_body");
       const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: randomInt(0x100000000), p_version: FLAPPY_VERSION });
       if (error || !data) return reject(action, error?.code === "P0001" ? 409 : 503, "start_rejected");
-      return NextResponse.json(data, { headers });
+      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString() }, { headers });
     }
     if (Object.keys(b).length !== 3 || typeof b.sessionId !== "string" || !UUID.test(b.sessionId) ||
         typeof b.throughTick !== "number") return reject(action, 400, "invalid_body");

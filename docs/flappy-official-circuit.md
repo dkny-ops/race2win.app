@@ -86,3 +86,8 @@ Before activation, official server operations are being aligned with the existin
 live access-hold and 2026-10-18 terms policy. Held players cannot be approved.
 The canonical HTTP GET checks use the public browser URL; the Vercel fetch connector
 adds a share query that strict API validation intentionally rejects with 400.
+
+Official countdown scheduling now uses the server START response clock reference
+plus performance.now(), not the player's wall clock. This avoids legitimate clock
+skew creating premature input evidence. The database still enforces elapsed time
+and leases; the client never chooses an official start time.

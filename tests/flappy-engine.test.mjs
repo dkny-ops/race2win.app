@@ -94,3 +94,10 @@ test("player access reuses the existing hold and terms policy scoped to verified
   assert.equal(await access.flappyPlayerAccess("verified-player"),policy.expected);assert.equal(reads,policy.held?0:1);
  }
 });
+
+test("official START returns a server clock reference for monotonic client scheduling",async()=>{
+ const now=Date.parse("2026-10-26T04:00:00Z");
+ const admin=()=>({rpc:async(name)=>name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null}});
+ const r=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now});
+ assert.equal(r.status,200);assert.equal((await r.json()).serverNow,new Date(now).toISOString());
+});

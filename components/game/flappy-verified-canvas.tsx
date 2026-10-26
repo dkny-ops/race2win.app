@@ -22,7 +22,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const [rewardExpanded, setRewardExpanded] = useState(false);
   const [result, setResult] = useState<FlappyResult | null>(null);
   const [officialError, setOfficialError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"practice" | "official">("practice");
+  const [mode, setMode] = useState<"practice" | "official">(FLAPPY_COMPETITION_ENABLED && authenticated ? "official" : "practice");
   const fail = useCallback(() => { running.current = false; if (mounted.current) { setResult(null); setStatus("rejected"); } }, []);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
@@ -39,7 +39,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       const seed = session?.seed ?? crypto.getRandomValues(new Uint32Array(1))[0];
       engine.current = initialFlappy(seed); inputs.current = []; pendingFlap.current = false;
       nextCheckpoint.current = 300;
-      origin.current = session ? performance.now() + (Date.parse(session.startsAt) - Date.now()) : performance.now() + 3000;
+      origin.current = session ? performance.now() + (Date.parse(session.startsAt) - Date.parse(session.serverNow)) : performance.now() + 3000;
       if (origin.current <= performance.now()) throw new Error("Start schedule missed");
       setExpanded(true); setCountdown(Math.ceil((origin.current - performance.now()) / 1000));
       canvas.current?.focus({ preventScroll: true });
@@ -150,6 +150,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
     <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
+    {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
     {FLAPPY_COMPETITION_ENABLED && authenticated ? <label>{es ? "Modo" : "Mode"} <select value={mode} disabled={["starting", "running", "validating"].includes(status)} onChange={event => setMode(event.target.value === "official" ? "official" : "practice")}><option value="practice">{es ? "Práctica" : "Practice"}</option><option value="official">{es ? "Competición" : "Competition"}</option></select></label> : null}
     <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",maxWidth:360,margin:"auto"}}>
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
@@ -167,7 +168,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
     </div>
     {status==="rejected" && !expanded ? <p role="alert">{officialError==="terms_required" ? (es ? "Acepta los términos antes de competir." : "Accept the Terms before competing.") : officialError==="review_required" ? (es ? "Acceso pendiente de revisión administrativa." : "Game access awaits administrative review.") : (es ? "No se pudo iniciar la partida oficial. Revisa tu sesión, cuota y conexión." : "Official run could not start. Check your session, allowance and connection.")} <Link href={officialError==="terms_required" ? "/terms/accept" : officialError==="review_required" ? "/support/access" : "/sign-in?next=%2Fgames%2Fflappy-race"}>{officialError==="terms_required" ? "TERMS" : officialError==="review_required" ? "SUPPORT" : "SIGN IN"}</Link></p> : null}
     <FlappyRewardOptions es={es} />
-    <p style={{marginTop:12}}>{es ? "Puntos de práctica / en curso" : "Practice / in-progress score"}: <strong>{score}</strong></p>
+    <p style={{marginTop:12}}>{mode==="official" ? (es ? "Puntuación en curso · pendiente de validación" : "In-progress score · awaiting validation") : es ? "Puntos de práctica / en curso" : "Practice / in-progress score"}: <strong>{score}</strong></p>
     <p className="muted">{mode==="official" ? (es ? "Modo oficial: solo cuentan resultados verificados y aprobados. Sin premios retirables." : "Official mode: only verified, reviewed results count. No withdrawable prizes.") : es ? "Modo práctica. Las puntuaciones no cuentan para el ranking ni generan premios." : "Practice mode. Scores do not count toward the ranking or prizes."}</p>
   </div>;
 }

@@ -64,3 +64,13 @@ test("authorized admin sees a truthful unavailable state before migration; inval
  const html=require("react-dom/server").renderToStaticMarkup(view);
  assert.match(html,/Revisión no disponible temporalmente/);assert.equal(queries,1);
 });
+
+test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
+ const client=load("lib/game/flappy/official-client.ts",{"./engine":engine});
+ const original=globalThis.fetch;
+ const session={sessionId:"11111111-1111-4111-8111-111111111111",version:"flappy-v1",seed:42,serverNow:"2026-10-26T04:00:00Z",startsAt:"2026-10-26T04:00:03Z",expiresAt:"2026-10-26T04:10:03Z"};
+ try{
+  globalThis.fetch=async()=>Response.json(session);assert.equal((await client.startFlappyOfficial()).serverNow,session.serverNow);
+  globalThis.fetch=async()=>Response.json({...session,serverNow:undefined});await assert.rejects(client.startFlappyOfficial());
+ }finally{globalThis.fetch=original;}
+});

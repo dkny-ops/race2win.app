@@ -1,6 +1,6 @@
 "use client";
 import { FLAPPY_VERSION, type FlappyState, MAX_INPUTS } from "./engine";
-export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; expiresAt: string };
+export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; serverNow: string; expiresAt: string };
 export type FlappyResult = { score: number; collisionTick: number; eligibility: "under_review"; verification: "replay_verified" };
 export class FlappyOfficialError extends Error {
  constructor(public code: string) { super("Official FlappyRace request unavailable."); }
@@ -21,7 +21,7 @@ async function post(action: string, body: unknown) {
 export async function startFlappyOfficial(): Promise<FlappySession> {
   const session = await post("start", {}) as FlappySession;
   if (session.version !== FLAPPY_VERSION || !Number.isInteger(session.seed) ||
-      !Number.isFinite(Date.parse(session.startsAt)) || !Number.isFinite(Date.parse(session.expiresAt))) throw new Error("Invalid official session");
+      !Number.isFinite(Date.parse(session.startsAt)) || !Number.isFinite(Date.parse(session.serverNow)) || Date.parse(session.startsAt) <= Date.parse(session.serverNow) || !Number.isFinite(Date.parse(session.expiresAt))) throw new Error("Invalid official session");
   return session;
 }
 export async function checkpointFlappyOfficial(session: FlappySession, state: FlappyState, inputs: number[]): Promise<void> {
