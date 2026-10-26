@@ -61,3 +61,10 @@ test("FlappyRace keeps Extra Life inside the terminal overlay and removes stale 
  assert.doesNotMatch(source,/In-progress score · awaiting validation/);
  assert.doesNotMatch(source,/Only verified, reviewed official results count\. No withdrawable prizes\./);
 });
+
+
+test("FlappyRace public page keeps the weekly ranking but omits the weekly closure panel",()=>{
+ const source=readFileSync(new URL("../components/game/flappy-race-page.tsx",import.meta.url),"utf8");
+ assert.match(source,/FlappyRankingTable/);
+ assert.doesNotMatch(source,/FlappyTournamentStatus/);
+});
