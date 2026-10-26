@@ -728,3 +728,39 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 @media(max-width:1120px){.flappy-personal-weekly__days{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:700px){.flappy-personal-weekly__heading{align-items:stretch;flex-direction:column}.flappy-personal-weekly__total{text-align:left}.flappy-personal-weekly__days{grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}.flappy-personal-weekly__day header,.flappy-personal-weekly__day footer,.flappy-personal-weekly__day ol{padding-left:.6rem;padding-right:.6rem}}
 @media(max-width:370px){.flappy-personal-weekly__days{grid-template-columns:1fr}}
+
+/* Keep the compact header controls and the mobile menu on one deliberate alignment grid. */
+@media (max-width:980px){
+  .mobile-header-actions{
+    min-height:48px;
+    justify-content:flex-end;
+  }
+  .mobile-header-actions .mobile-menu{
+    display:flex;
+    align-items:center;
+    min-height:48px;
+  }
+  .mobile-menu summary{
+    display:inline-flex;
+    min-height:48px;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    line-height:1;
+  }
+  .mobile-menu nav{
+    top:calc(100% + .5rem);
+    right:0;
+    width:min(18rem,calc(100vw - 2rem));
+    box-sizing:border-box;
+  }
+  .mobile-menu nav>a,
+  .mobile-menu nav form{
+    display:flex;
+    min-height:40px;
+    align-items:center;
+  }
+  .mobile-menu nav .logout-button{
+    min-height:40px;
+  }
+}
