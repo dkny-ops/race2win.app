@@ -68,3 +68,13 @@ test("FlappyRace public page keeps the weekly ranking but omits the weekly closu
  assert.match(source,/FlappyRankingTable/);
  assert.doesNotMatch(source,/FlappyTournamentStatus/);
 });
+
+
+test("FlappyRace ranking keeps live rows and pagination without public tournament policy copy",()=>{
+ const source=readFileSync(new URL("../components/scores/flappy-ranking.tsx",import.meta.url),"utf8");
+ assert.match(source,/FlappyRankingTable/);
+ assert.match(source,/scores-pagination/);
+ assert.doesNotMatch(source,/MONDAY–SUNDAY · NEW YORK TIME/);
+ assert.doesNotMatch(source,/Authenticated official runs\. Only results approved after review count toward the ranking\./);
+ assert.doesNotMatch(source,/Your weekly score sums your best 7 verified scores each day\./);
+});

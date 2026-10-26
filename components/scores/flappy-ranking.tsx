@@ -33,10 +33,6 @@ export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
     <div className="scores-panel scores-ranking-panel">
       <p className="eyebrow">FLAPPYRACE</p>
       <h2 id="flappy-ranking-title">{es ? "RANKING SEMANAL" : "WEEKLY RANKING"}</h2>
-      <p className="scores-ranking-subtitle">{es ? "LUNES A DOMINGO · HORA DE NUEVA YORK · 7 MEJORES PARTIDAS VERIFICADAS POR DÍA" : "MONDAY–SUNDAY · NEW YORK TIME · BEST 7 VERIFIED RUNS EACH DAY"}</p>
-      {board ? <p className="muted">{es ? "Semana del" : "Week of"} {board.tournamentWeek}</p> : null}
-      {!board ? <p className="scores-message">{es ? "Comprobando estado del torneo…" : "Checking tournament status…"}</p> : <p className="scores-message">{board.officialEnabled ? (es ? "Partidas oficiales autenticadas. Solo los resultados aprobados tras revisión cuentan para el ranking. Sin premios retirables." : "Authenticated official runs. Only results approved after review count toward the ranking. No withdrawable prizes.") : es ? "El modo competitivo todavía no está habilitado. Las partidas actuales son de práctica y no se guardan en el ranking ni generan premios." : "Competitive play is not enabled yet. Current games are practice runs and are not saved to the ranking or awarded prizes."}</p>}
-      <p className="muted">{es ? "La puntuación semanal suma tus 7 mejores resultados verificados de cada día. Los empates se comparan por mejores puntuaciones individuales; un empate absoluto queda pendiente de revisión." : "Your weekly score sums your best 7 verified scores each day. Ties compare individual scores from highest to lowest; exact ties remain pending review."}</p>
       {error ? <p role="status" className="scores-message">{es ? "El ranking no está disponible temporalmente." : "The ranking is temporarily unavailable."}</p>
         : !board ? <p role="status" className="scores-message">{es ? "Cargando ranking…" : "Loading ranking…"}</p>
         : board.entries.length === 0 ? <p role="status" className="scores-message">{es ? "Todavía no hay puntuaciones oficiales verificadas de FlappyRace esta semana." : "No verified official FlappyRace scores this week yet."}</p>
