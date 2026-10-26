@@ -18,9 +18,9 @@ test("live unauthenticated START/CHECKPOINT/FINALIZE and raw score POST never wr
  for(const response of results){assert.equal(response.status,401);assert.equal((await response.json()).code,"unauthenticated");}
  assert.equal((await post("/api/flappy-race/leaderboard")).status,403);
 });
-test("live owner review/closure reject anonymous and hostile-origin requests",async()=>{
+test("retired Flappy owner review/closure routes stay unavailable for every origin",async()=>{
  for(const route of ["/api/admin/flappy-race/review","/api/admin/flappy-race/close-week"]){
-  assert.equal((await post(route)).status,404);assert.equal((await post(route,"https://invalid.example")).status,403);
+  assert.equal((await post(route)).status,404);assert.equal((await post(route,"https://invalid.example")).status,404);
  }
  assert.equal((await get("/admin/prize-review/flappy-race")).status,404);
 });
