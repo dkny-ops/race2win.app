@@ -827,3 +827,11 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .home-games-prize img{border:1px solid #ffce58;border-radius:20px;box-shadow:0 0 20px #f6b3276b}
 @media(max-width:700px){.home-games-hero{padding-top:125px}.home-games-content{width:calc(100% - 2rem)}.home-games-brand-title{font-size:clamp(2.15rem,9vw,3.6rem);margin-bottom:24px}.home-game-tile{min-height:260px;padding:22px}.home-game-tile h1,.home-game-tile h2{font-size:clamp(1.7rem,7vw,2.4rem)}.home-game-art{background-position:65% bottom}}
 @media(prefers-reduced-transparency:reduce){.home-game-tile{background:#07172a}.home-game-tile--flappy{background:#09231f}}
+
+/* Uploaded original artwork: exact case and whitespace in GitHub filenames. */
+.home-game-art--race{background-image:linear-gradient(90deg,rgba(2,9,25,.86) 0%,rgba(2,9,25,.48) 35%,rgba(2,9,25,.05) 75%),url('/images/Race-car.PNG');background-size:cover;background-position:55% center;opacity:.97}
+.home-game-art--flappy{background-image:linear-gradient(90deg,rgba(2,16,26,.88) 0%,rgba(2,16,26,.48) 36%,rgba(2,16,26,.06) 78%),url('/images/Flappy-bird%20.png');background-size:cover;background-position:58% center;opacity:.97}
+.home-game-tile{background-color:rgba(2,10,25,.25)}
+.home-game-tile--flappy{background-color:rgba(2,24,27,.23)}
+.home-game-tile h1,.home-game-tile h2,.home-game-description,.home-game-tile .eyebrow,.home-game-actions{position:relative;z-index:1}
+@media(max-width:700px){.home-game-art--race{background-position:56% center}.home-game-art--flappy{background-position:59% center}}
