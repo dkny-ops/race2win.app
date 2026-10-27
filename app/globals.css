@@ -872,3 +872,8 @@ body:has(.page-section .rtw-play-count) .site-brand-flappy{display:inline}
 @media (min-width: 981px) {
   .rtw-game-local-share { display: none !important; }
 }
+
+/* Homepage: the image logo is the sole brand title above both game cards. */
+body:has(.home-games-hero) .site-header .site-brand-default{display:none}
+.home-games-logo-banner{width:100%;max-width:1120px;margin:0 auto clamp(16px,3vw,32px);text-align:center}
+.home-games-logo-banner img{display:block;width:100%;height:auto;object-fit:contain}
