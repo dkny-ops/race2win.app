@@ -853,3 +853,12 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
   -webkit-mask-image:radial-gradient(ellipse 54% 72% at 70% 55%,#000 45%,transparent 95%);
   mask-image:radial-gradient(ellipse 54% 72% at 70% 55%,#000 45%,transparent 95%);
 }
+
+/* Keep game pages below the absolute site header, including the SHARE control. */
+body:has(.page-section .rtw-play-count) .site-header{position:relative;inset:auto;background:#06111f}
+body:has(.page-section .rtw-play-count) .page-section{padding-top:2rem!important}
+@media(min-width:981px){
+ .site-header .desktop-nav{gap:clamp(.35rem,1vw,.85rem);min-width:0;flex-wrap:wrap;justify-content:center}
+ .site-header .desktop-nav .rtw-action{min-height:36px;padding:.35rem .65rem;font-size:.68rem}
+ .site-header .header-inner{column-gap:1rem}
+}
