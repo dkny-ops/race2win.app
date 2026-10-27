@@ -166,16 +166,39 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         lastFrame.current = time;
       }
       if (ctx) {
-        ctx.fillStyle = "#071a2c"; ctx.fillRect(0,0,360,480);
-        ctx.fillStyle = "#0d3550";
-        for(let i=0;i<12;i++) ctx.fillRect(i*37,480-95-(i*29%85),25,95+(i*29%85));
-        for(const p of g.pipes) {
-          ctx.fillStyle="#22d3ee";ctx.fillRect(p.x/100,0,54,(p.gap-7500)/100);
-          ctx.fillRect(p.x/100,(p.gap+7500)/100,54,480);
+        // Forest backdrop: decorative only; physics and hitboxes remain server-authoritative.
+        const sky = ctx.createLinearGradient(0,0,0,480);
+        sky.addColorStop(0,"#73c9fa"); sky.addColorStop(.53,"#d3f2d9"); sky.addColorStop(1,"#2f7854");
+        ctx.fillStyle=sky;ctx.fillRect(0,0,360,480);
+        ctx.fillStyle="#e7f7fa";ctx.beginPath();ctx.arc(292,64,30,0,Math.PI*2);ctx.fill();
+        for(let layer=0;layer<3;layer++){
+          const drift=(g.tick*(.12+layer*.13))%90;
+          for(let i=-2;i<7;i++){
+            const x=i*90-drift;
+            ctx.fillStyle=["#92c6a0","#4f9b75","#266c52"][layer];
+            ctx.beginPath();ctx.arc(x+34,245+layer*52,52+layer*7,Math.PI,0);ctx.fill();
+            ctx.fillRect(x-18,245+layer*52,105,240);
+          }
+        }
+        ctx.fillStyle="#35674c";ctx.fillRect(0,457,360,23);
+        ctx.fillStyle="#78b84a";ctx.fillRect(0,455,360,7);
+        for(const p of g.pipes){
+          const x=p.x/100, top=(p.gap-7500)/100, bottom=(p.gap+7500)/100;
+          const trunk=(y,h,capY)=>{
+            ctx.fillStyle="#6b4128";ctx.fillRect(x,y,54,h);
+            ctx.fillStyle="#9b6740";ctx.fillRect(x+8,y,7,h);
+            ctx.fillStyle="#422c22";ctx.fillRect(x+36,y,5,h);
+            ctx.fillStyle="#347d36";ctx.fillRect(x-4,capY,62,12);
+            ctx.fillStyle="#6fb74d";ctx.fillRect(x-2,capY,58,5);
+            ctx.strokeStyle="#2e843b";ctx.lineWidth=3;
+            ctx.beginPath();ctx.moveTo(x+40,y);ctx.bezierCurveTo(x+16,y+h*.25,x+64,y+h*.6,x+24,y+h);ctx.stroke();
+          };
+          trunk(0,Math.max(0,top),Math.max(0,top-10));
+          trunk(bottom,Math.max(0,480-bottom),bottom);
         }
         if(birdImage.current?.complete && birdImage.current.naturalWidth){ctx.drawImage(birdImage.current,62,g.y/100-20,40,40);}else{ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();}
         
-        ctx.fillStyle="#182d3c";ctx.fillRect(0,457,360,23);
+
       }
       raf=requestAnimationFrame(draw);
     }
