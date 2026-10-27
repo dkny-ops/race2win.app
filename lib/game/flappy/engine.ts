@@ -21,8 +21,13 @@ export function stepFlappy(s: FlappyState, flap: boolean): void {
   if (s.tick + 1 > 95 && (!s.pipes.length || s.pipes[s.pipes.length - 1].x < 18500)) {
     s.pipes.push({ x: 36500, gap: 10500 + random(s) % 20501, passed: false });
   }
+  // Increase obstacle speed by 3% every 30 seconds of active simulation (1,800 ticks).
+  // Integer math keeps browser simulation and server replay exactly identical.
+  const difficultySteps = Math.floor(s.tick / 1800);
+  let speed = 215;
+  for (let i = 0; i < difficultySteps; i++) speed = Math.round(speed * 103 / 100);
   for (const p of s.pipes) {
-    p.x -= 215;
+    p.x -= speed;
     if (!p.passed && p.x + 5400 < 8200) { p.passed = true; s.score++; }
     if (9500 > p.x && 6900 < p.x + 5400 && (s.y - 1300 < p.gap - 7500 || s.y + 1300 > p.gap + 7500)) s.dead = true;
   }
