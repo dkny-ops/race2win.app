@@ -15,6 +15,8 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const es = language === "es";
   const canvas = useRef<HTMLCanvasElement>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
+  const forestImage = useRef<HTMLImageElement | null>(null);
+  useEffect(() => { const img = new Image(); img.src="/images/flappy-forest-background.jpg"; img.onload=()=>{forestImage.current=img;}; return ()=>{img.onload=null; forestImage.current=null;}; }, []);
   useEffect(() => { const img = new Image(); img.src="/images/Flappy-bird%20.png"; img.onload=()=>{birdImage.current=img;}; return ()=>{img.onload=null; birdImage.current=null;}; }, []);
   const engine = useRef<FlappyState>(initialFlappy(0));
   const inputs = useRef<number[]>([]);
@@ -166,22 +168,13 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         lastFrame.current = time;
       }
       if (ctx) {
-        // Forest backdrop: decorative only; physics and hitboxes remain server-authoritative.
-        const sky = ctx.createLinearGradient(0,0,0,480);
-        sky.addColorStop(0,"#73c9fa"); sky.addColorStop(.53,"#d3f2d9"); sky.addColorStop(1,"#2f7854");
-        ctx.fillStyle=sky;ctx.fillRect(0,0,360,480);
-        ctx.fillStyle="#e7f7fa";ctx.beginPath();ctx.arc(292,64,30,0,Math.PI*2);ctx.fill();
-        for(let layer=0;layer<3;layer++){
-          const drift=(g.tick*(.12+layer*.13))%90;
-          for(let i=-2;i<7;i++){
-            const x=i*90-drift;
-            ctx.fillStyle=["#92c6a0","#4f9b75","#266c52"][layer];
-            ctx.beginPath();ctx.arc(x+34,245+layer*52,52+layer*7,Math.PI,0);ctx.fill();
-            ctx.fillRect(x-18,245+layer*52,105,240);
-          }
+        // The uploaded forest artwork is the actual background; obstacles remain independent.
+        const forest=forestImage.current;
+        if(forest?.complete && forest.naturalWidth>0){
+          ctx.drawImage(forest,0,0,forest.naturalWidth,forest.naturalHeight,0,0,360,480);
+        }else{
+          ctx.fillStyle="#275d4d";ctx.fillRect(0,0,360,480);
         }
-        ctx.fillStyle="#35674c";ctx.fillRect(0,457,360,23);
-        ctx.fillStyle="#78b84a";ctx.fillRect(0,455,360,7);
         for(const p of g.pipes){
           const x=p.x/100, top=(p.gap-7500)/100, bottom=(p.gap+7500)/100;
           const trunk=(y: number,h: number,capY: number)=>{
