@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export function ShareGameButton({ game }: { game: "race-to-win" | "flappy-race" }) {
+export function ShareGameButton({ game }: { game?: "race-to-win" | "flappy-race" }) {
  const [notice,setNotice]=useState("");
  async function share() {
   const url=new URL("/",window.location.origin).toString();
