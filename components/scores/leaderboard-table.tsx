@@ -127,7 +127,6 @@ export function LeaderboardTable() {
     <section className="scores-panel scores-ranking-panel" aria-label="Last week winners">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">{t("PREVIOUS WEEK · NEW YORK TIME", "SEMANA ANTERIOR · HORA DE NUEVA YORK")}</p><h2>{t("LAST WEEK WINNERS", "GANADORES DE LA SEMANA PASADA")}</h2></div></div>
       <p className="scores-ranking-subtitle">{previousWeek ? `WEEK OF ${previousWeek.tournamentWeek}` : "LAST COMPLETED WEEK"}</p>
-      <p className="muted" style={{ fontSize: "0.75rem" }}>Provisional TOP 3. Results and prize eligibility remain subject to antifraud review and manual approval. No automatic payouts.</p>
       {previousWeekError ? <p className="scores-message" role="status">Previous week's results are temporarily unavailable.</p>
         : !previousWeek ? <p className="scores-message" role="status">{t("LOADING LAST WEEK…", "CARGANDO SEMANA ANTERIOR…")}</p>
         : previousWeek.entries.length === 0 ? <p className="scores-message">{t("No verified public scores for last week.", "No hay puntuaciones públicas verificadas de la semana anterior.")}</p>
