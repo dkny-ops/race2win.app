@@ -862,3 +862,8 @@ body:has(.page-section .rtw-play-count) .page-section{padding-top:2rem!important
  .site-header .desktop-nav .rtw-action{min-height:36px;padding:.35rem .65rem;font-size:.68rem}
  .site-header .header-inner{column-gap:1rem}
 }
+
+/* Flappy Race uses its own header title without changing other pages. */
+.site-brand-flappy{display:none}
+body:has(.page-section .rtw-play-count) .site-brand-default{display:none}
+body:has(.page-section .rtw-play-count) .site-brand-flappy{display:inline}
