@@ -8,6 +8,6 @@ export default async function AcceptTermsPage() {
  const context = await getVerifiedUserContext();
  if (!context) redirect("/sign-in");
  const { data, error } = await createAdminClient().from("player_terms_acceptances").select("terms_version").eq("player_id",context.userId).maybeSingle();
- if (!error && data?.terms_version === "2026-10-18") redirect("/");
+ if (!error && data?.terms_version === "2026-10-26") redirect("/");
  return <section className="page-section shell"><TermsConsentForm /></section>;
 }
