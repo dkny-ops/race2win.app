@@ -221,7 +221,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
       {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
     </div>
-    {!expanded ? <div style={{margin:"0.5rem auto"}}><ShareGameButton game="flappy-race" /></div> : null}
+    {!expanded ? <div className="rtw-game-local-share" style={{margin:"0.5rem auto"}}><ShareGameButton game="flappy-race" /></div> : null}
     <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",maxWidth:360,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",maxHeight:"42svh",objectFit:"contain",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
