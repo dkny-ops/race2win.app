@@ -55,9 +55,11 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
           <Image src="/images/race-to-win-hero.png" alt="" fill priority sizes="100vw" />
         </div>
         <div className="home-games-content shell">
+          <h2 className="home-games-brand-title">RACE <em>TO WIN</em><span aria-hidden="true"> ▰▰</span></h2>
           <div className="home-games-grid">
             <article className="home-game-tile home-game-tile--race">
               {username ? <p className="hero-player-name">{username}</p> : null}
+              <div className="home-game-art home-game-art--race" aria-hidden="true" />
               <p className="eyebrow">RACING GAME</p>
               <h1>RACE <em>TO WIN</em></h1>
               <p className="home-game-description">{t.lede}</p>
@@ -67,6 +69,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               </div>
             </article>
             <article className="home-game-tile home-game-tile--flappy" aria-labelledby="flappy-title">
+              <div className="home-game-art home-game-art--flappy" aria-hidden="true" />
               <p className="eyebrow">{language === "es" ? "JUEGO ARCADE" : "ARCADE GAME"}</p>
               <h2 id="flappy-title">FLAPPY <em>RACE</em></h2>
               <p className="home-game-description">{language === "es" ? "Vuela entre obstáculos, consigue puntos y supera tu récord. ¿Hasta dónde puedes llegar?" : "Fly between obstacles, collect points, and beat your high score. How far can you go?"}</p>
