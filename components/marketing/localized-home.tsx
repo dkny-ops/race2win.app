@@ -50,50 +50,34 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
   const t = copy[language];
   return (
     <>
-      <section className="hero">
-        <div className="hero-visual" aria-hidden="true">
+      <section className="home-games-hero">
+        <div className="home-games-backdrop" aria-hidden="true">
           <Image src="/images/race-to-win-hero.png" alt="" fill priority sizes="100vw" />
         </div>
-        <div className="shell hero-grid">
-          <div className="hero-copy">
-            {username ? <p className="hero-player-name">{username}</p> : null}
-            <h1>RACE <em>TO WIN</em></h1>
-            <p className="hero-lede">{t.lede}</p>
-            <div className="button-row">
-              <Link className="button button--primary" href={playHref}>{t.play}</Link>
-              {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
-            </div>
-            <p className="play-note">{t.playNote}</p>
+        <div className="home-games-content shell">
+          <div className="home-games-grid">
+            <article className="home-game-tile home-game-tile--race">
+              {username ? <p className="hero-player-name">{username}</p> : null}
+              <p className="eyebrow">RACING GAME</p>
+              <h1>RACE <em>TO WIN</em></h1>
+              <p className="home-game-description">{t.lede}</p>
+              <div className="home-game-actions">
+                <Link className="button button--primary" href={playHref}>{t.play}</Link>
+                {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
+              </div>
+            </article>
+            <article className="home-game-tile home-game-tile--flappy" aria-labelledby="flappy-title">
+              <p className="eyebrow">{language === "es" ? "JUEGO ARCADE" : "ARCADE GAME"}</p>
+              <h2 id="flappy-title">FLAPPY <em>RACE</em></h2>
+              <p className="home-game-description">{language === "es" ? "Vuela entre obstáculos, consigue puntos y supera tu récord. ¿Hasta dónde puedes llegar?" : "Fly between obstacles, collect points, and beat your high score. How far can you go?"}</p>
+              <div className="home-game-actions">
+                <Link href="/games/flappy-race" className="button button--primary">{language === "es" ? "JUGAR" : "PLAY"}</Link>
+              </div>
+            </article>
           </div>
-        </div>
-      <aside className="shell prize-promo" aria-label={language === "es" ? "Premios previstos: 20 dólares repartidos entre los tres primeros lugares. Se aplican reglas oficiales." : "Planned 20 dollar prize pool shared among the top three winners. Official rules apply."}>
-        <Image
-          className="prize-promo__banner-image"
-          src="/images/racetowin-prize-banner.png.png"
-          alt="Race To Win — $20 total prize pool, shared among the top 3 winners. Planned tournament prizes; eligibility and official rules apply."
-          width={1536}
-          height={512}
-          sizes="(max-width: 720px) calc(100vw - 2rem), 850px"
-        />
-      </aside>
-      </section>
-      <section className="section shell home-flappy-section" aria-labelledby="flappy-title" style={{ maxWidth: 1040, paddingTop: "2.5rem", paddingBottom: "2.5rem" }}>
-        <div className="home-flappy-card" style={{ position: "relative", overflow: "hidden", borderRadius: 28, border: "1px solid rgba(103,232,249,.28)", background: "linear-gradient(135deg,rgba(12,35,58,.78),rgba(9,16,31,.62) 65%,rgba(18,63,77,.56))", boxShadow: "0 20px 60px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.1)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "clamp(1.5rem,5vw,3rem)" }}>
-          <div aria-hidden="true" style={{ position: "absolute", right: "-65px", top: "-90px", width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle,rgba(34,211,238,.19),transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ position: "relative", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "2rem" }}>
-            <div style={{ flex: "1 1 280px", minWidth: 0 }}>
-              <p className="eyebrow" style={{ color: "#67e8f9", letterSpacing: ".18em", marginBottom: ".75rem" }}>{language === "es" ? "NUEVO · JUEGO ARCADE" : "NEW · ARCADE GAME"}</p>
-              <h2 id="flappy-title" style={{ fontSize: "clamp(2rem,5vw,3.6rem)", lineHeight: 1.05, letterSpacing: "-.035em", marginBottom: "1rem" }}>FLAPPY <span style={{ color: "#67e8f9" }}>RACE</span></h2>
-              <p style={{ maxWidth: 410, opacity: .84, lineHeight: 1.65, marginBottom: "1.5rem" }}>{language === "es" ? "Vuela entre obstáculos, consigue puntos y supera tu récord. ¿Hasta dónde puedes llegar?" : "Fly between obstacles, collect points, and beat your high score. How far can you go?"}</p>
-              <Link href="/games/flappy-race" className="button button--primary" style={{ display: "inline-flex", alignItems: "center", gap: ".6rem", borderRadius: 12, padding: ".9rem 2rem", fontWeight: 800 }}>{language === "es" ? "▶ JUGAR AHORA" : "▶ PLAY NOW"}</Link>
-              <p style={{ marginTop: "1rem", fontSize: ".78rem", opacity: .58 }}>{language === "es" ? "DEMO GRATUITA · SIN PREMIOS" : "FREE DEMO · NO PRIZES"}</p>
-            </div>
-            <div aria-hidden="true" style={{ flex: "0 1 275px", width: "100%", maxWidth: 275, minHeight: 200, borderRadius: 22, border: "1px solid rgba(103,232,249,.2)", background: "linear-gradient(180deg,rgba(19,72,96,.65),rgba(5,20,37,.8))", display: "grid", placeItems: "center", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: 0, bottom: "62%", left: "20%", width: 52, borderRadius: "0 0 9px 9px", background: "linear-gradient(90deg,#0891b2,#67e8f9)" }} />
-              <div style={{ position: "absolute", bottom: 0, top: "62%", right: "20%", width: 52, borderRadius: "9px 9px 0 0", background: "linear-gradient(90deg,#0891b2,#67e8f9)" }} />
-              <div style={{ width: 54, height: 54, borderRadius: "50%", background: "#facc15", boxShadow: "0 0 36px rgba(250,204,21,.35)", zIndex: 1, display: "grid", placeItems: "center", color: "#172033", fontSize: "1.4rem", fontWeight: 900 }}>➤</div>
-            </div>
-          </div>
+          <aside className="home-games-prize" aria-label={language === "es" ? "Premios totales de 20 dólares para los tres primeros lugares" : "20 dollar total prize pool for the top three"}>
+            <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $20 total prize pool shared among the top three winners" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
+          </aside>
         </div>
       </section>
       <section className="section shell two-column" aria-labelledby="fair-title">
