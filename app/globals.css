@@ -896,3 +896,14 @@ body:has(.home-games-hero) .site-header .mobile-header-actions{pointer-events:au
   body:has(.home-games-hero) .site-header .header-actions{position:absolute;top:calc(clamp(135px,15vw,200px) + min(950px,100vw - 3rem)/3 + 12px);left:max(1.5rem,calc((100vw - 950px)/2));margin:0}
   body:has(.home-games-hero) .home-games-grid{margin-top:75px}
 }
+
+/* Homepage SHARE mirrors MENU, left-aligned on the same row below the banner. */
+.site-header .home-header-share{display:none}
+@media(max-width:980px){
+ body:has(.home-games-hero) .site-header .home-header-share{display:block;position:absolute;top:calc(125px + (100vw - 2rem)/3 + 12px);left:1rem;z-index:35;pointer-events:auto}
+ body:has(.home-games-hero) .site-header .home-header-share .rtw-action{font:inherit;font-weight:700;letter-spacing:inherit;min-height:40px;padding:8px 16px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(8,19,35,.85);color:#fff;cursor:pointer}
+ body:has(.home-games-hero) .site-header .home-header-share .rtw-action:hover{border-color:#6dd9ff}
+}
+@media(min-width:981px){
+ body:has(.home-games-hero) .site-header .desktop-nav .desktop-nav-share{position:fixed;left:max(1.5rem,calc((100vw - 950px)/2));top:calc(clamp(135px,15vw,200px) + min(950px,100vw - 3rem)/3 + 12px)}
+}
