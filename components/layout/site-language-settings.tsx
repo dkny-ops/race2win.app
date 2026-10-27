@@ -1,5 +1,6 @@
 "use client";
 
+import { SiteAudioSettings } from "./site-audio";
 import { useId } from "react";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 
@@ -14,6 +15,7 @@ export function SiteLanguageSettings({ desktop = false }: { desktop?: boolean })
         <option value="en">English</option>
         <option value="es">Español</option>
       </select>
+      <SiteAudioSettings />
     </div>
   </details>;
 }
