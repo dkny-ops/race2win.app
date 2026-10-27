@@ -20,7 +20,7 @@ export default async function RaceToWinGamePage() {
   if (!profile?.username) redirect(ROUTES.profile);
   const { data: consent, error: consentError } = await createAdminClient().from("player_terms_acceptances").select("terms_version").eq("player_id", context.userId).maybeSingle();
   if (consentError) throw new Error("Unable to verify tournament eligibility.");
-  if (consent?.terms_version !== "2026-10-18") redirect("/terms/accept");
+  if (consent?.terms_version !== "2026-10-26") redirect("/terms/accept");
   const authenticated = true;
   return (
     <main className="rtw-game-page">
