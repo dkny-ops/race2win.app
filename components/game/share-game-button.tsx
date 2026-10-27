@@ -4,10 +4,10 @@ import { useState } from "react";
 export function ShareGameButton({ game }: { game: "race-to-win" | "flappy-race" }) {
  const [notice,setNotice]=useState("");
  async function share() {
-  const url=new URL("/games/"+game,window.location.origin).toString();
-  const title=game==="race-to-win"?"Race To Win":"FlappyRace";
+  const url=new URL("/",window.location.origin).toString();
+  const title="Race To Win";
   try {
-   if(navigator.share){await navigator.share({title,text:"Play "+title+" with me!",url});setNotice("");return;}
+   if(navigator.share){await navigator.share({title,text:"Discover Race To Win and FlappyRace. Play on our website!",url});setNotice("");return;}
    await navigator.clipboard.writeText(url);setNotice("LINK COPIED");
   } catch(error) {
    if(error instanceof DOMException && error.name==="AbortError")return;
