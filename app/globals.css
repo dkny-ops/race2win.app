@@ -764,3 +764,12 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
     min-height:40px;
   }
 }
+
+/* Home: Race card, prize banner and Flappy card share the same column width. */
+.hero .hero-grid,.hero .prize-promo,.home-flappy-section{width:min(760px,calc(100% - 2rem))!important;max-width:760px!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box}
+.home-flappy-section{padding-left:0!important;padding-right:0!important}
+.home-flappy-section>.home-flappy-card{width:100%;box-sizing:border-box}
+/* Navigation SHARE uses compact button sizing rather than game menu sizing. */
+.desktop-nav .rtw-action,.mobile-menu nav .rtw-action{min-height:40px;padding:.45rem .85rem;font-size:.78rem;white-space:nowrap}
+.mobile-menu nav>span:has(.rtw-action){display:flex;align-items:stretch;width:100%}
+.mobile-menu nav>span .rtw-action{width:100%;text-align:left}
