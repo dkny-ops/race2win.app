@@ -55,7 +55,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
           <Image src="/images/race-to-win-hero.png" alt="" fill priority sizes="100vw" />
         </div>
         <div className="home-games-content shell">
-          <h2 className="home-games-brand-title">RACE <em>TO WIN</em><span aria-hidden="true"> ▰▰</span></h2>
+          <div className="home-games-logo-banner"><Image src="/images/race-to-win-logo-banner.webp" alt="Race To Win" width={1536} height={512} priority sizes="(max-width: 760px) calc(100vw - 3rem), 1120px" /></div>
           <div className="home-games-grid">
             <article className="home-game-tile home-game-tile--race">
               {username ? <p className="hero-player-name">{username}</p> : null}
