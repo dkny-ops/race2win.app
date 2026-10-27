@@ -867,3 +867,8 @@ body:has(.page-section .rtw-play-count) .page-section{padding-top:2rem!important
 .site-brand-flappy{display:none}
 body:has(.page-section .rtw-play-count) .site-brand-default{display:none}
 body:has(.page-section .rtw-play-count) .site-brand-flappy{display:inline}
+
+/* On desktop the header already provides SHARE; retain in-game SHARE on phones and tablets. */
+@media (min-width: 981px) {
+  .rtw-game-local-share { display: none !important; }
+}
