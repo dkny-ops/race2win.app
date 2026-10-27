@@ -2,37 +2,37 @@ import type { FaqItem, PublicGame } from "@/types/public-types";
 
 export const SITE_NAME = "Race To Win";
 export const SITE_DESCRIPTION =
-  "A high-speed competitive racing experience in development.";
+  "Play Race To Win and FlappyRace in official weekly tournaments.";
 
 export const GAMES: PublicGame[] = [
   {
     slug: "race-to-win",
     title: "Race To Win",
-    description: "A playable arcade highway run. Official competition features will arrive in a later phase.",
-    status: "Playable foundation",
+    description: "Play the official Race To Win weekly competition.",
+    status: "Official tournament active",
     accent: "blue",
   },
 ];
 
 export const FAQS: FaqItem[] = [
   {
-    question: "Is Race To Win live yet?",
+    question: "Is Race To Win live?",
     answer:
-      "The local playable foundation is available now. Official competition features will be announced separately.",
+      "Yes. Race To Win is live with server-verified official tournament runs.",
   },
   {
     question: "How will the game work?",
     answer:
-      "Official rules and entry requirements will be published before competitive features become available.",
+      "Play the driving game and submit eligible server-verified runs to the weekly leaderboard. Read the current rules for entry and scoring details.",
   },
   {
     question: "Will there be prizes?",
     answer:
-      "Prize structure, eligibility, and verification are not defined yet. No amounts or terms have been announced.",
+      "Weekly prizes are $15 for first place, $3 for second, and $2 for third, subject to eligibility and manual administrator approval. Payments are never automatic.",
   },
   {
     question: "Will I need an account?",
     answer:
-      "Player accounts are available for sign-in and profile setup. Game access details will be shared before launch.",
+      "Sign in to participate in official competition. Guest play does not qualify for tournament prizes.",
   },
 ];
