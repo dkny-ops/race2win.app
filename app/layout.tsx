@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AudioPlayer } from "@/components/layout/site-audio";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/content/site";
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" data-scroll-behavior="smooth">
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
+        <AudioPlayer channel="site" />
         <SiteHeader />
         <main id="main-content">{children}</main>
         <SiteFooter />
