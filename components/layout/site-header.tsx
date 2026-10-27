@@ -41,9 +41,10 @@ export async function SiteHeader() {
             <Link key={item.href} href={item.href}>{item.label}</Link>
           ))}
           <SiteLanguageSettings desktop />
-          <ShareGameButton />
+          <span className="desktop-nav-share"><ShareGameButton /></span>
         </nav>
         <div className="header-actions">{isPrizeAdmin ? <Link href="/admin/prize-review">ADMIN PANEL</Link> : null}{authenticated ? <><Link className="profile-link" href={ROUTES.profile} aria-label="Open player profile"><span className="avatar-icon" aria-hidden="true">◉</span><span>{username ?? "PROFILE"}</span></Link><form action="/api/auth/sign-out" method="post"><button className="logout-button" type="submit">LOGOUT</button></form></> : <ButtonLink href={ROUTES.signIn} variant="text">SIGN IN</ButtonLink>}</div>
+        <div className="home-header-share"><ShareGameButton /></div>
         <div className="mobile-header-actions">
           {!authenticated ? <Link href={ROUTES.signIn} className="mobile-header-sign-in" style={{ color: "#fff", fontWeight: 800, letterSpacing: ".09em", whiteSpace: "nowrap", fontSize: ".85rem" }}>SIGN IN</Link> : null}
         <MobileMenu>
