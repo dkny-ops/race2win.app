@@ -26,7 +26,7 @@ export function AudioPlayer({ channel, playing = true }: { channel:Channel; play
   const onVisibilityChange=()=>{
    if(document.hidden){element.pause();return;}
    if(channel==="site"){syncSite();return;}
-   if(active.get(channel)===element && !element.muted && element.volume>0) if(!document.hidden) void element.play().catch(()=>{});
+   if(active.get(channel)===element && !element.muted && element.volume>0) void element.play().catch(()=>{});
   };
   const onPageHide=()=>element.pause();
   document.addEventListener("visibilitychange",onVisibilityChange);
@@ -46,12 +46,12 @@ export function AudioPlayer({ channel, playing = true }: { channel:Channel; play
  useEffect(()=>{
   if(channel==="site")return;
   const element=audio.current;if(!element)return;
-  if(playing){active.set(channel,element);syncSite();void element.play().catch(()=>{});}
+  if(playing){active.set(channel,element);syncSite();if(!document.hidden) void element.play().catch(()=>{});}
   else {element.pause();active.delete(channel);syncSite();}
  },[channel,playing]);
  useEffect(()=>{
   if(channel==="site")return;
-  const begin=()=>{const element=audio.current;if(element){active.set(channel,element);syncSite();void element.play().catch(()=>{});}};
+  const begin=()=>{const element=audio.current;if(element){active.set(channel,element);syncSite();if(!document.hidden) void element.play().catch(()=>{});}};
   window.addEventListener("rtw-audio-start-"+channel,begin);
   return ()=>window.removeEventListener("rtw-audio-start-"+channel,begin);
  },[channel]);
