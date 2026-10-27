@@ -225,7 +225,10 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
-    <nav style={{textAlign:"left",margin:"1rem 0 .5rem"}}><Link href="/" className="button button--secondary">← BACK TO HOME</Link></nav>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".75rem",flexWrap:"wrap",margin:"1rem auto .5rem"}}>
+      <Link href="/" className="button button--secondary">← BACK TO HOME</Link>
+      {!expanded ? <div className="rtw-game-local-share"><ShareGameButton game="flappy-race" /></div> : null}
+    </div>
     <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
     {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
     <div style={{margin:"1rem auto",maxWidth:360}}>
@@ -235,7 +238,6 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
       {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
       {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
     </div>
-    {!expanded ? <div className="rtw-game-local-share" style={{margin:"0.5rem auto"}}><ShareGameButton game="flappy-race" /></div> : null}
     {officialError ? <p role="alert">{errorMessage(officialError)} {officialError==="terms_required" ? <Link href="/terms/accept">TERMS</Link> : officialError==="review_required" ? <Link href="/support/access">SUPPORT</Link> : officialError==="unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}</p> : null}
   </div>;
 }
