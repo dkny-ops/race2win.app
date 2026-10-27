@@ -212,16 +212,6 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
-    <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
-    {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
-    <div style={{margin:"1rem auto",maxWidth:360}}>
-      <p style={{margin:".5rem 0"}}>{es ? "Partidas disponibles" : "Races available"}: <span className="rtw-play-count" style={{position:"static"}} aria-live="polite"><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{availabilityError ? "—" : availability?.remaining ?? "…"}/5</span></p>
-      {availability?.nextAvailableAt ? <p style={{margin:".5rem 0"}}>{es ? "Próxima partida disponible en" : "Next race available in"}: <strong>{recovery}</strong></p> : null}
-      {availability?.remaining === 0 ? <p role="status">{errorMessage("attempts_exhausted")}</p> : null}
-      {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
-      {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
-    </div>
-    {!expanded ? <div className="rtw-game-local-share" style={{margin:"0.5rem auto"}}><ShareGameButton game="flappy-race" /></div> : null}
     <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",maxWidth:360,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",maxHeight:"42svh",objectFit:"contain",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
@@ -235,6 +225,17 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
+    <nav style={{textAlign:"left",margin:"1rem 0 .5rem"}}><Link href="/" className="button button--secondary">← BACK TO HOME</Link></nav>
+    <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
+    {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
+    <div style={{margin:"1rem auto",maxWidth:360}}>
+      <p style={{margin:".5rem 0"}}>{es ? "Partidas disponibles" : "Races available"}: <span className="rtw-play-count" style={{position:"static"}} aria-live="polite"><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{availabilityError ? "—" : availability?.remaining ?? "…"}/5</span></p>
+      {availability?.nextAvailableAt ? <p style={{margin:".5rem 0"}}>{es ? "Próxima partida disponible en" : "Next race available in"}: <strong>{recovery}</strong></p> : null}
+      {availability?.remaining === 0 ? <p role="status">{errorMessage("attempts_exhausted")}</p> : null}
+      {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
+      {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
+    </div>
+    {!expanded ? <div className="rtw-game-local-share" style={{margin:"0.5rem auto"}}><ShareGameButton game="flappy-race" /></div> : null}
     {officialError ? <p role="alert">{errorMessage(officialError)} {officialError==="terms_required" ? <Link href="/terms/accept">TERMS</Link> : officialError==="review_required" ? <Link href="/support/access">SUPPORT</Link> : officialError==="unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}</p> : null}
   </div>;
 }
