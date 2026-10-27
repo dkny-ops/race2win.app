@@ -17,7 +17,39 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   const birdImage = useRef<HTMLImageElement | null>(null);
   const forestImage = useRef<HTMLImageElement | null>(null);
   useEffect(() => { const img = new Image(); img.src="/images/flappy-forest-background.jpg"; img.onload=()=>{forestImage.current=img;}; return ()=>{img.onload=null; forestImage.current=null;}; }, []);
-  useEffect(() => { const img = new Image(); img.src="/images/Flappy-bird%20.png"; img.onload=()=>{birdImage.current=img;}; return ()=>{img.onload=null; birdImage.current=null;}; }, []);
+  useEffect(() => {
+    const img = new Image();
+    img.src="/images/Flappy-bird%20.png";
+    img.onload=()=>{
+      // Remove the dark checkerboard baked into the source artwork.
+      const surface=document.createElement("canvas");
+      surface.width=img.naturalWidth;surface.height=img.naturalHeight;
+      const context=surface.getContext("2d",{willReadFrequently:true});
+      if(!context){birdImage.current=img;return;}
+      context.drawImage(img,0,0);
+      const frame=context.getImageData(0,0,surface.width,surface.height);
+      const pixels=frame.data, w=surface.width,h=surface.height;
+      const seen=new Uint8Array(w*h), queue:number[]=[];
+      const candidate=(idx:number)=>{
+        const o=idx*4,r=pixels[o],g=pixels[o+1],b=pixels[o+2];
+        return pixels[o+3]>0 && Math.max(r,g,b)-Math.min(r,g,b)<35 && Math.max(r,g,b)<175;
+      };
+      const push=(idx:number)=>{if(!seen[idx]&&candidate(idx)){seen[idx]=1;queue.push(idx);}};
+      for(let x=0;x<w;x++){push(x);push((h-1)*w+x);}
+      for(let y=0;y<h;y++){push(y*w);push(y*w+w-1);}
+      for(let i=0;i<queue.length;i++){
+        const idx=queue[i],x=idx%w,y=Math.floor(idx/w);
+        pixels[idx*4+3]=0;
+        if(x>0)push(idx-1);if(x<w-1)push(idx+1);
+        if(y>0)push(idx-w);if(y<h-1)push(idx+w);
+      }
+      context.putImageData(frame,0,0);
+      const cleaned=new Image();
+      cleaned.src=surface.toDataURL("image/png");
+      cleaned.onload=()=>{birdImage.current=cleaned;};
+    };
+    return ()=>{img.onload=null;birdImage.current=null;};
+  }, []);
   const engine = useRef<FlappyState>(initialFlappy(0));
   const inputs = useRef<number[]>([]);
   const official = useRef<FlappySession | null>(null);
@@ -228,9 +260,9 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
-    <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",maxWidth:360,margin:"auto"}}>
+    <div style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} />
-      <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",maxHeight:"42svh",objectFit:"contain",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
+      <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
       {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : "▶ PLAY"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
