@@ -184,7 +184,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         ctx.fillStyle="#78b84a";ctx.fillRect(0,455,360,7);
         for(const p of g.pipes){
           const x=p.x/100, top=(p.gap-7500)/100, bottom=(p.gap+7500)/100;
-          const trunk=(y,h,capY)=>{
+          const trunk=(y: number,h: number,capY: number)=>{
             ctx.fillStyle="#6b4128";ctx.fillRect(x,y,54,h);
             ctx.fillStyle="#9b6740";ctx.fillRect(x+8,y,7,h);
             ctx.fillStyle="#422c22";ctx.fillRect(x+36,y,5,h);
