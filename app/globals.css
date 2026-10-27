@@ -877,3 +877,22 @@ body:has(.page-section .rtw-play-count) .site-brand-flappy{display:inline}
 body:has(.home-games-hero) .site-header .site-brand-default{display:none}
 .home-games-logo-banner{width:100%;max-width:1120px;margin:0 auto clamp(16px,3vw,32px);text-align:center}
 .home-games-logo-banner img{display:block;width:100%;height:auto;object-fit:contain}
+
+/* Homepage: remove the standalone R and position navigation below the logo banner. */
+body:has(.home-games-hero) .site-header .brand{display:none}
+body:has(.home-games-hero) .site-header{position:absolute;top:0;left:0;right:0;z-index:30;background:transparent;border:0;pointer-events:none}
+body:has(.home-games-hero) .site-header .header-inner{pointer-events:none}
+body:has(.home-games-hero) .site-header .desktop-nav,
+body:has(.home-games-hero) .site-header .header-actions,
+body:has(.home-games-hero) .site-header .mobile-header-actions{pointer-events:auto}
+@media(max-width:980px){
+  body:has(.home-games-hero) .site-header .header-inner{min-height:0;padding:0}
+  body:has(.home-games-hero) .site-header .mobile-header-actions{position:absolute;top:calc(125px + (100vw - 2rem)/3 + 12px);right:1rem;margin:0;z-index:35}
+  body:has(.home-games-hero) .home-games-grid{margin-top:70px}
+}
+@media(min-width:981px){
+  body:has(.home-games-hero) .site-header .header-inner{min-height:0;padding:0}
+  body:has(.home-games-hero) .site-header .desktop-nav{position:absolute;top:calc(clamp(135px,15vw,200px) + min(950px,100vw - 3rem)/3 + 12px);right:max(1.5rem,calc((100vw - 950px)/2));margin:0}
+  body:has(.home-games-hero) .site-header .header-actions{position:absolute;top:calc(clamp(135px,15vw,200px) + min(950px,100vw - 3rem)/3 + 12px);left:max(1.5rem,calc((100vw - 950px)/2));margin:0}
+  body:has(.home-games-hero) .home-games-grid{margin-top:75px}
+}
