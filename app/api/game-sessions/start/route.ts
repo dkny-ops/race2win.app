@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       .from("player_terms_acceptances").select("terms_version")
       .eq("player_id", userId).maybeSingle();
     if (consentError) throw consentError;
-    if (consent?.terms_version !== "2026-10-18") {
+    if (consent?.terms_version !== "2026-10-26") {
       return NextResponse.json({ message: "Accept the Terms of Use before entering official tournaments.", redirectTo: "/terms/accept" }, { status: 403, headers: CACHE });
     }
 
