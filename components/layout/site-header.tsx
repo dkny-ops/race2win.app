@@ -34,7 +34,7 @@ export async function SiteHeader() {
       <div className="shell header-inner">
         <Link className="brand" href={ROUTES.home} aria-label={`${SITE_NAME}, home`}>
           <span className="brand-mark" aria-hidden="true">R</span>
-          <span>{SITE_NAME}</span>
+          <span className="site-brand-default">{SITE_NAME}</span><span className="site-brand-flappy">FLAPPY RACE</span>
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
           {PRIMARY_NAVIGATION.map((item) => (
