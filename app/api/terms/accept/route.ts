@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object" || !("accepted" in body) || (body as { accepted: unknown }).accepted !== true) {
       return NextResponse.json({ message: "Explicit acceptance required." }, { status: 400, headers: HEADERS });
     }
-    const { error } = await createAdminClient().rpc("rtw_accept_current_terms", { p_player_id: context.userId, p_version: "2026-10-26" });
+    const { error } = await createAdminClient().rpc("rtw_accept_current_terms", { p_player_id: context.userId, p_version: "2026-10-18" });
     if (error) throw error;
     return NextResponse.json({ accepted: true }, { headers: HEADERS });
   } catch {
