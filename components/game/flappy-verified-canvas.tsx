@@ -14,6 +14,8 @@ type Status = "ready" | "starting" | "running" | "validating" | "over" | "reject
 export function FlappyVerifiedCanvas({ language, authenticated }: { language: "en" | "es"; authenticated: boolean }) {
   const es = language === "es";
   const canvas = useRef<HTMLCanvasElement>(null);
+  const birdImage = useRef<HTMLImageElement | null>(null);
+  useEffect(() => { const img = new Image(); img.src="/images/Flappy-bird%20.png"; img.onload=()=>{birdImage.current=img;}; return ()=>{img.onload=null; birdImage.current=null;}; }, []);
   const engine = useRef<FlappyState>(initialFlappy(0));
   const inputs = useRef<number[]>([]);
   const official = useRef<FlappySession | null>(null);
@@ -171,8 +173,8 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
           ctx.fillStyle="#22d3ee";ctx.fillRect(p.x/100,0,54,(p.gap-7500)/100);
           ctx.fillRect(p.x/100,(p.gap+7500)/100,54,480);
         }
-        ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle="#111827";ctx.beginPath();ctx.arc(87,g.y/100-4,2.5,0,Math.PI*2);ctx.fill();
+        if(birdImage.current?.complete && birdImage.current.naturalWidth){ctx.drawImage(birdImage.current,62,g.y/100-20,40,40);}else{ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();}
+        
         ctx.fillStyle="#182d3c";ctx.fillRect(0,457,360,23);
       }
       raf=requestAnimationFrame(draw);
