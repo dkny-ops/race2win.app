@@ -9,7 +9,7 @@ function syncSite() {
  const site = active.get("site");
  if (!site) return;
  const gameActive = active.has("race") || active.has("flappy");
- if (gameActive || sessionStorage.getItem("rtw-site-paused")==="1") site.pause();
+ if (document.hidden || gameActive || sessionStorage.getItem("rtw-site-paused")==="1") site.pause();
  else void site.play().catch(()=>{});
 }
 export function AudioPlayer({ channel, playing = true }: { channel:Channel; playing?:boolean }) {
@@ -23,6 +23,15 @@ export function AudioPlayer({ channel, playing = true }: { channel:Channel; play
   const initial = localStorage.getItem("rtw-volume-"+channel) !== null && Number.isFinite(stored) ? Math.max(0,Math.min(1,stored)) : VOLUME[channel];
   element.volume=initial; setVolume(initial); setMuted(initial===0);
   audio.current=element;
+  const onVisibilityChange=()=>{
+   if(document.hidden){element.pause();return;}
+   if(channel==="site"){syncSite();return;}
+   if(active.get(channel)===element && !element.muted && element.volume>0) if(!document.hidden) void element.play().catch(()=>{});
+  };
+  const onPageHide=()=>element.pause();
+  document.addEventListener("visibilitychange",onVisibilityChange);
+  window.addEventListener("pagehide",onPageHide);
+  const removeVisibility=()=>{document.removeEventListener("visibilitychange",onVisibilityChange);window.removeEventListener("pagehide",onPageHide);};
   if(channel==="site") {
    active.set(channel,element);
    const unlock=()=>{syncSite();};
@@ -30,9 +39,9 @@ export function AudioPlayer({ channel, playing = true }: { channel:Channel; play
    document.addEventListener("pointerdown",unlock);
    window.addEventListener("rtw-site-toggle",toggle);
    syncSite();
-   return ()=>{document.removeEventListener("pointerdown",unlock);window.removeEventListener("rtw-site-toggle",toggle);element.pause();active.delete(channel);};
+   return ()=>{document.removeEventListener("pointerdown",unlock);window.removeEventListener("rtw-site-toggle",toggle);element.pause();active.delete(channel);removeVisibility();};
   }
-  return ()=>{element.pause();active.delete(channel);syncSite();};
+  return ()=>{element.pause();active.delete(channel);removeVisibility();syncSite();};
  },[channel]);
  useEffect(()=>{
   if(channel==="site")return;
