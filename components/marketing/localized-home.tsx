@@ -77,8 +77,8 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
         />
       </aside>
       </section>
-      <section className="section shell" aria-labelledby="flappy-title" style={{ maxWidth: 1040, paddingTop: "2.5rem", paddingBottom: "2.5rem" }}>
-        <div style={{ position: "relative", overflow: "hidden", borderRadius: 28, border: "1px solid rgba(103,232,249,.28)", background: "linear-gradient(135deg,rgba(12,35,58,.78),rgba(9,16,31,.62) 65%,rgba(18,63,77,.56))", boxShadow: "0 20px 60px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.1)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "clamp(1.5rem,5vw,3rem)" }}>
+      <section className="section shell home-flappy-section" aria-labelledby="flappy-title" style={{ maxWidth: 1040, paddingTop: "2.5rem", paddingBottom: "2.5rem" }}>
+        <div className="home-flappy-card" style={{ position: "relative", overflow: "hidden", borderRadius: 28, border: "1px solid rgba(103,232,249,.28)", background: "linear-gradient(135deg,rgba(12,35,58,.78),rgba(9,16,31,.62) 65%,rgba(18,63,77,.56))", boxShadow: "0 20px 60px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.1)", backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)", padding: "clamp(1.5rem,5vw,3rem)" }}>
           <div aria-hidden="true" style={{ position: "absolute", right: "-65px", top: "-90px", width: 280, height: 280, borderRadius: "50%", background: "radial-gradient(circle,rgba(34,211,238,.19),transparent 70%)", pointerEvents: "none" }} />
           <div style={{ position: "relative", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "2rem" }}>
             <div style={{ flex: "1 1 280px", minWidth: 0 }}>
