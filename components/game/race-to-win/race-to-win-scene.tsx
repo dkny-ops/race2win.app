@@ -5,6 +5,7 @@ import { GAMEPLAY_VERSION, RaceToWinAudio, RaceToWinSimulation, TRACK_SEED, type
 import { RaceToWinWorld } from "@/lib/game/race-to-win/world";
 import { MidrunHumanCheck } from "./midrun-human-check";
 import Link from "next/link";
+import { AudioPlayer } from "@/components/layout/site-audio";
 import { useRouter } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
@@ -223,6 +224,7 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     if (guest && !claimGuestTrial()) { setGuestBlocked(true); return; }
     const simulation = simulationRef.current;
     if (!simulation || !worldRef.current || !["ready", "crashed", "finalize-failed"].includes(screenStateRef.current)) return;
+    window.dispatchEvent(new Event("rtw-audio-start-race"));
     audioRef.current?.unlock(); cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); setOfficialOutcome(null); setRunNotice(null); setState("starting");
     try {
       if (guest) {
@@ -334,6 +336,7 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
   const officialFinalMetrics = officialOutcome ? { score: officialOutcome.score, elapsedSeconds: officialOutcome.elapsedMs / 1_000, distanceMeters: officialOutcome.distanceMillimeters / 1_000 } : null;
 
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
+    <AudioPlayer channel="race" playing={["starting","countdown","running"].includes(screenState)} />
     <canvas key={canvasGeneration} className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
     {!guest ? <MidrunHumanCheck sessionId={officialSessionRef.current?.sessionId ?? null} running={screenState === "running"} onPauseChange={onHumanCheckPauseChange} onTimeout={handleHumanCheckTimeout} getResumeEvidence={getResumeEvidence} onVerified={onHumanCheckVerified} /> : null}
     {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div></div> : null}
