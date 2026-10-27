@@ -773,3 +773,32 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .desktop-nav .rtw-action,.mobile-menu nav .rtw-action{min-height:40px;padding:.45rem .85rem;font-size:.78rem;white-space:nowrap}
 .mobile-menu nav>span:has(.rtw-action){display:flex;align-items:stretch;width:100%}
 .mobile-menu nav>span .rtw-action{width:100%;text-align:left}
+
+/* Home showcase: equal PUBG-style game tiles over the existing racing artwork. */
+.home-games-hero{position:relative;isolation:isolate;overflow:hidden;background:#030a15;padding:clamp(210px,23vw,330px) 0 64px}
+.home-games-backdrop{position:absolute;inset:0;z-index:-2}
+.home-games-backdrop img{object-fit:cover;object-position:center 27%}
+.home-games-hero:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(2,7,16,.10),rgba(2,7,16,.50) 34%,rgba(2,7,16,.94) 100%)}
+.home-games-content{width:min(1120px,calc(100% - 3rem));position:relative}
+.home-games-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:stretch}
+.home-game-tile{display:flex;flex-direction:column;min-width:0;min-height:340px;padding:clamp(22px,3.5vw,42px);border:1px solid rgba(119,203,255,.56);border-radius:23px;background:linear-gradient(145deg,rgba(6,26,52,.88),rgba(3,11,25,.83));box-shadow:0 16px 48px #0009,inset 0 1px rgba(255,255,255,.16);backdrop-filter:blur(12px)}
+.home-game-tile--flappy{border-color:rgba(103,232,249,.50);background:linear-gradient(145deg,rgba(6,37,58,.9),rgba(3,13,28,.86))}
+.home-game-tile .eyebrow{margin:0 0 20px}
+.home-game-tile h1,.home-game-tile h2{font-size:clamp(2rem,4.3vw,3.8rem);line-height:1.04;letter-spacing:-.055em;margin:0 0 22px;max-width:none;overflow-wrap:normal}
+.home-game-tile h1 em,.home-game-tile h2 em{font-style:normal;color:#45c9ff;text-shadow:0 0 22px #1398f955}
+.home-game-tile--flappy h2 em{color:#67e8f9}
+.home-game-description{font-size:clamp(.95rem,1.4vw,1.12rem);line-height:1.55;color:#d6e9f9;max-width:42ch}
+.home-game-actions{margin-top:auto;padding-top:22px;display:flex;gap:12px;flex-wrap:wrap}
+.home-game-actions .button{min-width:155px;border-radius:12px}
+.home-games-prize{width:100%;margin:22px auto 0;line-height:0}
+.home-games-prize img{display:block;width:100%;height:auto;border-radius:20px;filter:drop-shadow(0 0 14px rgba(245,171,34,.34))}
+@media(max-width:700px){.home-games-hero{padding-top:175px;padding-bottom:35px}.home-games-content{width:calc(100% - 2rem)}.home-games-grid{grid-template-columns:1fr;gap:15px}.home-game-tile{min-height:275px;padding:25px}.home-game-tile h1,.home-game-tile h2{font-size:clamp(2.3rem,9vw,3.6rem)}.home-games-prize{margin-top:16px}}
+/* Center and emphasize the site name in the header without moving account actions. */
+.site-header .header-inner{position:relative;justify-content:space-between}
+.site-header .brand{position:absolute;left:50%;transform:translateX(-50%);z-index:1;gap:.6rem;font-size:clamp(1.15rem,1.8vw,1.65rem);font-weight:1000;letter-spacing:.075em;color:#f5fbff;text-shadow:0 0 12px #2caaff88,0 2px 8px #000}
+.site-header .brand-mark{width:36px;font-size:1rem;border:2px solid #6dd9ff;box-shadow:0 0 19px #26adffb0}
+.site-header .desktop-nav{margin-left:0}
+.site-header .header-actions{margin-left:auto}
+@media(min-width:981px){.site-header .header-inner{padding-top:43px;min-height:116px}.site-header .brand{top:12px}.site-header .desktop-nav{margin-right:auto}}
+@media(max-width:980px){.site-header .header-inner{min-height:85px}.site-header .brand{font-size:clamp(.92rem,3.3vw,1.3rem)}.site-header .brand-mark{width:27px;font-size:.75rem}.site-header .mobile-header-actions{margin-left:auto}.site-header .header-actions{margin-left:0}}
+@media(max-width:420px){.site-header .brand{font-size:.83rem;gap:.3rem;letter-spacing:.01em}.site-header .brand-mark{width:23px}}
