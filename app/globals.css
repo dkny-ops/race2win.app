@@ -835,3 +835,21 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .home-game-tile--flappy{background-color:rgba(2,24,27,.23)}
 .home-game-tile h1,.home-game-tile h2,.home-game-description,.home-game-tile .eyebrow,.home-game-actions{position:relative;z-index:1}
 @media(max-width:700px){.home-game-art--race{background-position:56% center}.home-game-art--flappy{background-position:59% center}}
+
+/* Flappy card: visually fade the checkerboard embedded in the uploaded PNG.
+   The actual image file is unchanged; only its presentation is masked. */
+.home-game-art--flappy{
+  background-image:none;
+  opacity:1;
+}
+.home-game-art--flappy::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:url('/images/Flappy-bird%20.png');
+  background-position:58% center;
+  background-size:cover;
+  background-repeat:no-repeat;
+  -webkit-mask-image:radial-gradient(ellipse 54% 72% at 70% 55%,#000 45%,transparent 95%);
+  mask-image:radial-gradient(ellipse 54% 72% at 70% 55%,#000 45%,transparent 95%);
+}
