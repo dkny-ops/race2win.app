@@ -1824,3 +1824,47 @@ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
   display:block!important;width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;object-fit:contain!important;
  }
 }
+
+/* Flappy game banner follows the Race To Win ready-screen dimensions. */
+body:has(.page-section .rtw-play-count) .site-header .header-inner{
+ display:block;min-height:0;padding-top:0;
+}
+body:has(.page-section .rtw-play-count) .site-header .brand{
+ position:relative;left:auto;top:auto;transform:none;
+ display:block;width:min(88vw,660px);margin:0 auto 10px;
+ padding-top:100px;overflow:hidden;
+}
+body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
+ display:block;width:100%;height:auto;aspect-ratio:3/1;
+ background-position:center;background-size:100% auto;
+}
+body:has(.page-section .rtw-play-count) .site-header .mobile-header-actions{
+ position:absolute;top:16px;right:0;
+}
+@media(min-width:981px){
+ body:has(.page-section .rtw-play-count) .site-header .brand{
+  width:min(950px,calc(100vw - 3rem));height:260px;
+  padding-top:24px;margin-bottom:0;
+ }
+ body:has(.page-section .rtw-play-count) .site-header .desktop-nav{
+  position:absolute;top:43px;left:0;
+ }
+ body:has(.page-section .rtw-play-count) .site-header .header-actions{
+  position:absolute;top:43px;right:0;
+ }
+}
+@media(max-width:980px){
+ body:has(.page-section .rtw-play-count) .site-header .brand{
+  width:min(92vw,660px);padding-top:25px;margin-bottom:14px;
+ }
+}
+@media(max-width:720px){
+ body:has(.page-section .rtw-play-count) .site-header .brand{
+  width:min(76vw,420px);padding-top:clamp(55px,8svh,75px);margin-bottom:8px;
+ }
+}
+@media(orientation:landscape) and (max-height:600px) and (pointer:coarse){
+ body:has(.page-section .rtw-play-count) .site-header .brand{
+  width:min(30vw,230px);padding-top:4px;margin-bottom:4px;
+ }
+}
