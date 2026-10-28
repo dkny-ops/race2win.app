@@ -1772,3 +1772,23 @@ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
  .home-card-share__button--rtw img{display:block;width:100%;height:100%;object-fit:contain;}
  .home-card-share__button--rtw:hover,.home-card-share__button--rtw:focus-visible{box-shadow:none;}
 }
+
+/* Standalone share icons on both Home game cards: desktop and mobile. */
+.home-card-share__button--standalone,
+.home-card-share__button--standalone:hover,
+.home-card-share__button--standalone:focus-visible{
+ width:80px;height:80px;min-width:80px;min-height:80px;padding:0;
+ border:0;border-radius:0;background:transparent;box-shadow:none;text-shadow:none;
+}
+.home-card-share__button--standalone img{display:block;width:100%;height:100%;object-fit:contain;}
+/* Race To Win / Flappy game ready screen: mobile icon without enclosing tile. */
+@media(max-width:767px){
+ .rtw-overlay--ready .rtw-game-local-share .rtw-action,
+ .rtw-overlay--ready .rtw-game-local-share .rtw-action:hover,
+ .rtw-overlay--ready .rtw-game-local-share .rtw-action:focus-visible{
+  width:80px;height:80px;min-width:80px;min-height:80px;padding:0;
+  border:0;border-radius:0;background:transparent;box-shadow:none;text-shadow:none;
+ }
+ .rtw-overlay--ready .rtw-game-local-share .rtw-share-card-icon{display:block;width:80px;height:80px;object-fit:contain;}
+ .rtw-overlay--ready .rtw-game-local-share .rtw-share-text{display:none;}
+}
