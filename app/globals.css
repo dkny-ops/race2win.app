@@ -1702,3 +1702,15 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
  }
  .rtw-game-page .rtw-back-mobile-label img {display:block;width:52px!important;height:52px!important;object-fit:contain;}
 }
+
+/* Desktop only: keep the initial game frame inside the first viewport. */
+@media (min-width:981px) and (pointer:fine) {
+ .rtw-game-page > .rtw-game-page__brand-banner {
+  height:260px;
+  overflow:hidden;
+ }
+ .rtw-game-page .rtw-game-section--dedicated .rtw-stage--ready,
+ .rtw-game-page .rtw-game-section--dedicated .rtw-loading {
+  min-height:min(720px,calc(100svh - 274px));
+ }
+}
