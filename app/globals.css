@@ -1234,3 +1234,14 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
 /* Official Session SCORES: neon podium icon on both desktop and mobile. */
 .rtw-overlay--ready .rtw-scores-icon-button { display:inline-flex;align-items:center;justify-content:center;gap:.55rem;white-space:nowrap; }
 .rtw-overlay--ready .rtw-scores-icon-button img { display:block;width:clamp(30px,4vw,46px);height:clamp(30px,4vw,46px);object-fit:contain;flex-shrink:0; }
+
+/* Scores podium: standalone icon, no label or rectangular button, PC + mobile. */
+.rtw-overlay--ready .rtw-scores-icon-button {
+ display:inline-flex;align-items:center;justify-content:center;
+ width:76px;min-width:76px;height:64px;min-height:64px;padding:4px;
+ border:0!important;border-radius:0!important;background:transparent!important;
+ box-shadow:none!important;text-decoration:none;
+}
+.rtw-overlay--ready .rtw-scores-icon-button img {width:68px;height:56px;object-fit:contain;max-width:100%;}
+.rtw-overlay--ready .rtw-scores-icon-button:hover {background:transparent!important;box-shadow:none!important;}
+.rtw-overlay--ready .rtw-scores-icon-button:focus-visible {outline:2px solid #63ecff;outline-offset:3px;}
