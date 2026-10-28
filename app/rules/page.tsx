@@ -24,7 +24,7 @@ export default function RulesPage() {
         </article>
         <article>
           <h2>Claims and payments</h2>
-          <p>For a prize program that expressly adopts the Terms, the minimum withdrawal is US$10. Smaller valid awards accumulate in your eligible balance until that threshold is reached, subject to the announced program rules. Eligibility, results, and payment details require human approval. Payments are handled manually; neither a ranking nor a claim triggers automatic payment. No exact payment date is guaranteed while verification is pending.</p>
+          <p>For a prize program that expressly adopts the Terms, the minimum withdrawal is US$20 across Race To Win, FlappyRace, and future games using the shared prize wallet. Smaller valid awards accumulate in your eligible balance until that threshold is reached, subject to the announced program rules. Eligibility, results, and payment details require human approval. Payments are handled manually; neither a ranking nor a claim triggers automatic payment. No exact payment date is guaranteed while verification is pending.</p>
         </article>
         <article>
           <h2>Fair play</h2>
