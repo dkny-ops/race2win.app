@@ -1676,3 +1676,10 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   width:100%!important;max-width:100%!important;height:auto!important;
  }
 }
+
+/* Desktop only: halve the spacing between the Race To Win banner and game frame. */
+@media (min-width:981px) {
+ .rtw-game-page > .rtw-game-page__brand-banner {
+  margin-bottom:clamp(8px,1.5vw,16px)!important;
+ }
+}
