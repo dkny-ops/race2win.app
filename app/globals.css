@@ -1660,3 +1660,19 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   display:block!important;width:100%!important;height:auto!important;object-fit:contain!important;
  }
 }
+
+/* Desktop: match the ACTUAL Home logo rendered width (Home content is capped at 950px).
+   Previous 1120px rule ignored the 950px parent and made the game logo larger. */
+@media (min-width:981px) {
+ .rtw-game-page > .rtw-game-page__brand-banner {
+  box-sizing:border-box!important;
+  display:block!important;
+  width:min(950px,calc(100% - 3rem))!important;
+  max-width:950px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+ }
+ .rtw-game-page > .rtw-game-page__brand-banner > img {
+  width:100%!important;max-width:100%!important;height:auto!important;
+ }
+}
