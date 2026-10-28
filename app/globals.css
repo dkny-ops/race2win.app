@@ -1727,6 +1727,7 @@ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
  body:has(.page-section .rtw-play-count) .site-header .brand{top:0}
 }
 @media(max-width:980px){
+ body:has(.page-section .rtw-play-count) .site-header .brand{left:0;transform:none}
  body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
   width:min(42vw,240px);height:48px;
  }
