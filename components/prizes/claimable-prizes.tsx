@@ -62,7 +62,7 @@ export function ClaimablePrizes() {
     
     <p className="profile-warning">{es ? "SALDO DISPONIBLE" : "AVAILABLE BALANCE"} · {prizeAmount(data?.eligibleBalanceCents ?? 0)}</p>
     {weeklyPrizeCents > 0 ? <p className="profile-warning">{weeklyRank === 1 ? (es ? "1.er lugar" : "1st place") : weeklyRank === 2 ? (es ? "2.º lugar" : "2nd place") : weeklyRank === 3 ? (es ? "3.er lugar" : "3rd place") : (es ? "Premio semanal" : "Weekly prize")} · {prizeAmount(weeklyPrizeCents)}</p> : null}
-    <p className="profile-warning">{es ? "RETIRO MÍNIMO" : "MINIMUM WITHDRAWAL"} · $10.00</p>
+    <p className="profile-warning">{es ? "RETIRO MÍNIMO" : "MINIMUM WITHDRAWAL"} · $20.00</p>
     <p className="profile-warning">{es ? "Tu premio es provisional y está sujeto a revisión de elegibilidad y fraude antes del pago." : "Your prize is provisional and remains subject to eligibility and fraud review before payment."}</p>
     {winnerContact ? <div className="profile-form">
       <p className="profile-warning">{es ? "TOP 3 · Tienes 24 horas desde el cierre del torneo para contactar al propietario y validar tu premio." : "TOP 3 · You have 24 hours after the tournament closes to contact the owner and validate your prize."}</p>
