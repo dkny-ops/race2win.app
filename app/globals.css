@@ -1647,3 +1647,16 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   display:block;width:100%;height:auto;object-fit:contain;
  }
 }
+
+/* Desktop game banner: exact same width constraints as Home's logo banner. */
+@media (min-width:981px) {
+ .rtw-game-page .rtw-game-page__brand-banner {
+  width:100%!important;
+  max-width:1120px!important;
+  margin:0 auto clamp(16px,3vw,32px)!important;
+  text-align:center!important;
+ }
+ .rtw-game-page .rtw-game-page__brand-banner img {
+  display:block!important;width:100%!important;height:auto!important;object-fit:contain!important;
+ }
+}
