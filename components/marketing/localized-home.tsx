@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button-link";
 import Link from "next/link";
 import { FaqList } from "@/components/marketing/faq-list";
+import { GameCardShareButton } from "@/components/game/game-card-share-button";
 import { ROUTES } from "@/lib/routes";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 
@@ -67,6 +68,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
                 <Link className="button button--primary" href={playHref}>{t.play}</Link>
                 {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
               </div>
+              <GameCardShareButton game="race-to-win" />
             </article>
             <article className="home-game-tile home-game-tile--flappy" aria-labelledby="flappy-title">
               <div className="home-game-art home-game-art--flappy" aria-hidden="true" />
@@ -76,6 +78,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <div className="home-game-actions">
                 <Link href="/games/flappy-race" className="button button--primary">{language === "es" ? "JUGAR" : "PLAY"}</Link>
               </div>
+              <GameCardShareButton game="flappy-race" />
             </article>
           </div>
           <aside className="home-games-prize" aria-label={language === "es" ? "Premios totales de 20 dólares para los tres primeros lugares" : "20 dollar total prize pool for the top three"}>
