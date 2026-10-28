@@ -1049,3 +1049,24 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
 @media(prefers-reduced-motion:reduce){
  body:has(.home-games-hero) .site-header .desktop-nav .site-language-settings__trigger{transition:none}
 }
+
+/* Mobile homepage: centered SHARE and matching neon player-badge styling for SHARE/MENU. */
+@media(max-width:980px){
+ body:has(.home-games-hero) .site-header .home-header-share{
+  left:50%;right:auto;transform:translateX(-50%);
+ }
+ body:has(.home-games-hero) .site-header .home-header-share .rtw-action,
+ body:has(.home-games-hero) .site-header .mobile-menu > summary{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:7px 12px;border:1px solid #57bfff;border-radius:11px;
+  background:linear-gradient(110deg,rgba(4,24,54,.94),rgba(2,12,34,.88));
+  box-shadow:0 0 16px #159aff55,inset 0 1px #a7e7ff55;
+  color:#eaf9ff;font:inherit;font-size:clamp(.72rem,2.8vw,.95rem);
+  font-weight:900;letter-spacing:.055em;text-shadow:0 0 12px #38b8ff;
+  cursor:pointer;white-space:nowrap;
+ }
+ body:has(.home-games-hero) .site-header .home-header-share .rtw-action:hover,
+ body:has(.home-games-hero) .site-header .mobile-menu > summary:hover{
+  border-color:#a1eaff;box-shadow:0 0 22px #159aff88,inset 0 1px #d0f5ff88;
+ }
+}
