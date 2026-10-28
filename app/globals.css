@@ -1245,3 +1245,20 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
 .rtw-overlay--ready .rtw-scores-icon-button img {width:68px;height:56px;object-fit:contain;max-width:100%;}
 .rtw-overlay--ready .rtw-scores-icon-button:hover {background:transparent!important;box-shadow:none!important;}
 .rtw-overlay--ready .rtw-scores-icon-button:focus-visible {outline:2px solid #63ecff;outline-offset:3px;}
+
+/* Mobile Official Session: use the exact game-card Share icon appearance, retaining share handler. */
+.rtw-share-card-icon {display:none;}
+@media(max-width:980px){
+ .rtw-overlay--ready .rtw-game-local-share .rtw-share-text {display:none;}
+ .rtw-overlay--ready .rtw-game-local-share .rtw-share-card-icon {display:block;}
+ .rtw-overlay--ready .rtw-game-local-share .rtw-action {
+  display:grid;place-items:center;width:51px;height:51px;min-width:51px;min-height:51px;padding:0;
+  border:1px solid #7cdaff;border-radius:13px;
+  background:linear-gradient(145deg,#a6eaff 0%,#2589d6 24%,#0b397d 60%,#041833 100%);
+  color:#effcff;box-shadow:inset 0 2px 2px #ffffff85,inset 0 -3px 6px #00102a,0 0 16px #26baffaa,0 5px 12px #0008;
+  text-shadow:0 0 8px #c6f5ff;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease;
+ }
+ .rtw-overlay--ready .rtw-game-local-share .rtw-action:hover,.rtw-overlay--ready .rtw-game-local-share .rtw-action:focus-visible {
+  transform:translateY(-4px) scale(1.06);box-shadow:inset 0 2px 3px #ffffffa8,0 0 25px #39c6ff,0 8px 18px #000a;
+ }
+}
