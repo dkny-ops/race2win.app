@@ -1094,22 +1094,15 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
 }
 @media(prefers-reduced-motion:reduce){.home-card-share__button{transition:none}}
 
-/* Race To Win entry screen: reuse the exact racing artwork from the home game card.
-   Hide this decorative background during an active run so the 3D track is unchanged. */
-.rtw-game-page:not(:has(.rtw-stage--running)){
- background-image:
-  linear-gradient(180deg,rgba(2,8,20,.53) 0%,rgba(2,9,23,.65) 52%,rgba(2,7,19,.84) 100%),
-  url('/images/Race-car.PNG');
- background-position:center top,center center;
- background-size:cover,cover;
- background-repeat:no-repeat;
- background-attachment:scroll;
-}
-.rtw-game-page:not(:has(.rtw-stage--running)) .rtw-game-frame{
- background-color:rgba(2,12,29,.38);
+/* Race To Win pre-start poster: same car artwork as the HOME card.
+   Only the game panel gets this image; the live 3D race stays untouched. */
+.rtw-game-page{background:radial-gradient(ellipse at 50% 0%,rgba(9,95,205,.2),transparent 43%),linear-gradient(180deg,#02060d,#071322 58%,#03070d)}
+.rtw-game-page .rtw-stage--poster .rtw-poster-image{
+ background-image:linear-gradient(90deg,rgba(2,8,22,.48),rgba(2,8,22,.15) 65%),url('/images/Race-car.PNG');
+ background-position:center center,56% center;
+ background-size:cover;
+ filter:saturate(1.08) contrast(1.06);
 }
 @media(max-width:720px){
- .rtw-game-page:not(:has(.rtw-stage--running)){
-  background-position:center top,58% center;
- }
+ .rtw-game-page .rtw-stage--poster .rtw-poster-image{background-position:center center,58% center}
 }
