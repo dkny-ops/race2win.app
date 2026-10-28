@@ -25,7 +25,7 @@ export function GameCardShareButton({ game }: { game: "race-to-win" | "flappy-ra
 
   return (
     <div className="home-card-share">
-      <button className="home-card-share__button" type="button" onClick={() => void share()} aria-label={"Share " + title} title={"Share " + title}>
+      <button className={"home-card-share__button" + (isFlappy ? "" : " home-card-share__button--rtw")} type="button" onClick={() => void share()} aria-label={"Share " + title} title={"Share " + title}>
         <img src="/icons/share-racetowin.svg" width="27" height="27" alt="" aria-hidden="true" />
       </button>
       {notice ? <span className="home-card-share__notice" role="status">{notice}</span> : null}
