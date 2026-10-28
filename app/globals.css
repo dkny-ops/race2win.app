@@ -1407,3 +1407,14 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   bottom:12px!important;
  }
 }
+
+/* Mobile ready screen: Play just below the car lights; rewarded ad below Play. */
+@media (max-width:720px) {
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
+  top:54%!important;bottom:auto!important;left:20%!important;width:60%!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  top:calc(54% + 125px)!important;bottom:auto!important;
+  left:10%!important;width:80%!important;margin:0!important;
+ }
+}
