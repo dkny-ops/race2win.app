@@ -13,7 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
   title: "Race To Win",
-  description: "Play the Race To Win arcade highway run.",
+  description: "Play Race To Win free in your browser. Dodge highway traffic, improve your driving score and explore verified weekly rankings.",
 };
 export const dynamic = "force-dynamic";
 
