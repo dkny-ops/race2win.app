@@ -1514,3 +1514,15 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   bottom:8px!important;font-size:clamp(8px,2.1vw,10px)!important;
  }
 }
+
+/* Mobile game menu opens upward from its bottom-row button, staying in viewport. */
+@media (max-width:720px) {
+ .rtw-game-page .rtw-game-page__navigation .rtw-game-mobile-menu .mobile-menu {position:relative;}
+ .rtw-game-page .rtw-game-page__navigation .rtw-game-mobile-menu .mobile-menu > nav {
+  position:absolute!important;top:auto!important;bottom:calc(100% + 10px)!important;
+  right:0!important;left:auto!important;z-index:100!important;
+  width:min(250px,calc(100vw - 30px))!important;
+  max-height:min(65svh,470px)!important;overflow-y:auto!important;
+  overscroll-behavior:contain;
+ }
+}
