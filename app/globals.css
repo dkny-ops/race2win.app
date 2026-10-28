@@ -1332,3 +1332,12 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   margin-top:clamp(235px,26vw,300px);
  }
 }
+
+/* Ready screen on desktop and mobile: pin game instructions to bottom of game viewport. */
+.rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints {
+ position:absolute!important;z-index:4!important;
+ top:auto!important;bottom:clamp(12px,2.5vw,24px)!important;
+ left:16px!important;right:16px!important;width:auto!important;
+ margin:0!important;transform:none!important;
+ justify-content:center!important;text-align:center!important;
+}
