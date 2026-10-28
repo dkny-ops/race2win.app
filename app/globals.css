@@ -1341,3 +1341,40 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
  margin:0!important;transform:none!important;
  justify-content:center!important;text-align:center!important;
 }
+
+/* MOBILE ONLY: keep the branded banner outside; bring navigation into the game's
+   existing framed viewport and arrange the four lower controls above instructions. */
+@media (max-width:720px) {
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-stage--ready {min-height:clamp(690px,105svh,860px)!important;}
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation {
+  position:relative;z-index:8;margin-top:-119px!important;
+  padding:0 14px!important;min-height:56px;
+  justify-content:space-between;pointer-events:none;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation > * {pointer-events:auto;}
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation .rtw-page-control,
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation .mobile-menu>summary {
+  min-height:43px;padding:8px 10px;font-size:clamp(9px,2.4vw,12px);
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready {display:contents!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-menu-actions {display:contents!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
+  position:absolute;z-index:4;top:23%;left:9%;width:82%;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share {
+  position:absolute;z-index:9;bottom:125px;right:calc(50% - 69px);margin:0;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button {
+  position:absolute;z-index:9;bottom:125px;left:calc(50% - 69px);
+  width:54px!important;height:52px!important;min-height:52px!important;
+  padding:0!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  position:absolute;z-index:4;top:55%;left:10%;width:80%;margin:0;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints {
+  bottom:14px!important;left:10px!important;right:10px!important;
+  font-size:clamp(9px,2.3vw,11px);gap:3px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints span {width:100%;}
+}
