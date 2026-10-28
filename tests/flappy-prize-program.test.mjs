@@ -27,7 +27,7 @@ test("Flappy monetary admin endpoint is same-origin, owner-gated, and server-cal
   assert.doesNotMatch(route, /rankPosition\s*:/);
   const contact = await read("app/api/prizes/winner-contact/route.ts");
   assert.match(contact, /available_cents/);
-  assert.match(contact, /< 1000/);
+  assert.match(contact, /< 2000/);
   assert.match(contact, /approved_for_payment/);
   assert.match(contact, /getWhatsAppClaimUrl\(profile\?\.username \?\? undefined, gameName\)/);
 });
