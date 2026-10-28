@@ -1690,3 +1690,15 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   margin-bottom:0!important;
  }
 }
+
+/* Mobile portrait and landscape: replace Back text/button with a clean Home icon. */
+@media (max-width:980px), (orientation:landscape) and (max-height:600px) and (pointer:coarse) {
+ .rtw-game-page .rtw-back-desktop-label {display:none!important;}
+ .rtw-game-page .rtw-back-mobile-label {display:flex!important;align-items:center;justify-content:center;}
+ .rtw-game-page .rtw-game-page__navigation > .rtw-page-control:has(.rtw-back-mobile-label) {
+  width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;
+  padding:0!important;border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+ }
+ .rtw-game-page .rtw-back-mobile-label img {display:block;width:52px!important;height:52px!important;object-fit:contain;}
+}
