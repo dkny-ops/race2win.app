@@ -1601,3 +1601,36 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   font-size:8px!important;gap:2px!important;
  }
 }
+
+/* Landscape iPhone: keep PLAY and rewarded-ad controls visible above bottom navigation.
+   Force the real button and ad slot into the viewport, independent of portrait transforms. */
+@media (orientation:landscape) and (max-height:600px) and (pointer:coarse) {
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-menu-actions {
+  display:contents!important;transform:none!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:absolute!important;z-index:30!important;
+  top:14%!important;bottom:auto!important;left:36%!important;
+  width:28%!important;height:auto!important;transform:none!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap > .rtw-action--play-glass {
+  display:flex!important;visibility:visible!important;opacity:1!important;
+  width:100%!important;min-height:46px!important;height:46px!important;
+  padding:4px 10px!important;font-size:clamp(17px,3vw,27px)!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:absolute!important;z-index:29!important;
+  top:calc(14% + 59px)!important;bottom:auto!important;
+  left:34%!important;width:32%!important;margin:0!important;transform:none!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot > .rtw-opportunities__ad {
+  display:flex!important;visibility:visible!important;opacity:1!important;
+  width:100%!important;min-height:50px!important;padding:4px 6px!important;
+  font-size:10px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-watch-ad-icon {
+  width:32px!important;height:32px!important;
+ }
+}
