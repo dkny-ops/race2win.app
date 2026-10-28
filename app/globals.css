@@ -1262,3 +1262,10 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   transform:translateY(-4px) scale(1.06);box-shadow:inset 0 2px 3px #ffffffa8,0 0 25px #39c6ff,0 8px 18px #000a;
  }
 }
+
+/* Official Session ad slot: golden ad icon, desktop and mobile. */
+.rtw-overlay--ready .rtw-opportunities__ad {display:flex;align-items:center;justify-content:center;column-gap:clamp(7px,1.5vw,16px);flex-wrap:wrap;}
+.rtw-overlay--ready .rtw-opportunities__ad .rtw-watch-ad-icon {display:block;flex:0 0 auto;width:clamp(40px,7vw,66px);height:clamp(40px,7vw,66px);object-fit:contain;}
+.rtw-overlay--ready .rtw-opportunities__ad .rtw-watch-ad-copy {display:inline-block;}
+.rtw-overlay--ready .rtw-opportunities__ad small {flex-basis:100%;text-align:center;}
+@media(max-width:600px){.rtw-overlay--ready .rtw-opportunities__ad {gap:4px 8px;padding:8px 6px;}.rtw-overlay--ready .rtw-opportunities__ad .rtw-watch-ad-icon {width:42px;height:42px;}}
