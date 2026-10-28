@@ -1634,3 +1634,16 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   width:32px!important;height:32px!important;
  }
 }
+
+/* Desktop only: size the in-game Race To Win banner like the compact Home logo. */
+@media (min-width:981px) {
+ .rtw-game-page .rtw-game-page__brand-banner {
+  width:min(38vw,360px)!important;
+  max-width:360px!important;
+  padding-top:24px!important;
+  margin:0 auto 12px!important;
+ }
+ .rtw-game-page .rtw-game-page__brand-banner img {
+  display:block;width:100%;height:auto;object-fit:contain;
+ }
+}
