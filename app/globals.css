@@ -972,3 +972,11 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
  }
  body:has(.home-games-hero) .home-games-grid{margin-top:70px}
 }
+
+/* Player badge is positioned relative to the content, not the page top. */
+@media(min-width:981px){
+ body:has(.home-games-hero) .home-player-banner{top:calc(min(950px,100vw - 3rem)/3 + 12px)}
+}
+@media(max-width:980px){
+ body:has(.home-games-hero) .home-player-banner{top:calc((100vw - 2rem)/3 + 12px)}
+}
