@@ -1479,3 +1479,38 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   bottom:121px!important;
  }
 }
+
+/* Compact mobile game page: fit banner, framed ready screen and controls into one viewport. */
+@media (max-width:720px) {
+ body:has(.rtw-game-page) .site-footer {display:none!important;}
+ .rtw-game-page {min-height:100svh!important;overflow-x:hidden;}
+ .rtw-game-page .rtw-game-page__brand-banner {
+  display:block;width:min(76vw,420px);margin:0 auto 8px!important;
+  padding-top:clamp(55px,8svh,75px)!important;text-decoration:none;
+ }
+ .rtw-game-page .rtw-game-section--dedicated {padding:0 10px!important;}
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-stage--ready {
+  height:calc(100svh - clamp(55px,8svh,75px) - min(25.333vw,140px) - 22px)!important;
+  min-height:0!important;max-height:none!important;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation {
+  margin-top:-105px!important;transform:none!important;
+  min-height:50px!important;padding:0 12px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button,
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share {
+  bottom:55px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
+  top:42%!important;bottom:auto!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap .rtw-action--play-glass {
+  min-height:clamp(58px,9svh,76px)!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  top:calc(42% + clamp(70px,10svh,90px))!important;bottom:auto!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints {
+  bottom:8px!important;font-size:clamp(8px,2.1vw,10px)!important;
+ }
+}
