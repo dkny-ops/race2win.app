@@ -1106,3 +1106,13 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
 @media(max-width:720px){
  .rtw-game-page .rtw-stage--poster .rtw-poster-image{background-position:center center,58% center}
 }
+
+/* The READY screen draws a real artwork layer above the 3D track and below menu controls. */
+.rtw-game-page .rtw-stage .rtw-ready-artwork{
+ position:absolute;inset:0;z-index:2;pointer-events:none;
+ background-image:linear-gradient(180deg,rgba(1,7,18,.22),rgba(1,7,18,.35)),url('/images/Race-car.PNG');
+ background-size:cover,cover;background-position:center,56% center;background-repeat:no-repeat;
+}
+@media(max-width:720px){
+ .rtw-game-page .rtw-stage .rtw-ready-artwork{background-position:center,58% center}
+}
