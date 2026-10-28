@@ -1093,3 +1093,23 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
  .home-card-share__button{width:46px;height:46px}
 }
 @media(prefers-reduced-motion:reduce){.home-card-share__button{transition:none}}
+
+/* Race To Win entry screen: reuse the exact racing artwork from the home game card.
+   Hide this decorative background during an active run so the 3D track is unchanged. */
+.rtw-game-page:not(:has(.rtw-stage--running)){
+ background-image:
+  linear-gradient(180deg,rgba(2,8,20,.53) 0%,rgba(2,9,23,.65) 52%,rgba(2,7,19,.84) 100%),
+  url('/images/Race-car.PNG');
+ background-position:center top,center center;
+ background-size:cover,cover;
+ background-repeat:no-repeat;
+ background-attachment:scroll;
+}
+.rtw-game-page:not(:has(.rtw-stage--running)) .rtw-game-frame{
+ background-color:rgba(2,12,29,.38);
+}
+@media(max-width:720px){
+ .rtw-game-page:not(:has(.rtw-stage--running)){
+  background-position:center top,58% center;
+ }
+}
