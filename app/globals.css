@@ -1418,3 +1418,38 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   left:10%!important;width:80%!important;margin:0!important;
  }
 }
+
+/* Mobile ready screen: four controls share a single evenly spaced baseline. */
+@media (max-width:720px) {
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation {
+  margin-top:-126px!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:center!important;gap:6px!important;
+  padding:0 12px!important;min-height:54px!important;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation>.rtw-page-control {
+  grid-column:1;justify-self:center;white-space:nowrap;min-width:0;
+  padding:8px 9px!important;height:50px!important;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation>.rtw-game-mobile-menu {
+  grid-column:4;justify-self:center;min-width:0;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation .mobile-menu>summary {
+  height:50px!important;min-height:50px!important;padding:8px 9px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button {
+  position:absolute!important;z-index:9!important;left:37.5%!important;
+  bottom:79px!important;transform:translateX(-50%)!important;
+  width:50px!important;height:50px!important;min-height:50px!important;
+  margin:0!important;padding:0!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share {
+  position:absolute!important;z-index:9!important;left:62.5%!important;
+  right:auto!important;bottom:79px!important;
+  transform:translateX(-50%)!important;margin:0!important;
+  width:50px!important;height:50px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share .rtw-action {
+  width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
+ }
+}
