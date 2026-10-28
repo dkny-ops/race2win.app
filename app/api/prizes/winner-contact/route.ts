@@ -19,7 +19,7 @@ export async function GET() {
       admin.from("prize_balances").select("available_cents").eq("player_id", playerId).maybeSingle(),
       admin.from("profiles").select("username").eq("user_id", playerId).maybeSingle(),
     ]);
-    if (balanceError || profileError || safeCents(balance?.available_cents) < 1000) {
+    if (balanceError || profileError || safeCents(balance?.available_cents) < 2000) {
       return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
     }
 
