@@ -1288,3 +1288,24 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
  .rtw-game-page .rtw-stage--ready .rtw-overlay.rtw-overlay--ready::before,
  .rtw-game-page .rtw-stage--ready .rtw-overlay.rtw-overlay--ready::after {content:none!important;display:none!important;}
 }
+
+/* Desktop ready menu: remove the panel element itself from the rendered box tree.
+   Place its existing controls directly on the stage, preserving their actions. */
+@media (min-width:981px) {
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready {display:contents!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-menu-actions {
+  position:absolute;z-index:3;top:50%;left:clamp(1.1rem,5vw,4.5rem);
+  width:min(92%,620px);transform:translateY(-85%);
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  position:absolute;z-index:3;top:50%;left:clamp(1.1rem,5vw,4.5rem);
+  width:min(92%,360px);margin:3rem 0 0;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints {
+  position:absolute;z-index:3;top:calc(50% + 10rem);left:clamp(1.1rem,5vw,4.5rem);
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-run-notice,
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > a.rtw-action {
+  position:absolute;z-index:4;bottom:1rem;left:clamp(1.1rem,5vw,4.5rem);
+ }
+}
