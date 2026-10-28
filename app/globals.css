@@ -1221,3 +1221,12 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
 @media(prefers-reduced-motion:reduce){
  body:has(.rtw-game-page) .site-header .desktop-nav .game-desktop-back-home{transition:none}
 }
+
+/* Keep desktop header controls on one aligned row; mobile uses its menu. */
+@media (min-width: 901px) {
+  .site-header .header-inner { display:flex; align-items:center; flex-wrap:nowrap; gap:clamp(.4rem,1vw,1rem); }
+  .site-header .desktop-nav { display:flex; align-items:center; justify-content:flex-end; flex-wrap:nowrap; gap:clamp(.4rem,1vw,.85rem); min-width:0; margin-left:auto; }
+  .site-header .desktop-nav > a, .site-header .desktop-nav > button, .site-header .desktop-nav .desktop-nav-share, .site-header .header-actions > a, .site-header .header-actions button { white-space:nowrap; }
+  .site-header .header-actions { display:flex; align-items:center; flex-wrap:nowrap; gap:.5rem; flex-shrink:0; }
+  .site-header .header-actions form { margin:0; }
+}
