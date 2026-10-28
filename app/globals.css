@@ -1230,3 +1230,7 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
  body:has(.home-games-hero) .site-header .desktop-nav > *, body:has(.home-games-hero) .site-header .header-actions > * { flex-shrink:0; white-space:nowrap; }
  body:has(.home-games-hero) .site-header .desktop-nav .game-desktop-back-home { display:none; }
 }
+
+/* Official Session SCORES: neon podium icon on both desktop and mobile. */
+.rtw-overlay--ready .rtw-scores-icon-button { display:inline-flex;align-items:center;justify-content:center;gap:.55rem;white-space:nowrap; }
+.rtw-overlay--ready .rtw-scores-icon-button img { display:block;width:clamp(30px,4vw,46px);height:clamp(30px,4vw,46px);object-fit:contain;flex-shrink:0; }
