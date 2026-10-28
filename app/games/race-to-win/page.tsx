@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 function GameNavigation() {
   return <nav className="rtw-game-page__navigation shell" aria-label="Game navigation">
-    <Link className="rtw-page-control" href={ROUTES.home}><span className="rtw-back-desktop-label">← BACK TO HOME</span><span className="rtw-back-mobile-label">← BACK</span></Link>
+    <Link className="rtw-page-control" href={ROUTES.home}><span className="rtw-back-desktop-label">← BACK TO HOME</span><span className="rtw-back-mobile-label"><Image src="/images/back-home-blue.svg" alt="Home" width={50} height={50} unoptimized /></span></Link>
     <div className="rtw-game-mobile-menu"><MobileMenu><nav aria-label="Game menu">{PRIMARY_NAVIGATION.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}<SiteLanguageSettings /></nav></MobileMenu></div>
   </nav>;
 }
