@@ -62,7 +62,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <div className="home-game-art home-game-art--race" aria-hidden="true" />
               <p className="eyebrow">RACING GAME</p>
               <h1>RACE <em>TO WIN</em></h1>
-              <p className="home-game-description">{t.lede}</p>
+              
               <div className="home-game-actions">
                 <Link className="button button--primary" href={playHref}>{t.play}</Link>
                 {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
@@ -72,7 +72,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <div className="home-game-art home-game-art--flappy" aria-hidden="true" />
               <p className="eyebrow">{language === "es" ? "JUEGO ARCADE" : "ARCADE GAME"}</p>
               <h2 id="flappy-title">FLAPPY <em>RACE</em></h2>
-              <p className="home-game-description">{language === "es" ? "Vuela entre obstáculos, consigue puntos y supera tu récord. ¿Hasta dónde puedes llegar?" : "Fly between obstacles, collect points, and beat your high score. How far can you go?"}</p>
+              
               <div className="home-game-actions">
                 <Link href="/games/flappy-race" className="button button--primary">{language === "es" ? "JUGAR" : "PLAY"}</Link>
               </div>
