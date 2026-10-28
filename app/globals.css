@@ -980,3 +980,47 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
 @media(max-width:980px){
  body:has(.home-games-hero) .home-player-banner{top:calc((100vw - 2rem)/3 + 12px)}
 }
+
+/* Desktop homepage: unified glowing, floating navigation buttons. Mobile unchanged. */
+@media (min-width:981px) {
+ body:has(.home-games-hero) .site-header .desktop-nav > a,
+ body:has(.home-games-hero) .site-header .desktop-nav .rtw-action,
+ body:has(.home-games-hero) .site-header .header-actions > a,
+ body:has(.home-games-hero) .site-header .header-actions .logout-button,
+ body:has(.home-games-hero) .site-header .desktop-nav button {
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:9px 14px;border-radius:10px;
+  border:1px solid rgba(86,186,255,.55);
+  background:linear-gradient(145deg,rgba(9,32,65,.94),rgba(2,12,33,.92));
+  color:#effaff;font-size:.72rem;font-weight:850;letter-spacing:.065em;
+  text-decoration:none;white-space:nowrap;
+  box-shadow:0 3px 10px #0008,inset 0 1px #b3eaff22,0 0 9px #168cff28;
+  text-shadow:0 0 7px #65caff55;
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease;
+  cursor:pointer;
+ }
+ body:has(.home-games-hero) .site-header .desktop-nav > a:hover,
+ body:has(.home-games-hero) .site-header .desktop-nav .rtw-action:hover,
+ body:has(.home-games-hero) .site-header .header-actions > a:hover,
+ body:has(.home-games-hero) .site-header .header-actions .logout-button:hover,
+ body:has(.home-games-hero) .site-header .desktop-nav button:hover,
+ body:has(.home-games-hero) .site-header .desktop-nav > a:focus-visible,
+ body:has(.home-games-hero) .site-header .desktop-nav .rtw-action:focus-visible,
+ body:has(.home-games-hero) .site-header .header-actions .logout-button:focus-visible {
+  transform:translateY(-5px);
+  border-color:#86e2ff;
+  background:linear-gradient(145deg,rgba(14,74,129,.97),rgba(4,28,69,.95));
+  box-shadow:0 12px 22px #0009,0 0 20px #1eaeff9c,inset 0 1px #d4f7ff88;
+  text-shadow:0 0 12px #b3ecff;
+ }
+ body:has(.home-games-hero) .site-header .desktop-nav > a:active,
+ body:has(.home-games-hero) .site-header .desktop-nav .rtw-action:active,
+ body:has(.home-games-hero) .site-header .header-actions .logout-button:active{
+  transform:translateY(-1px);
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body:has(.home-games-hero) .site-header .desktop-nav > a,
+ body:has(.home-games-hero) .site-header .desktop-nav button,
+ body:has(.home-games-hero) .site-header .header-actions .logout-button{transition:none}
+}
