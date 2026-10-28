@@ -1526,3 +1526,78 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   overscroll-behavior:contain;
  }
 }
+
+/* FIX: MobileMenu renders <details><summary/><div><nav/></div></details>.
+   Anchor the actual wrapper above MENU (previous selectors targeted a nonexistent direct nav). */
+@media (max-width:980px) {
+ .rtw-game-page .rtw-game-page__navigation .rtw-game-mobile-menu {position:relative!important;z-index:100!important;}
+ .rtw-game-page .rtw-game-page__navigation .rtw-game-mobile-menu .mobile-menu {position:relative!important;}
+ .rtw-game-page .rtw-game-page__navigation .rtw-game-mobile-menu .mobile-menu > div {
+  position:absolute!important;top:auto!important;bottom:calc(100% + 10px)!important;
+  right:0!important;left:auto!important;z-index:101!important;
+  width:min(250px,calc(100vw - 30px))!important;
+ }
+ .rtw-game-page .rtw-game-page__navigation .rtw-game-mobile-menu .mobile-menu > div > nav {
+  position:relative!important;top:auto!important;bottom:auto!important;
+  right:auto!important;left:auto!important;z-index:101!important;
+  width:100%!important;max-height:min(60svh,420px)!important;
+  overflow-y:auto!important;overscroll-behavior:contain;
+ }
+}
+/* Touchscreen landscape: same compact game page as portrait, not the old desktop-like layout. */
+@media (orientation:landscape) and (max-height:600px) and (pointer:coarse) {
+ body:has(.rtw-game-page) .site-footer {display:none!important;}
+ .rtw-game-page {min-height:100svh!important;overflow-x:hidden;}
+ .rtw-game-page .rtw-game-page__brand-banner {
+  display:block!important;width:min(30vw,230px)!important;
+  padding-top:4px!important;margin:0 auto 4px!important;
+ }
+ .rtw-game-page .rtw-game-section--dedicated {padding:0 8px!important;}
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-stage--ready {
+  height:calc(100svh - 62px)!important;min-height:0!important;max-height:none!important;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation {
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:center!important;gap:6px!important;
+  margin-top:-65px!important;transform:none!important;
+  padding:0 12px!important;min-height:42px!important;
+  position:relative!important;z-index:20!important;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation > .rtw-page-control {
+  grid-column:1;justify-self:center;min-height:38px!important;height:38px!important;
+  padding:5px 10px!important;font-size:11px!important;
+ }
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation > .rtw-game-mobile-menu {grid-column:4;justify-self:center;display:block!important;}
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation .mobile-menu>summary {
+  min-height:38px!important;height:38px!important;padding:5px 10px!important;font-size:11px!important;
+ }
+ .rtw-game-page .rtw-back-desktop-label {display:none!important;}
+ .rtw-game-page .rtw-back-mobile-label {display:inline!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready,
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-menu-actions {display:contents!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
+  position:absolute!important;top:22%!important;bottom:auto!important;
+  left:34%!important;width:32%!important;max-width:none!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap .rtw-action--play-glass {min-height:48px!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  position:absolute!important;top:calc(22% + 58px)!important;bottom:auto!important;
+  left:32%!important;width:36%!important;margin:0!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button {
+  position:absolute!important;z-index:9!important;left:37.5%!important;bottom:39px!important;
+  transform:translateX(-50%)!important;width:38px!important;height:38px!important;min-height:38px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button img {width:38px!important;height:38px!important;}
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share {
+  position:absolute!important;z-index:9!important;left:62.5%!important;right:auto!important;
+  bottom:39px!important;transform:translateX(-50%)!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share .rtw-action {
+  width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints {
+  bottom:3px!important;left:5px!important;right:5px!important;
+  font-size:8px!important;gap:2px!important;
+ }
+}
