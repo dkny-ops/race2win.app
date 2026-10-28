@@ -1221,3 +1221,12 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
 @media(prefers-reduced-motion:reduce){
  body:has(.rtw-game-page) .site-header .desktop-nav .game-desktop-back-home{transition:none}
 }
+
+/* Desktop HOME only: keep existing controls and actions aligned in one row. */
+@media (min-width:981px) {
+ body:has(.home-games-hero) .site-header .header-inner { width:min(1200px,calc(100% - 2rem)); padding:6px 0; gap:clamp(6px,1vw,14px); flex-wrap:nowrap; }
+ body:has(.home-games-hero) .site-header .desktop-nav { flex:1 1 auto; min-width:0; flex-wrap:nowrap; align-items:center; justify-content:flex-end; gap:clamp(5px,.8vw,12px); }
+ body:has(.home-games-hero) .site-header .header-actions { flex:0 0 auto; align-items:center; flex-wrap:nowrap; margin:0; }
+ body:has(.home-games-hero) .site-header .desktop-nav > *, body:has(.home-games-hero) .site-header .header-actions > * { flex-shrink:0; white-space:nowrap; }
+ body:has(.home-games-hero) .site-header .desktop-nav .game-desktop-back-home { display:none; }
+}
