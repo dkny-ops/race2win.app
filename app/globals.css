@@ -1800,3 +1800,27 @@ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
  .rtw-overlay--ready .rtw-game-local-share > span{display:flex!important;align-items:center;justify-content:center;gap:0!important;height:80px;}
  .rtw-overlay--ready .rtw-game-local-share .rtw-action{margin:0;vertical-align:middle;}
 }
+
+/* Fix mobile ready-screen alignment using original 50px control coordinates.
+   Both Scores and Share have the same bottom offset and box height. */
+@media (max-width:720px) and (orientation:portrait){
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button,
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share{
+  bottom:55px!important;height:50px!important;min-height:50px!important;
+  width:50px!important;min-width:50px!important;margin:0!important;padding:0!important;
+  align-items:center!important;justify-content:center!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share,
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share > span{
+  display:flex!important;height:50px!important;min-height:50px!important;
+  width:50px!important;align-items:center!important;justify-content:center!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share .rtw-action{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
+  padding:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share .rtw-share-card-icon{
+  display:block!important;width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;object-fit:contain!important;
+ }
+}
