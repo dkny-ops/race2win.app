@@ -61,6 +61,7 @@ export class RaceToWinWorld {
   private readonly city: RaceToWinCity;
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
+  private readonly trafficVisualPool: { variantIndex: number; visual: VehicleVisual }[] = [];
   private readonly speedStreaks: SpeedStreakSystem;
   private readonly roadHaze: RoadHazeSystem;
   private readonly tireSmoke: TireSmokeSystem;
@@ -174,8 +175,7 @@ export class RaceToWinWorld {
 
   public dispose(): void {
     this.disposed = true;
-    for (const visual of this.trafficVisuals.values()) this.removeVisual(visual);
-    this.trafficVisuals.clear();
+    this.clearTrafficVisuals();
     this.removeVisual(this.player);
     this.speedStreaks.dispose();
     this.roadHaze.dispose();
@@ -251,7 +251,22 @@ export class RaceToWinWorld {
     const renderableTraffic = traffic
       .filter((snapshot) => snapshot.relativeDistance >= -19 && snapshot.relativeDistance <= 205)
       .slice()
-      .sort((left, right) => left.relativeDistance - right.relativeDistance);
+      .sort((left, right) => left.relativeDistance - right.relativeDistance)
+      .slice(0, this.quality.trafficLimit);
+
+    for (const snapshot of renderableTraffic) visibleIds.add(snapshot.id);
+    // Reclaim departed cars before spawning replacements. Keep a bounded pool
+    // so long runs neither retain every old car nor clone a GLB on every spawn.
+    for (const [id, visual] of this.trafficVisuals) {
+      if (visibleIds.has(id)) continue;
+      this.trafficVisuals.delete(id);
+      this.scene.remove(visual.root);
+      if (this.trafficVisualPool.length < this.quality.trafficLimit) {
+        this.trafficVisualPool.push({ variantIndex: visual.root.userData.rtwTrafficVariant, visual });
+      } else {
+        this.removeVisual(visual);
+      }
+    }
 
     for (const snapshot of renderableTraffic) {
       if (visibleCount >= this.quality.trafficLimit) break;
@@ -262,9 +277,13 @@ export class RaceToWinWorld {
         const template = this.vehicleTemplates?.traffic[
           snapshot.variantIndex % this.vehicleTemplates.traffic.length
         ];
-        visual = template
-          ? createModelVehicleVisual(template, false)
-          : createTrafficVehicle(this.vehicleAssets, snapshot.variantIndex);
+        const pooledIndex = this.trafficVisualPool.findIndex((entry) => entry.variantIndex === snapshot.variantIndex);
+        visual = pooledIndex >= 0
+          ? this.trafficVisualPool.splice(pooledIndex, 1)[0]!.visual
+          : template
+            ? createModelVehicleVisual(template, false)
+            : createTrafficVehicle(this.vehicleAssets, snapshot.variantIndex);
+        visual.root.userData.rtwTrafficVariant = snapshot.variantIndex;
         this.trafficVisuals.set(snapshot.id, visual);
         this.scene.add(visual.root);
       }
@@ -277,9 +296,6 @@ export class RaceToWinWorld {
       for (const wheel of visual.wheels) wheel.rotation.x -= wheelSpin;
     }
 
-    for (const [id, visual] of this.trafficVisuals) {
-      if (!visibleIds.has(id)) visual.root.visible = false;
-    }
   }
 
   private updateCamera(snapshot: RaceToWinSnapshot, deltaSeconds: number): void {
@@ -313,8 +329,14 @@ export class RaceToWinWorld {
 
     // Existing procedural traffic is intentionally discarded so the next frame
     // rebuilds it from the owned GLB templates without retaining stale meshes.
+    this.clearTrafficVisuals();
+  }
+
+  private clearTrafficVisuals(): void {
     for (const visual of this.trafficVisuals.values()) this.removeVisual(visual);
     this.trafficVisuals.clear();
+    for (const { visual } of this.trafficVisualPool) this.removeVisual(visual);
+    this.trafficVisualPool.length = 0;
   }
 
   private removeVisual(visual: VehicleVisual): void {
