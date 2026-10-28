@@ -1732,3 +1732,36 @@ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
   width:min(42vw,240px);height:48px;
  }
 }
+
+/* Desktop running view: banner and track share one viewport. */
+.rtw-hud .rtw-hud-distance{display:none}
+@media(min-width:981px) and (pointer:fine){
+ .rtw-game-page:has(.rtw-stage--running){
+  position:fixed;inset:0;z-index:11;
+  display:flex;flex-direction:column;
+  height:100svh;min-height:0;overflow:hidden;
+ }
+ .rtw-game-page:has(.rtw-stage--running) > .rtw-game-page__brand-banner{
+  display:block!important;flex:0 0 clamp(90px,16svh,150px);
+  height:clamp(90px,16svh,150px);
+  width:min(700px,80vw)!important;padding:0!important;margin:0 auto!important;
+ }
+ .rtw-game-page:has(.rtw-stage--running) > .rtw-game-page__brand-banner > img{
+  height:100%!important;object-fit:contain!important;
+ }
+ .rtw-game-page:has(.rtw-stage--running) .rtw-game-section--dedicated{
+  flex:1;min-height:0;
+ }
+ .rtw-game-page:has(.rtw-stage--running) .rtw-game-frame{height:100%}
+ .rtw-game-page .rtw-stage--running{height:100%!important;min-height:0!important}
+ .rtw-game-page .rtw-stage--running .rtw-hud{
+  display:flex;justify-content:center;gap:2rem;max-width:none;
+  border:0;background:none;backdrop-filter:none;box-shadow:none;
+  text-shadow:0 2px 5px #000;
+ }
+ .rtw-game-page .rtw-stage--running .rtw-hud > div{
+  padding:0;border:0;background:none;box-shadow:none;text-align:center;
+ }
+ .rtw-game-page .rtw-stage--running .rtw-hud-score{display:none}
+ .rtw-game-page .rtw-stage--running .rtw-hud .rtw-hud-distance{display:block}
+}
