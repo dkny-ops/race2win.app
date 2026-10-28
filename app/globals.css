@@ -1683,3 +1683,10 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   margin-bottom:clamp(8px,1.5vw,16px)!important;
  }
 }
+
+/* Desktop only: tighten banner-to-game spacing further. */
+@media (min-width:981px) {
+ .rtw-game-page > .rtw-game-page__brand-banner {
+  margin-bottom:0!important;
+ }
+}
