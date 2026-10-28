@@ -910,9 +910,9 @@ body:has(.home-games-hero) .site-header .mobile-header-actions{pointer-events:au
 
 /* Homepage: reclaim the unused space above the logo; keep SHARE and MENU aligned. */
 @media(max-width:980px){
- body:has(.home-games-hero) .home-games-hero{padding-top:55px}
+ body:has(.home-games-hero) .home-games-hero{padding-top:30px}
  body:has(.home-games-hero) .site-header .mobile-header-actions,
- body:has(.home-games-hero) .site-header .home-header-share{top:calc(55px + (100vw - 2rem)/3 + 12px)}
+ body:has(.home-games-hero) .site-header .home-header-share{top:calc(30px + (100vw - 2rem)/3 + 12px)}
 }
 @media(min-width:981px){
  body:has(.home-games-hero) .home-games-hero{padding-top:clamp(70px,8vw,105px)}
