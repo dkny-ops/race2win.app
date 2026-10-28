@@ -1453,3 +1453,17 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   width:50px!important;height:50px!important;min-width:50px!important;min-height:50px!important;
  }
 }
+
+/* Mobile ready screen: match the actual vertical centers of Back/Menu to Scores/Share. */
+@media (max-width:720px) {
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation {
+  transform:translateY(-42px)!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button {
+  display:flex!important;align-items:center!important;justify-content:center!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button img {
+  display:block!important;width:50px!important;height:50px!important;
+  max-width:50px!important;max-height:50px!important;object-fit:contain!important;
+ }
+}
