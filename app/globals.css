@@ -1309,3 +1309,26 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   position:absolute;z-index:4;bottom:1rem;left:clamp(1.1rem,5vw,4.5rem);
  }
 }
+
+/* Desktop only: compact ready controls in the upper-left of the game viewport. */
+@media (min-width:981px) {
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-menu-actions {
+  top:clamp(30px,5vw,60px);left:clamp(20px,3vw,42px);
+  width:min(46%,310px);transform:none;display:flex;flex-direction:column;
+  align-items:flex-start;gap:12px;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
+  width:100%;max-width:310px;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-menu-actions .rtw-scores-icon-button {
+  align-self:flex-start;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-ad-slot {
+  top:clamp(30px,5vw,60px);left:clamp(20px,3vw,42px);
+  width:min(46%,310px);margin:clamp(130px,16vw,175px) 0 0;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready > .rtw-control-hints {
+  top:clamp(30px,5vw,60px);left:clamp(20px,3vw,42px);
+  margin-top:clamp(235px,26vw,300px);
+ }
+}
