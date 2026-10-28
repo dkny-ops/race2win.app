@@ -1467,3 +1467,15 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   max-width:50px!important;max-height:50px!important;object-fit:contain!important;
  }
 }
+
+/* Mobile: align all four bottom controls by their actual visible centers.
+   Navigation buttons and in-stage icons use the same 50px height and baseline. */
+@media (max-width:720px) {
+ .rtw-game-page:has(.rtw-stage--ready) .rtw-game-page__navigation {
+  transform:translateY(-42px)!important;
+ }
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-scores-icon-button,
+ .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-game-local-share {
+  bottom:121px!important;
+ }
+}
