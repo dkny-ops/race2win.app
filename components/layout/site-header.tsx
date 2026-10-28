@@ -37,7 +37,6 @@ export async function SiteHeader() {
           <span className="site-brand-default">{SITE_NAME}</span><span className="site-brand-flappy">FLAPPY RACE</span>
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
-          <Link className="game-desktop-back-home" href={ROUTES.home}>← BACK TO HOME</Link>
           {PRIMARY_NAVIGATION.map((item) => (
             <Link key={item.href} href={item.href}>{item.label}</Link>
           ))}
