@@ -1714,3 +1714,20 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   min-height:min(720px,calc(100svh - 274px));
  }
 }
+
+/* Flappy header: silver and green racing banner, scoped to its game page. */
+body:has(.page-section .rtw-play-count) .site-header .brand-mark{display:none}
+body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
+ display:inline-block;
+ width:320px;height:60px;
+ background:url('/images/flappy-race-logo-banner.png') center/100% auto no-repeat;
+ font-size:0;text-shadow:none;
+}
+@media(min-width:981px){
+ body:has(.page-section .rtw-play-count) .site-header .brand{top:0}
+}
+@media(max-width:980px){
+ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
+  width:min(42vw,240px);height:48px;
+ }
+}
