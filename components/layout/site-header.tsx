@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ShareGameButton } from "@/components/game/share-game-button";
 import { MobileMenu } from "./mobile-menu";
 import { SiteLanguageSettings } from "./site-language-settings";
@@ -33,8 +34,8 @@ export async function SiteHeader() {
     <header className="site-header">
       <div className="shell header-inner">
         <Link className="brand" href={ROUTES.home} aria-label={`${SITE_NAME}, home`}>
-          <span className="brand-mark" aria-hidden="true">R</span>
-          <span className="site-brand-default">{SITE_NAME}</span><span className="site-brand-flappy">FLAPPY RACE</span>
+          <Image className="site-brand-banner" src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority />
+          <span className="site-brand-flappy">FLAPPY RACE</span>
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
           <Link className="game-desktop-back-home" href={ROUTES.home}>← BACK TO HOME</Link>
