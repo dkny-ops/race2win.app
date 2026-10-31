@@ -1945,3 +1945,13 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .home-game-entry>.rtw-game-info>summary,.game-card-entry>.rtw-game-info>summary{box-sizing:border-box;width:25%;min-height:36px;margin-inline:auto;padding:.35rem .3rem;gap:.25rem;border:1px solid rgba(90,197,255,.52);border-radius:10px;background:rgba(5,21,38,.9);font-size:.55rem;line-height:1.2;letter-spacing:.02em;white-space:nowrap}
 .home-game-entry>.rtw-game-info>summary span:first-child,.game-card-entry>.rtw-game-info>summary span:first-child{font-size:.85rem}
 .home-game-entry>.rtw-game-info>.rtw-game-info__content,.game-card-entry>.rtw-game-info>.rtw-game-info__content{margin-top:.65rem;border:1px solid rgba(90,197,255,.32);border-radius:12px;background:rgba(5,21,38,.96)}
+
+/* Instructions belong below each game's START frame, never to Home or active runs. */
+.rtw-game-how-to-play-link{display:none;align-items:center;justify-content:center;gap:.45rem;width:max-content;max-width:calc(100% - 2rem);margin:1rem auto 1.5rem;padding:.7rem 1rem;border:1px solid rgba(90,197,255,.65);border-radius:14px;background:rgba(4,22,43,.94);color:#eaf8ff;font-size:.88rem;font-weight:800;text-decoration:none;letter-spacing:.04em;box-shadow:0 0 12px rgba(39,169,255,.16);}
+.rtw-game-how-to-play-link span{font-size:1.3rem;color:#5dc7ff;}
+.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link{display:flex;}
+.rtw-game-how-to-play-link--flappy{display:flex;}
+.rtw-instructions-page{padding-top:calc(85px + 1rem);}
+.rtw-instructions-back{display:inline-flex;align-items:center;gap:.5rem;color:#eaf8ff;text-decoration:none;font-weight:800;border:1px solid rgba(90,197,255,.5);border-radius:14px;padding:.3rem .85rem .3rem .3rem;background:#06182e;}
+.rtw-instructions-back img{width:52px;height:52px;object-fit:contain;}
+.rtw-instructions-page .legal-copy{margin:1rem auto;}
