@@ -273,6 +273,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
+    {!expanded && status === "ready" ? <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link> : null}
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".75rem",flexWrap:"wrap",margin:"1rem auto .5rem"}}>
       <Link href="/" className="button button--secondary">← BACK TO HOME</Link>
       {!expanded ? <div className="rtw-game-local-share"><ShareGameButton game="flappy-race" /></div> : null}
