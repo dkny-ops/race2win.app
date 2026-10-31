@@ -1,9 +1,11 @@
+import { GameInfoButton, RaceGuide } from "./game-guides";
 import type { PublicGame } from "@/types/public-types";
 import { PlayGameLink } from "@/components/game/race-to-win/play-game-link";
 import { RACE_TO_WIN_GAME_SLUG } from "@/lib/routes";
 
 export function GameCard({ game }: { game: PublicGame }) {
   return (
+    <div className="game-card-entry">
     <article className={`game-card game-card--${game.accent}`}>
       <div className="game-card-art" aria-hidden="true"><span>RTW</span></div>
       <p className="eyebrow">{game.status}</p>
@@ -15,5 +17,7 @@ export function GameCard({ game }: { game: PublicGame }) {
         <span className="game-card-link">GAME DETAILS COMING SOON <span aria-hidden="true">→</span></span>
       )}
     </article>
+      {game.slug === RACE_TO_WIN_GAME_SLUG ? <GameInfoButton><RaceGuide /></GameInfoButton> : null}
+    </div>
   );
 }

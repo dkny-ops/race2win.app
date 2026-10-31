@@ -1937,3 +1937,11 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .rtw-game-info__content>.page-section{padding:1rem 0!important;margin:0 auto!important;}
 .rtw-game-info__content>.legal-copy{margin-top:1rem!important;}
 @media(min-width:981px) and (pointer:fine){.rtw-game-page:has(.rtw-stage--running)>.rtw-game-info{display:none;}}
+
+/* Instructions belong to selection cards, never to the live playfield. */
+.home-game-entry,.game-card-entry{display:flex;flex-direction:column;min-width:0}
+.home-game-entry>.home-game-tile,.game-card-entry>.game-card{flex:1}
+.home-game-entry>.rtw-game-info,.game-card-entry>.rtw-game-info{width:100%;margin:.65rem 0 0;border:0;background:transparent;border-radius:0;overflow:visible}
+.home-game-entry>.rtw-game-info>summary,.game-card-entry>.rtw-game-info>summary{box-sizing:border-box;width:25%;min-height:36px;margin-inline:auto;padding:.35rem .3rem;gap:.25rem;border:1px solid rgba(90,197,255,.52);border-radius:10px;background:rgba(5,21,38,.9);font-size:.55rem;line-height:1.2;letter-spacing:.02em;white-space:nowrap}
+.home-game-entry>.rtw-game-info>summary span:first-child,.game-card-entry>.rtw-game-info>summary span:first-child{font-size:.85rem}
+.home-game-entry>.rtw-game-info>.rtw-game-info__content,.game-card-entry>.rtw-game-info>.rtw-game-info__content{margin-top:.65rem;border:1px solid rgba(90,197,255,.32);border-radius:12px;background:rgba(5,21,38,.96)}

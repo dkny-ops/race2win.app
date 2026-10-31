@@ -5,6 +5,7 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button-link";
 import Link from "next/link";
 import { FaqList } from "@/components/marketing/faq-list";
+import { GameInfoButton, RaceGuide, FlappyGuide } from "@/components/marketing/game-guides";
 import { GameCardShareButton } from "@/components/game/game-card-share-button";
 import { ROUTES } from "@/lib/routes";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
@@ -59,6 +60,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
           <div className="home-games-logo-banner"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority sizes="(max-width: 760px) calc(100vw - 3rem), 1120px" /></div>
           {username ? <div className="home-player-banner" aria-label="Player username">{username}</div> : null}
           <div className="home-games-grid">
+            <div className="home-game-entry">
             <article className="home-game-tile home-game-tile--race">
               <div className="home-game-art home-game-art--race" aria-hidden="true" />
               <p className="eyebrow">RACING GAME</p>
@@ -70,6 +72,9 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               </div>
               <GameCardShareButton game="race-to-win" />
             </article>
+              <GameInfoButton><RaceGuide /></GameInfoButton>
+            </div>
+            <div className="home-game-entry">
             <article className="home-game-tile home-game-tile--flappy" aria-labelledby="flappy-title">
               <div className="home-game-art home-game-art--flappy" aria-hidden="true" />
               <p className="eyebrow">{language === "es" ? "JUEGO ARCADE" : "ARCADE GAME"}</p>
@@ -80,6 +85,8 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               </div>
               <GameCardShareButton game="flappy-race" />
             </article>
+              <GameInfoButton><FlappyGuide /></GameInfoButton>
+            </div>
           </div>
           <aside className="home-games-prize" aria-label={language === "es" ? "Premios totales de 20 dólares para los tres primeros lugares" : "20 dollar total prize pool for the top three"}>
             <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $20 total prize pool shared among the top three winners" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
