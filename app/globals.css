@@ -1960,3 +1960,11 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link{margin-top:36px!important;margin-bottom:28px!important;position:relative;z-index:3;flex-shrink:0;}
 .rtw-game-how-to-play-link--flappy{margin-top:36px!important;margin-bottom:28px!important;position:relative;z-index:3;}
 @media(min-width:981px){.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link,.rtw-game-how-to-play-link--flappy{margin-top:44px!important;}}
+
+/* Race To Win: move the info button BELOW the entire start frame, not over it. */
+.rtw-game-page:has(.rtw-stage--ready){display:flex!important;flex-direction:column!important;align-items:stretch!important;}
+.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-section--dedicated{order:2!important;position:relative!important;}
+.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-page__brand-banner{order:1!important;}
+.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-page__navigation{order:3!important;}
+.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link{order:4!important;position:static!important;z-index:auto!important;transform:none!important;align-self:center!important;clear:both!important;margin:48px auto 30px!important;}
+@media(min-width:981px){.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link{margin-top:56px!important;}}
