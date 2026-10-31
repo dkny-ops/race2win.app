@@ -1,3 +1,10 @@
+import type { ReactNode } from "react";
+
+/** Shared disclosure for game instructions. Use for every new game. */
+export function GameInfoButton({ children }: { children: ReactNode }) {
+ return <details className="rtw-game-info"><summary aria-label="Game information and how to play"><span aria-hidden="true">ⓘ</span><span>HOW TO PLAY</span></summary><div className="rtw-game-info__content">{children}</div></details>;
+}
+
 export function RaceGuide() {
  return <section className="page-section shell narrow legal-copy" aria-labelledby="race-guide-heading">
   <h2 id="race-guide-heading">How to play Race To Win</h2>
