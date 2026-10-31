@@ -5,7 +5,6 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button-link";
 import Link from "next/link";
 import { FaqList } from "@/components/marketing/faq-list";
-import { GameInfoButton, RaceGuide, FlappyGuide } from "@/components/marketing/game-guides";
 import { GameCardShareButton } from "@/components/game/game-card-share-button";
 import { ROUTES } from "@/lib/routes";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
@@ -72,7 +71,6 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               </div>
               <GameCardShareButton game="race-to-win" />
             </article>
-              <GameInfoButton><RaceGuide /></GameInfoButton>
             </div>
             <div className="home-game-entry">
             <article className="home-game-tile home-game-tile--flappy" aria-labelledby="flappy-title">
@@ -85,7 +83,6 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               </div>
               <GameCardShareButton game="flappy-race" />
             </article>
-              <GameInfoButton><FlappyGuide /></GameInfoButton>
             </div>
           </div>
           <aside className="home-games-prize" aria-label={language === "es" ? "Premios totales de 20 dólares para los tres primeros lugares" : "20 dollar total prize pool for the top three"}>
