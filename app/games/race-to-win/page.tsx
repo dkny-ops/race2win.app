@@ -26,7 +26,7 @@ function GameNavigation() {
 
 export default async function RaceToWinGamePage() {
   const context = await getVerifiedUserContext();
-  if (!context) return <main className="rtw-game-page"><Link className="rtw-game-page__brand-banner" href={ROUTES.home} aria-label="Back to Home"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority /></Link><RaceToWinGame canStartOfficial={false} /><GameNavigation /><RaceGuide /></main>;
+  if (!context) return <main className="rtw-game-page"><Link className="rtw-game-page__brand-banner" href={ROUTES.home} aria-label="Back to Home"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority /></Link><RaceToWinGame canStartOfficial={false} /><GameNavigation /><div className="rtw-desktop-guide"><details><summary>ⓘ HOW TO PLAY</summary><RaceGuide /></details></div><div className="rtw-mobile-guide"><RaceGuide /></div></main>;
   const { data: profile, error } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
   if (error) throw new Error("Unable to verify player profile.");
   if (!profile?.username) redirect(ROUTES.profile);
@@ -39,7 +39,7 @@ export default async function RaceToWinGamePage() {
       <Link className="rtw-game-page__brand-banner" href={ROUTES.home} aria-label="Back to Home"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority /></Link>
       <RaceToWinGame canStartOfficial={authenticated} />
       <GameNavigation />
-      <RaceGuide />
+      <div className="rtw-desktop-guide"><details><summary>ⓘ HOW TO PLAY</summary><RaceGuide /></details></div><div className="rtw-mobile-guide"><RaceGuide /></div>
     </main>
   );
 }
