@@ -1916,3 +1916,7 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
  .rtw-game-page:has(.rtw-stage--running) > .rtw-game-page__brand-banner{flex:0 0 52px!important;height:52px!important;width:min(300px,32vw)!important;}
  .rtw-game-page:has(.rtw-stage--running) .rtw-game-section--dedicated{padding:0 8px 8px!important;}
 }
+
+/* The visible blue rectangular outline belongs to .rtw-game-frame (parent of stage). */
+.rtw-game-page .rtw-game-section--dedicated .rtw-game-frame{border-radius:20px!important;overflow:hidden!important;clip-path:inset(0 round 20px);}
+.rtw-game-page .rtw-game-section--dedicated .rtw-game-frame>.rtw-stage{border-radius:19px!important;overflow:hidden!important;}
