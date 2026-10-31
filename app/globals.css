@@ -1891,3 +1891,9 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .rtw-overlay--game-over .rtw-game-over-button:hover:not(:disabled){background:linear-gradient(145deg,rgba(9,67,112,.95),rgba(16,111,175,.88));box-shadow:0 0 24px rgba(39,169,255,.5);}
 .rtw-overlay--game-over .rtw-game-over-button.rtw-action--placeholder{border-color:rgba(161,219,255,.5);background:rgba(4,21,39,.75);}
 @media(max-width:720px){.rtw-overlay--game-over .rtw-final-stats{grid-template-columns:1fr;}}
+
+/* Consistent rounded corners for Race To Win game-over panels. */
+.rtw-overlay--game-over{border-radius:18px;overflow:hidden;}
+.rtw-overlay--game-over .rtw-final-stats{border-radius:14px;overflow:hidden;}
+.rtw-overlay--game-over .rtw-final-stats>div{border-radius:0;}
+.rtw-overlay--game-over .rtw-game-over-actions{border-radius:14px;}
