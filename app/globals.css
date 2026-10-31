@@ -1884,3 +1884,10 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 @media(max-width:420px){
  .site-header .brand .site-brand-banner{width:min(42vw,170px);max-height:60px}
 }
+
+/* Race To Win: compact official result and consistent game-over controls. */
+.rtw-overlay--game-over .rtw-final-stats{grid-template-columns:repeat(2,minmax(0,1fr));}
+.rtw-overlay--game-over .rtw-game-over-button{border-radius:12px;border:1px solid rgba(90,197,255,.85);background:linear-gradient(145deg,rgba(6,31,58,.94),rgba(9,76,135,.8));color:#f2fbff;box-shadow:inset 0 1px 0 rgba(202,240,255,.2),0 0 18px rgba(39,169,255,.25);text-shadow:0 0 9px rgba(107,209,255,.3);}
+.rtw-overlay--game-over .rtw-game-over-button:hover:not(:disabled){background:linear-gradient(145deg,rgba(9,67,112,.95),rgba(16,111,175,.88));box-shadow:0 0 24px rgba(39,169,255,.5);}
+.rtw-overlay--game-over .rtw-game-over-button.rtw-action--placeholder{border-color:rgba(161,219,255,.5);background:rgba(4,21,39,.75);}
+@media(max-width:720px){.rtw-overlay--game-over .rtw-final-stats{grid-template-columns:1fr;}}
