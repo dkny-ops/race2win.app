@@ -1920,3 +1920,9 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 /* The visible blue rectangular outline belongs to .rtw-game-frame (parent of stage). */
 .rtw-game-page .rtw-game-section--dedicated .rtw-game-frame{border-radius:20px!important;overflow:hidden!important;clip-path:inset(0 round 20px);}
 .rtw-game-page .rtw-game-section--dedicated .rtw-game-frame>.rtw-stage{border-radius:19px!important;overflow:hidden!important;}
+
+/* Sitewide consistent rounded corners for framed UI, without changing layout or full-screen overlays. */
+:root{--rtw-frame-radius:18px;--rtw-control-radius:12px;}
+:where(.game-card,.home-game-card,.home-card,.card,.panel,.stat-card,.score-card,.leaderboard-card,.wallet-card,.profile-card,.settings-card,.admin-card,.info-card,.feature-card,.rtw-game-frame,.rtw-overlay,.rtw-final-stats,.rtw-hud,.rtw-opportunities,.rtw-opportunities__ad,.page-card,.modal-content,.dialog-content,.legal-copy details,.rtw-desktop-guide details){border-radius:var(--rtw-frame-radius)!important;}
+:where(button,.button,.rtw-action,.rtw-page-control,input:not([type="checkbox"]):not([type="radio"]),select,textarea){border-radius:var(--rtw-control-radius);}
+:where(.rtw-game-frame,.rtw-overlay,.rtw-final-stats,.rtw-desktop-guide details){overflow:hidden;}
