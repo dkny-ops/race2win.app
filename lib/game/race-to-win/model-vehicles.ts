@@ -165,6 +165,11 @@ function addPlayerPaintAccents(chassis: THREE.Group, model: THREE.Object3D): voi
 }
 
 function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
+  // Traffic enters and leaves every few seconds. Attaching lights to each car
+  // changes Three.js light counts and recompiles scene shaders mid-race.
+  // Traffic headlights remain emissive; only the persistent player adds lights.
+  if (!player) return;
+
   const blueGlow = new THREE.PointLight("#269dff", player ? 23 : 2.4, player ? 16 : 7, 2);
   blueGlow.position.set(0, 0.65, -1.8);
   chassis.add(blueGlow);
@@ -173,7 +178,6 @@ function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
   rearGlow.position.set(0, 0.72, 2.15);
   chassis.add(rearGlow);
 
-  if (!player) return;
   const beam = new THREE.SpotLight("#d7f4ff", 145, 50, Math.PI / 7, 0.72, 1.25);
   beam.position.set(0, 1.05, -2.65);
   const target = new THREE.Object3D();
