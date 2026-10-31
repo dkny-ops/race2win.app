@@ -1903,3 +1903,16 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .rtw-game-page .rtw-stage .rtw-overlay{border-radius:18px!important;}
 .rtw-game-page .rtw-stage .rtw-final-stats{border-radius:14px!important;overflow:hidden;}
 .rtw-game-page .rtw-stage .rtw-game-over-button{border-radius:12px!important;}
+
+/* Desktop-only compact banner and collapsible instructions; mobile stays unchanged. */
+.rtw-desktop-guide{display:none;}
+@media(min-width:981px) and (pointer:fine){
+ .rtw-mobile-guide{display:none;}
+ .rtw-desktop-guide{display:block;width:min(1100px,calc(100% - 2rem));margin:1rem auto 2rem;}
+ .rtw-desktop-guide details{border:1px solid rgba(90,197,255,.5);border-radius:14px;background:rgba(5,21,38,.86);overflow:hidden;}
+ .rtw-desktop-guide summary{cursor:pointer;list-style:none;padding:1rem 1.4rem;color:#eaf8ff;font-weight:800;letter-spacing:.1em;}
+ .rtw-desktop-guide summary::-webkit-details-marker{display:none;}
+ .rtw-desktop-guide details .page-section{margin:0 auto;padding:1.2rem;}
+ .rtw-game-page:has(.rtw-stage--running) > .rtw-game-page__brand-banner{flex:0 0 52px!important;height:52px!important;width:min(300px,32vw)!important;}
+ .rtw-game-page:has(.rtw-stage--running) .rtw-game-section--dedicated{padding:0 8px 8px!important;}
+}
