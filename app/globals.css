@@ -1955,3 +1955,8 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .rtw-instructions-back{display:inline-flex;align-items:center;gap:.5rem;color:#eaf8ff;text-decoration:none;font-weight:800;border:1px solid rgba(90,197,255,.5);border-radius:14px;padding:.3rem .85rem .3rem .3rem;background:#06182e;}
 .rtw-instructions-back img{width:52px;height:52px;object-fit:contain;}
 .rtw-instructions-page .legal-copy{margin:1rem auto;}
+
+/* Shared clearance between every game's start frame and its instructions button. */
+.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link{margin-top:36px!important;margin-bottom:28px!important;position:relative;z-index:3;flex-shrink:0;}
+.rtw-game-how-to-play-link--flappy{margin-top:36px!important;margin-bottom:28px!important;position:relative;z-index:3;}
+@media(min-width:981px){.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link,.rtw-game-how-to-play-link--flappy{margin-top:44px!important;}}
