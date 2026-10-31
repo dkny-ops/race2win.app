@@ -1897,3 +1897,9 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 .rtw-overlay--game-over .rtw-final-stats{border-radius:14px;overflow:hidden;}
 .rtw-overlay--game-over .rtw-final-stats>div{border-radius:0;}
 .rtw-overlay--game-over .rtw-game-over-actions{border-radius:14px;}
+
+/* Round the OUTERMOST game frame as well as every nested Game Over panel. */
+.rtw-game-page .rtw-stage{border-radius:18px!important;overflow:hidden;}
+.rtw-game-page .rtw-stage .rtw-overlay{border-radius:18px!important;}
+.rtw-game-page .rtw-stage .rtw-final-stats{border-radius:14px!important;overflow:hidden;}
+.rtw-game-page .rtw-stage .rtw-game-over-button{border-radius:12px!important;}
