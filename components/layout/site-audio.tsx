@@ -12,7 +12,7 @@ function syncSite() {
  if (document.hidden || gameActive || sessionStorage.getItem("rtw-site-paused")==="1") site.pause();
  else void site.play().catch(()=>{});
 }
-export function AudioPlayer({ channel, playing = true }: { channel:Channel; playing?:boolean }) {
+export function AudioPlayer({ channel, playing = true, showControls = true }: { channel:Channel; playing?:boolean; showControls?:boolean }) {
  const audio = useRef<HTMLAudioElement|null>(null);
  const [volume,setVolume] = useState(VOLUME[channel]);
  const [open,setOpen] = useState(false);
@@ -55,7 +55,7 @@ export function AudioPlayer({ channel, playing = true }: { channel:Channel; play
   window.addEventListener("rtw-audio-start-"+channel,begin);
   return ()=>window.removeEventListener("rtw-audio-start-"+channel,begin);
  },[channel]);
- if(channel==="site")return null;
+ if(channel==="site" || !showControls)return null;
  return <div style={{position:"absolute",top:12,right:12,zIndex:10001,display:"flex",alignItems:"center",gap:6,background:"#071a2cdd",padding:6,borderRadius:14}} onPointerDown={e=>e.stopPropagation()}>
   <button type="button" aria-label={open?"Hide volume":"Show volume"} onClick={()=>setOpen(v=>!v)} style={{background:"transparent",color:"white",border:0,fontSize:22,cursor:"pointer"}}>{muted?"🔇":"🔊"}</button>
   {open?<><input aria-label="Music volume" type="range" min="0" max="1" step=".05" value={volume} onChange={e=>{const v=Number(e.target.value);setVolume(v);setMuted(v===0);if(audio.current){audio.current.volume=v;if(v>0&&playing)void audio.current.play().catch(()=>{});}localStorage.setItem("rtw-volume-"+channel,String(v));}} style={{width:90}}/><button type="button" aria-label="Mute music" onClick={()=>{const next=!muted;setMuted(next);if(audio.current)audio.current.muted=next;}}>{muted?"ON":"OFF"}</button></>:null}
