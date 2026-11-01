@@ -2204,3 +2204,13 @@ body:has(.flappy-game-page) .site-footer{
 .flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel::before {
   content: none !important;
 }
+
+/* Flappy results: rounded card corners without restoring unwanted outer outlines. */
+.flappy-game-page .flappy-ranking .scores-ranking-panel,
+.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
+  border-radius: 20px !important;
+  overflow: hidden;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
