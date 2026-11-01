@@ -2174,19 +2174,22 @@ body:has(.flappy-game-page) .site-footer{
  .flappy-game-page .flappy-start-actions > .flappy-inline-help{max-width:none!important;justify-self:stretch!important;}
 }
 
-/* Flappy results: round the OUTERMOST visible section and clip its background. */
+/* Flappy result cards: one visible rounded surface, no square outer strip. */
 .flappy-game-page .flappy-ranking,
 .flappy-game-page .flappy-personal-weekly {
-  border-radius: 22px !important;
-  overflow: hidden !important;
-  clip-path: inset(0 round 22px);
-}
-.flappy-game-page .flappy-ranking .scores-ranking-panel,
-.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
-  border-radius: 22px !important;
-  overflow: hidden !important;
+  padding-top: 0 !important;
   border: 0 !important;
+  background: transparent !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+}
+.flappy-game-page .flappy-ranking > .scores-ranking-panel,
+.flappy-game-page .flappy-personal-weekly > .flappy-personal-weekly__panel {
+  border: 0 !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
   box-shadow: none !important;
+  background: linear-gradient(135deg, #102f50, #071c37) !important;
 }
 .flappy-game-page .flappy-personal-weekly__rule {
   border-radius: 8px;
