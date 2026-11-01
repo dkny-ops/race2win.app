@@ -6,7 +6,7 @@ import { FlappyPersonalWeeklyScore } from "@/components/scores/flappy-personal-w
 
 export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
  const [language] = usePlayerLanguage();
- return <div style={{ marginTop: ".75rem" }}>
+ return <div className="flappy-race-page" style={{ marginTop: ".75rem" }}>
    <FlappyVerifiedCanvas language={language} authenticated={authenticated} />
    <FlappyRankingTable language={language} />
    <FlappyPersonalWeeklyScore language={language} authenticated={authenticated} />

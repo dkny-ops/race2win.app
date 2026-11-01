@@ -1971,3 +1971,34 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
 
 /* Mobile Race To Win only: give HOW TO PLAY more clearance below the game frame. */
 @media(max-width:980px){.rtw-game-page:has(.rtw-stage--ready)>.rtw-game-how-to-play-link{margin-top:100px!important;}}
+
+/* PC Flappy: keep the Home banner link in its own row, clear of Settings.
+   Budget the preview by viewport height as well as width; preserve its 3:4 ratio.
+   Rankings and help below the game remain accessible through normal scrolling. */
+@media (min-width:981px) and (pointer:fine) {
+ body:has(.flappy-game-page .rtw-play-count) { --flappy-banner-height:clamp(72px,18svh,160px); }
+ body:has(.flappy-game-page .rtw-play-count) .site-header .header-inner {
+  display:grid;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-rows:var(--flappy-banner-height) 48px;
+  gap:8px 16px;padding:8px 0;min-height:0;
+ }
+ body:has(.flappy-game-page .rtw-play-count) .site-header .brand {
+  grid-column:1 / -1;position:static;transform:none;
+  width:min(950px,100%);height:100%;padding:0;margin:0 auto;
+ }
+ body:has(.flappy-game-page .rtw-play-count) .site-header .brand .site-brand-flappy {
+  display:block;width:100%;height:100%;aspect-ratio:auto;background-size:contain;
+ }
+ body:has(.flappy-game-page .rtw-play-count) .site-header .desktop-nav {
+  position:relative;top:auto;left:auto;z-index:1;margin:0;
+  flex-wrap:nowrap;justify-content:center;
+ }
+ body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions {
+  position:static;justify-content:flex-end;
+ }
+ body:has(.flappy-game-page .rtw-play-count) .flappy-game-page { padding-top:8px!important; }
+ .flappy-game-page .flappy-race-page { margin-top:0!important; }
+ .flappy-game-page .flappy-ready-frame {
+  max-width:min(640px,calc((100svh - var(--flappy-banner-height) - 96px) * .75))!important;
+ }
+}
