@@ -290,7 +290,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
       </div> : null}
     </div>
     {!expanded && status === "ready" ? <div className="flappy-top-results">{scoreControls}</div> : null}
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".75rem",flexWrap:"wrap",margin:"1rem auto .5rem"}}>
+    <div className="flappy-start-actions">
       <Link href="/" className="button button--secondary">← BACK TO HOME</Link>
       {!expanded ? <div className="rtw-game-local-share"><ShareGameButton game="flappy-race" /></div> : null}
     </div>
