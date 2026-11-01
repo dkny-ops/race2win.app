@@ -2086,3 +2086,37 @@ body:has(.flappy-game-page) .site-footer{
 .flappy-game-page .flappy-ready-frame > canvas{
  border-radius:20px!important;
 }
+
+/* Flappy leaderboard opens on demand from a share-style control. */
+.flappy-leaderboard-toggle{margin:1rem auto;text-align:center;}
+.flappy-leaderboard-toggle > summary{
+ display:inline-flex;align-items:center;justify-content:center;gap:.55rem;
+ min-height:36px;padding:.35rem .65rem;list-style:none;
+ border:1px solid rgba(161,219,255,.45);border-radius:12px;
+ background:rgba(4,21,39,.62);color:var(--white);
+ font:900 .68rem Arial,Helvetica,sans-serif;letter-spacing:.14em;
+ cursor:pointer;transition:transform .18s ease,box-shadow .18s ease;
+}
+.flappy-leaderboard-toggle > summary::-webkit-details-marker{display:none}
+.flappy-leaderboard-toggle > summary:hover{
+ transform:translateY(-2px);box-shadow:0 0 28px rgba(39,169,255,.62);
+}
+.flappy-leaderboard-toggle > summary::after{content:"▾"}
+.flappy-leaderboard-toggle[open] > summary::after{content:"▴"}
+@media(min-width:981px){
+ body:has(.flappy-game-page) .site-header .desktop-nav .game-desktop-back-home{
+  display:inline-flex;align-items:center;justify-content:center;gap:.55rem;
+  min-height:36px;padding:.35rem .65rem;
+  border:1px solid rgba(161,219,255,.45);border-radius:12px;
+  background:rgba(4,21,39,.62);color:var(--white);
+  font:900 .68rem Arial,Helvetica,sans-serif;letter-spacing:.14em;
+  white-space:nowrap;text-decoration:none;
+ }
+ body:has(.flappy-game-page) .site-header .desktop-nav .game-desktop-back-home:hover{
+  transform:translateY(-2px);box-shadow:0 0 28px rgba(39,169,255,.62);
+ }
+ .flappy-race-page a[href="/"]{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .flappy-leaderboard-toggle > summary{transition:none}
+}
