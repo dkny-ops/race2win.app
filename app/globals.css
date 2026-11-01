@@ -2087,22 +2087,19 @@ body:has(.flappy-game-page) .site-footer{
  border-radius:20px!important;
 }
 
-/* Flappy leaderboard opens on demand from a share-style control. */
-.flappy-leaderboard-toggle{margin:1rem auto;text-align:center;}
-.flappy-leaderboard-toggle > summary{
+/* Flappy results: matching side-by-side disclosure buttons. */
+.flappy-score-controls{display:flex;justify-content:center;align-items:center;gap:.75rem;flex-wrap:wrap;margin:1rem auto;}
+.flappy-score-button{
  display:inline-flex;align-items:center;justify-content:center;gap:.55rem;
- min-height:36px;padding:.35rem .65rem;list-style:none;
+ min-height:36px;padding:.35rem .65rem;
  border:1px solid rgba(161,219,255,.45);border-radius:12px;
  background:rgba(4,21,39,.62);color:var(--white);
  font:900 .68rem Arial,Helvetica,sans-serif;letter-spacing:.14em;
  cursor:pointer;transition:transform .18s ease,box-shadow .18s ease;
 }
-.flappy-leaderboard-toggle > summary::-webkit-details-marker{display:none}
-.flappy-leaderboard-toggle > summary:hover{
- transform:translateY(-2px);box-shadow:0 0 28px rgba(39,169,255,.62);
-}
-.flappy-leaderboard-toggle > summary::after{content:"▾"}
-.flappy-leaderboard-toggle[open] > summary::after{content:"▴"}
+.flappy-score-button:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(39,169,255,.62);}
+.flappy-score-button::after{content:"▾"}
+.flappy-score-button[aria-expanded="true"]::after{content:"▴"}
 @media(min-width:981px){
  body:has(.flappy-game-page) .site-header .desktop-nav .game-desktop-back-home{
   display:inline-flex;align-items:center;justify-content:center;gap:.55rem;
@@ -2118,5 +2115,5 @@ body:has(.flappy-game-page) .site-footer{
  .flappy-race-page a[href="/"]{display:none}
 }
 @media(prefers-reduced-motion:reduce){
- .flappy-leaderboard-toggle > summary{transition:none}
+ .flappy-score-button{transition:none}
 }
