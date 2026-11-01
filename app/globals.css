@@ -2061,3 +2061,23 @@ body:has(.flappy-game-page .rtw-play-count) .site-header .profile-link > span:la
   background:linear-gradient(#071a2c26,#071a2c26),url('/images/flappy-forest-background.jpg') center/cover no-repeat!important;
  }
 }
+
+/* Flappy page artwork: quiet center and decorative forest edges. */
+body:has(.flappy-game-page){
+ position:relative;isolation:isolate;background:#03131c;
+}
+body:has(.flappy-game-page)::before{
+ content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+ background:#03131c url('/images/flappy-page-background.webp') center/cover no-repeat;
+}
+body:has(.flappy-game-page) .flappy-game-page{background:transparent;}
+body:has(.flappy-game-page) .site-header{
+ background:rgba(3,18,27,.52)!important;
+ border-bottom-color:rgba(110,230,181,.18);
+}
+body:has(.flappy-game-page) .site-footer{
+ background:rgba(2,14,23,.86);border-top-color:rgba(110,230,181,.18);
+}
+@media(max-width:980px){
+ body:has(.flappy-game-page)::before{background-position:center top;}
+}
