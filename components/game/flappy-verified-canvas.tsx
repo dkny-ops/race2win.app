@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
 import { AudioPlayer } from "@/components/layout/site-audio";
 import { FlappyRewardOptions } from "./flappy-reward-options";
-import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, type FlappyState } from "@/lib/game/flappy/engine";
+import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, flappyGapHalf, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
 import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
 
@@ -213,7 +213,8 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
           ctx.fillStyle="#275d4d";ctx.fillRect(0,0,360,480);
         }
         for(const p of g.pipes){
-          const x=p.x/100, top=(p.gap-7500)/100, bottom=(p.gap+7500)/100;
+          const gapHalf=flappyGapHalf(g.tick);
+          const x=p.x/100, top=(p.gap-gapHalf)/100, bottom=(p.gap+gapHalf)/100;
           const trunk=(y: number,h: number,capY: number,lower=false)=>{
             const obstacle=obstacleImage.current;
             if(obstacle?.complete && obstacle.naturalWidth>0 && h>0){
