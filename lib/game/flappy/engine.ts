@@ -21,12 +21,12 @@ export function stepFlappy(s: FlappyState, flap: boolean): void {
   if (s.tick + 1 > 95 && (!s.pipes.length || s.pipes[s.pipes.length - 1].x < 18500)) {
     s.pipes.push({ x: 36500, gap: 10500 + random(s) % 20501, passed: false });
   }
-  // Every 15 seconds: first two increases are 3%, then 6% each interval.
+  // Every 15 seconds: first two increases are 3%, then 6%, except 10% at each full minute.
   // Integer math keeps browser simulation and server replay exactly identical.
   const difficultySteps = Math.floor(s.tick / 900);
   let speed = 215;
   for (let i = 0; i < difficultySteps; i++) {
-    speed = Math.round(speed * (i < 2 ? 103 : 106) / 100);
+    speed = Math.round(speed * (i < 2 ? 103 : (i + 1) % 4 === 0 ? 110 : 106) / 100);
   }
   for (const p of s.pipes) {
     p.x -= speed;
