@@ -2173,3 +2173,19 @@ body:has(.flappy-game-page) .site-footer{
  .flappy-game-page .flappy-start-actions > .button,.flappy-game-page .flappy-start-actions > .flappy-inline-help,.flappy-game-page .flappy-score-button{box-sizing:border-box!important;width:100%!important;min-width:0!important;height:52px!important;min-height:52px!important;padding:.65rem .75rem!important;margin:0!important;border-radius:16px!important;}
  .flappy-game-page .flappy-start-actions > .flappy-inline-help{max-width:none!important;justify-self:stretch!important;}
 }
+
+/* Flappy: contain decorative strips within rounded score cards on desktop and mobile. */
+.flappy-game-page .flappy-ranking .scores-ranking-panel,
+.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
+  overflow: hidden;
+  isolation: isolate;
+  clip-path: inset(0 round 25px);
+}
+.flappy-game-page .flappy-personal-weekly__rule {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.flappy-game-page .flappy-ready-frame {
+  overflow: hidden;
+  border-radius: 20px;
+}
