@@ -1,4 +1,5 @@
 "use client";
+import { useFlappyInvisibleCheck } from "./flappy-invisible-check";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
@@ -13,6 +14,7 @@ import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode }) {
   const es = language === "es";
+  const { begin: beginVerification, finish: finishVerification, stop: stopVerification, widget: verificationWidget } = useFlappyInvisibleCheck();
   const canvas = useRef<HTMLCanvasElement>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
   const forestImage = useRef<HTMLImageElement | null>(null);
@@ -101,6 +103,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
   }, [refreshAvailability]);
   const errorMessage = (code: string) => {
     const messages: Record<string, [string, string]> = {
+      verification_unavailable: ["No se pudo completar la verificación. La partida no se registró. Inténtalo de nuevo.", "Verification could not be completed. The race was not recorded. Please try again."],
       verified_email_required: ["Verifica tu correo antes de competir.", "Verify your email before competing."],
       identity_conflict: ["Esta identidad ya está asociada a otra cuenta. Contacta con administración.", "This identity is already associated with another account. Contact administration."],
       attempts_exhausted: ["No quedan partidas disponibles. Espera a recuperar un intento.", "No races remaining. Wait for your next attempt."],
@@ -116,7 +119,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
   };
   const blocked = !authenticated || !FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || (availability.remaining === 0 && !availability.exempt) || availability.activeUntil !== null;
   const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-  const fail = useCallback(() => { running.current = false; if (mounted.current) { setResult(null); setStatus("rejected"); } }, []);
+  const fail = useCallback(() => { running.current = false; stopVerification(); if (mounted.current) { setResult(null); setStatus("rejected"); } }, [stopVerification]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
   const start = useCallback(async () => {
@@ -130,6 +133,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
       void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
+      beginVerification(session.sessionId, session.turnstile);
       const seed = session.seed;
       engine.current = initialFlappy(seed); inputs.current = []; pendingFlap.current = false;
       nextCheckpoint.current = 300;
@@ -140,7 +144,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
     finally { busy.current = false; void refreshAvailability(); }
-  }, [authenticated, blocked, fail, refreshAvailability]);
+  }, [authenticated, blocked, fail, refreshAvailability, beginVerification]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -152,7 +156,9 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
       if (busy.current || !official.current) { fail(); return; }
       busy.current = true; setStatus("validating");
       try {
+        await finishVerification(Date.parse(official.current.startsAt) + engine.current.tick * 1000 / 60).catch(error => { setOfficialError("verification_unavailable"); throw error; });
         const verified = await finalizeFlappyOfficial(official.current, engine.current, inputs.current);
+        stopVerification();
         if (mounted.current) { setResult(verified); setStatus("over"); }
       } catch { fail(); }
       finally { busy.current = false; }
@@ -246,7 +252,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     }
     raf=requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("keydown",key); };
-  }, [flap, fail]);
+  }, [flap, fail, finishVerification, stopVerification]);
   // A collision may occur while its prior checkpoint is in flight. Finish only
   // after that request settles; never send concurrent mutation requests.
   useEffect(() => {
@@ -255,12 +261,15 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     const timer = window.setInterval(async () => {
       if (busy.current || !active || !official.current) return;
       busy.current=true; window.clearInterval(timer);
-      try { const verified=await finalizeFlappyOfficial(official.current,engine.current,inputs.current);
+      try {
+        await finishVerification(Date.parse(official.current.startsAt) + engine.current.tick * 1000 / 60).catch(error => { setOfficialError("verification_unavailable"); throw error; });
+        const verified=await finalizeFlappyOfficial(official.current,engine.current,inputs.current);
+        stopVerification();
         if(active) {setResult(verified);setStatus("over");}
       } catch { if(active) fail(); } finally {busy.current=false;}
     },100);
     return () => {active=false;window.clearInterval(timer);};
-  },[status,result,fail]);
+  },[status,result,fail,finishVerification,stopVerification]);
   useEffect(() => {
     if (!["over","rejected"].includes(status) || rewardExpanded) return;
     const timer = window.setTimeout(() => {
@@ -277,6 +286,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
+    {verificationWidget}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
@@ -285,6 +295,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
         <h2>GAME OVER</h2>
+        {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {terminal ? <FlappyRewardOptions es={es} onOpenChange={setRewardExpanded} /> : null}
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}

@@ -9,6 +9,7 @@ type TurnstileApi = Readonly<{
     action: "otp_request" | "weekly_leader_verification" | "midrun_human_check";
     size: "flexible" | "invisible";
     execution?: "execute";
+    cData?: string;
     appearance?: "interaction-only";
     callback: (token: string) => void;
     "expired-callback": () => void;

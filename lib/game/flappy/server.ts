@@ -8,6 +8,7 @@ import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { isGameAccessHeld } from "@/lib/security/auth-401-review";
 import { FLAPPY_COMPETITION_ENABLED } from "./activation";
 import { FLAPPY_VERSION, MAX_TICKS, parseFlaps, replayFlappy } from "./engine";
+import { getTurnstileWidgetConfiguration } from "@/lib/security/turnstile";
 type Action = "start" | "checkpoint" | "finalize";
 type Deps = { access: (player: string) => Promise<"allowed" | "review_required" | "terms_required">; enabled: boolean; user: () => Promise<string | null>; admin: typeof createAdminClient; now: () => number };
 export async function flappyPlayerAccess(player: string): Promise<"allowed" | "review_required" | "terms_required"> {
@@ -45,6 +46,10 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const b = body as Record<string, unknown>;
     if (action === "start") {
       if (Object.keys(b).length) return reject(action, 400, "invalid_body");
+      const gate = await admin.rpc("flappy_turnstile_enabled");
+      if (gate.error || typeof gate.data !== "boolean") return reject(action, 503, "verification_unavailable");
+      const turnstile = gate.data ? getTurnstileWidgetConfiguration("midrun_human_check") : null;
+      if (gate.data && !turnstile) return reject(action, 503, "verification_unavailable");
       const identity = await recordCompetitionAccess(player, "flappy-race", request);
       if (identity !== "allowed") return NextResponse.json({ message: competitionAccessMessage(identity), code: identity }, { status: identity === "unavailable" ? 503 : 403, headers });
       const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: randomInt(0x100000000), p_version: FLAPPY_VERSION });
@@ -52,7 +57,13 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");
       if (error?.code === "P0001" && error.message === "Concurrent session") return reject(action, 409, "session_active");
       if (error || !data) return reject(action, error?.code === "P0001" ? 409 : 503, "start_rejected");
-      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString() }, { headers });
+      let verification;
+      if (turnstile) {
+        const check = await admin.rpc("flappy_turnstile_status", { p_player: player, p_session: data.sessionId });
+        if (check.error || !check.data?.required) return reject(action, 503, "verification_unavailable");
+        verification = { ...check.data, siteKey: turnstile.siteKey };
+      }
+      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString(), turnstile: verification }, { headers });
     }
     if (Object.keys(b).length !== 3 || typeof b.sessionId !== "string" || !UUID.test(b.sessionId) ||
         typeof b.throughTick !== "number") return reject(action, 400, "invalid_body");

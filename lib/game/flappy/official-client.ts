@@ -1,7 +1,8 @@
 "use client";
 import { FLAPPY_VERSION, type FlappyState, MAX_INPUTS } from "./engine";
 import { parseFlappyAvailability, type FlappyAvailability } from "./availability";
-export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; serverNow: string; expiresAt: string };
+import type { FlappyCheckConfiguration } from "./invisible-verification";
+export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; serverNow: string; expiresAt: string; turnstile?: FlappyCheckConfiguration };
 export type FlappyResult = { score: number; collisionTick: number; eligibility: "under_review"; verification: "replay_verified" };
 export class FlappyOfficialError extends Error {
  constructor(public code: string) { super("Official FlappyRace request unavailable."); }
@@ -15,7 +16,7 @@ async function request(url: string, body?: unknown) {
   }); } catch { throw new FlappyOfficialError("connection_error"); }
   if (!response.ok) {
     let code = "service_unavailable";
-    try { const error = await response.json(); if (["verified_email_required","identity_conflict","unauthenticated","terms_required","review_required","rate_limited","start_rejected","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED"].includes(error.code)) code = error.code; } catch {}
+    try { const error = await response.json(); if (["verified_email_required","identity_conflict","unauthenticated","terms_required","review_required","rate_limited","start_rejected","verification_unavailable","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED"].includes(error.code)) code = error.code; } catch {}
     throw new FlappyOfficialError(code);
   }
   return response.json();
@@ -28,6 +29,8 @@ export async function startFlappyOfficial(): Promise<FlappySession> {
   const session = await post("start", {}) as FlappySession;
   if (session.version !== FLAPPY_VERSION || !Number.isInteger(session.seed) ||
       !Number.isFinite(Date.parse(session.startsAt)) || !Number.isFinite(Date.parse(session.serverNow)) || Date.parse(session.startsAt) <= Date.parse(session.serverNow) || !Number.isFinite(Date.parse(session.expiresAt))) throw new Error("Invalid official session");
+  if (session.turnstile && (session.turnstile.required !== true || typeof session.turnstile.siteKey !== "string" ||
+      !session.turnstile.siteKey || !Number.isFinite(Date.parse(session.turnstile.serverNow)) || !Number.isFinite(Date.parse(session.turnstile.nextDueAt!)))) throw new Error("Invalid verification configuration");
   return session;
 }
 export async function checkpointFlappyOfficial(session: FlappySession, state: FlappyState, inputs: number[]): Promise<void> {

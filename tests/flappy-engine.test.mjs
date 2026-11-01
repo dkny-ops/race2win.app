@@ -8,7 +8,7 @@ function load(path, imports = {}) {
   const source = readFileSync(new URL("../"+path, import.meta.url),"utf8");
   const module = { exports:{} };
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  new Function("module","exports","require",code)(module,module.exports,name=>name in imports?imports[name]:require(name));
+  new Function("module","exports","require",code)(module,module.exports,name=>name in imports?imports[name]:name==="@/lib/security/turnstile"?{getTurnstileWidgetConfiguration:()=>null}:require(name));
   return module.exports;
 }
 const e=load("lib/game/flappy/engine.ts");
@@ -97,14 +97,20 @@ test("player access reuses the existing hold and terms policy scoped to verified
 
 test("official START returns a server clock reference for monotonic client scheduling",async()=>{
  const now=Date.parse("2026-10-26T04:00:00Z");
- const admin=()=>({rpc:async(name)=>name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null}});
+ const admin=()=>({rpc:async(name)=>name==="flappy_turnstile_enabled"?{data:false,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null}});
  const r=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now});
  assert.equal(r.status,200);assert.equal((await r.json()).serverNow,new Date(now).toISOString());
 });
 
 test("start reports exhausted rolling limit, active session and server errors separately", async () => {
  for (const [message, dbcode, status, code] of [["Hourly limit","P0001",429,"attempts_exhausted"],["Concurrent session","P0001",409,"session_active"],["secret SQL failure","XX000",503,"start_rejected"]]) {
-  const response = await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now});
+  const response = await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_turnstile_enabled"?{data:false,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now});
   assert.equal(response.status,status); assert.equal((await response.json()).code,code);
  }
+});
+
+test("enabled Flappy verification requires provider configuration before consuming a game attempt",async()=>{
+ const calls=[];
+ const r=await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return {data:true,error:null};}}),now:Date.now});
+ assert.equal(r.status,503);assert.equal((await r.json()).code,"verification_unavailable");assert.ok(!calls.includes("flappy_start"));
 });

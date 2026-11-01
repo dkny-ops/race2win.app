@@ -5,13 +5,14 @@ export type TurnstileAction = "otp_request" | "weekly_leader_verification" | "mi
 
 type Verification =
   | Readonly<{ status: "verified" }>
-  | Readonly<{ status: "rejected"; reason: "missing_token" | "invalid_token" | "provider_rejected" | "expired_or_reused" | "action_mismatch" | "hostname_mismatch" }>
+  | Readonly<{ status: "rejected"; reason: "missing_token" | "invalid_token" | "provider_rejected" | "expired_or_reused" | "action_mismatch" | "hostname_mismatch" | "challenge_mismatch" }>
   | Readonly<{ status: "unavailable"; reason: "disabled" | "missing_configuration" | "provider_unavailable" }>;
 
 type SiteverifyResponse = Readonly<{
   success?: unknown;
   action?: unknown;
   hostname?: unknown;
+  cdata?: unknown;
   "error-codes"?: unknown;
 }>;
 
@@ -100,7 +101,7 @@ function isReuse(response: SiteverifyResponse): boolean {
 export async function verifyTurnstileToken(
   token: unknown,
   expectedAction: TurnstileAction,
-  options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number }> = {},
+  options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number; expectedCdata?: string }> = {},
 ): Promise<Verification> {
   if (process.env.TURNSTILE_ENFORCEMENT_ENABLED !== "true") return { status: "unavailable", reason: "disabled" };
   const config = configuration(expectedAction);
@@ -112,7 +113,7 @@ async function verifyConfiguredToken(
   token: unknown,
   expectedAction: TurnstileAction,
   config: Configuration,
-  options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number }>,
+  options: Readonly<{ fetchImpl?: TurnstileFetch; timeoutMs?: number; expectedCdata?: string }>,
   adaptiveDiagnostics = false,
 ): Promise<Verification> {
   if (typeof token !== "string" || token.length === 0) return { status: "rejected", reason: "missing_token" };
@@ -152,6 +153,7 @@ async function verifyConfiguredToken(
     const body = result as SiteverifyResponse;
     if (!body.success) return isReuse(body) ? { status: "rejected", reason: "expired_or_reused" } : { status: "rejected", reason: "provider_rejected" };
     if (body.action !== expectedAction) return { status: "rejected", reason: "action_mismatch" };
+    if (options.expectedCdata !== undefined && body.cdata !== options.expectedCdata) return { status: "rejected", reason: "challenge_mismatch" };
     if (typeof body.hostname !== "string" || !config.allowedHostnames.has(body.hostname.toLowerCase())) return { status: "rejected", reason: "hostname_mismatch" };
     return { status: "verified" };
   } catch (error) {
