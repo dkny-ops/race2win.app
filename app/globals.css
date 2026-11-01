@@ -2058,7 +2058,7 @@ body:has(.flappy-game-page .rtw-play-count) .site-header .profile-link > span:la
   aspect-ratio:3/4;object-fit:contain!important;border:0!important;border-radius:0!important;
  }
  .flappy-game-page .flappy-active-frame{
-  background:linear-gradient(#071a2c26,#071a2c26),url('/images/flappy-forest-background.jpg') center/cover no-repeat!important;
+  background:linear-gradient(#071a2c26,#071a2c26),url('/images/flappy-game-background.webp') center/cover no-repeat!important;
  }
 }
 

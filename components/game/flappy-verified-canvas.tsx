@@ -16,7 +16,9 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
   const canvas = useRef<HTMLCanvasElement>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
   const forestImage = useRef<HTMLImageElement | null>(null);
-  useEffect(() => { const img = new Image(); img.src="/images/flappy-forest-background.jpg"; img.onload=()=>{forestImage.current=img;}; return ()=>{img.onload=null; forestImage.current=null;}; }, []);
+  const obstacleImage = useRef<HTMLImageElement | null>(null);
+  useEffect(() => { const img = new Image(); img.src="/images/flappy-obstacle-trunk.png"; img.onload=()=>{obstacleImage.current=img;}; return ()=>{img.onload=null;obstacleImage.current=null;}; }, []);
+  useEffect(() => { const img = new Image(); img.src="/images/flappy-game-background.webp"; img.onload=()=>{forestImage.current=img;}; return ()=>{img.onload=null; forestImage.current=null;}; }, []);
   useEffect(() => {
     const img = new Image();
     img.src="/images/Flappy-bird%20.png";
@@ -203,13 +205,27 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
         // The uploaded forest artwork is the actual background; obstacles remain independent.
         const forest=forestImage.current;
         if(forest?.complete && forest.naturalWidth>0){
-          ctx.drawImage(forest,0,0,forest.naturalWidth,forest.naturalHeight,0,0,360,480);
+          // Cover the portrait canvas without stretching the wide artwork.
+          const cropWidth = Math.min(forest.naturalWidth, forest.naturalHeight * .75);
+          const cropHeight = Math.min(forest.naturalHeight, forest.naturalWidth / .75);
+          ctx.drawImage(forest,(forest.naturalWidth-cropWidth)/2,(forest.naturalHeight-cropHeight)/2,cropWidth,cropHeight,0,0,360,480);
         }else{
           ctx.fillStyle="#275d4d";ctx.fillRect(0,0,360,480);
         }
         for(const p of g.pipes){
           const x=p.x/100, top=(p.gap-7500)/100, bottom=(p.gap+7500)/100;
-          const trunk=(y: number,h: number,capY: number)=>{
+          const trunk=(y: number,h: number,capY: number,lower=false)=>{
+            const obstacle=obstacleImage.current;
+            if(obstacle?.complete && obstacle.naturalWidth>0 && h>0){
+              // The bark stays on the existing 54px collision column.
+              // Crop the transparent padding; moss is a separate 12px cap.
+              const capHeight=Math.min(12,h),bodyHeight=h-capHeight;
+              ctx.save();ctx.translate(x,lower ? y+h : y);
+              if(lower)ctx.scale(1,-1);
+              if(bodyHeight>0)ctx.drawImage(obstacle,264,0,280,1770,0,0,54,bodyHeight);
+              ctx.drawImage(obstacle,239,1770,325,125,-4,bodyHeight,62,capHeight);
+              ctx.restore();return;
+            }
             ctx.fillStyle="#6b4128";ctx.fillRect(x,y,54,h);
             ctx.fillStyle="#9b6740";ctx.fillRect(x+8,y,7,h);
             ctx.fillStyle="#422c22";ctx.fillRect(x+36,y,5,h);
@@ -219,7 +235,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
             ctx.beginPath();ctx.moveTo(x+40,y);ctx.bezierCurveTo(x+16,y+h*.25,x+64,y+h*.6,x+24,y+h);ctx.stroke();
           };
           trunk(0,Math.max(0,top),Math.max(0,top-10));
-          trunk(bottom,Math.max(0,480-bottom),bottom);
+          trunk(bottom,Math.max(0,480-bottom),bottom,true);
         }
         if(birdImage.current?.complete && birdImage.current.naturalWidth){ctx.drawImage(birdImage.current,62,g.y/100-20,40,40);}else{ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();}
         
