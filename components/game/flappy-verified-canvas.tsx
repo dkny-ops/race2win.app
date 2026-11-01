@@ -293,6 +293,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     <div className="flappy-start-actions">
       <Link href="/" className="button button--secondary">← BACK TO HOME</Link>
       {!expanded ? <div className="rtw-game-local-share"><ShareGameButton game="flappy-race" /></div> : null}
+      <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy flappy-inline-help" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link>
     </div>
     <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
     {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
