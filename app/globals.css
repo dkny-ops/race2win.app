@@ -2002,3 +2002,43 @@ body:has(.page-section .rtw-play-count) .site-header .brand .site-brand-flappy{d
   max-width:min(640px,calc((100svh - var(--flappy-banner-height) - 96px) * .75))!important;
  }
 }
+
+/* Flappy start header: share-style controls, navigation left and account right. */
+body:has(.flappy-game-page .rtw-play-count) .site-header .desktop-nav > a:not(.game-desktop-back-home),
+body:has(.flappy-game-page .rtw-play-count) .site-header .site-language-settings__trigger,
+body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions > a,
+body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions .logout-button{
+ display:inline-flex;align-items:center;justify-content:center;gap:.55rem;
+ min-height:36px;padding:.35rem .65rem;
+ border:1px solid rgba(161,219,255,.45);border-radius:0;
+ background:rgba(4,21,39,.62);color:var(--white);
+ font:900 .68rem Arial,Helvetica,sans-serif;letter-spacing:.14em;
+ white-space:nowrap;cursor:pointer;text-decoration:none;
+ transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
+}
+body:has(.flappy-game-page .rtw-play-count) .site-header .desktop-nav > a:not(.game-desktop-back-home):hover,
+body:has(.flappy-game-page .rtw-play-count) .site-header .site-language-settings__trigger:hover,
+body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions > a:hover,
+body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions .logout-button:hover{
+ transform:translateY(-2px);box-shadow:0 0 28px rgba(39,169,255,.62);
+}
+body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions{gap:.6rem}
+body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions form{margin:0}
+body:has(.flappy-game-page .rtw-play-count) .site-header .profile-link .avatar-icon{width:18px;font-size:.7rem}
+body:has(.flappy-game-page .rtw-play-count) .site-header .profile-link > span:last-child{
+ max-width:180px;overflow:hidden;text-overflow:ellipsis;
+}
+@media(min-width:981px){
+ body:has(.flappy-game-page .rtw-play-count) .site-header .desktop-nav{
+  justify-content:flex-start;justify-self:start;margin-left:0;margin-right:auto;
+ }
+ body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions{
+  justify-content:flex-end;justify-self:end;margin-left:auto;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body:has(.flappy-game-page .rtw-play-count) .site-header .desktop-nav > a,
+ body:has(.flappy-game-page .rtw-play-count) .site-header .site-language-settings__trigger,
+ body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions > a,
+ body:has(.flappy-game-page .rtw-play-count) .site-header .logout-button{transition:none}
+}
