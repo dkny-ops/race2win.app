@@ -92,7 +92,7 @@ export default async function AdminPrizeReviewPage() {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
       const playerFlags = (flags.data ?? []).filter((flag) => flag.player_id === entry.player_id);
       const name = identities.get(entry.player_id)?.username || "Usuario no disponible";
-      const scheduledPrizeCents = entry.rank_position === 1 ? 1500 : entry.rank_position === 2 ? 300 : 200;
+      const scheduledPrizeCents = entry.rank_position === 1 ? 500 : entry.rank_position === 2 ? 300 : 200;
       return <article className="profile-card" key={entry.player_id} style={{ marginTop: "1rem", padding: "1.25rem", border: "1px solid rgba(255,255,255,.2)", borderRadius: 14 }}>
         <h2 style={{ marginBottom: "0.35rem" }}>#{entry.rank_position} · {name}</h2>
         <p style={{ opacity: 0.75, fontSize: "0.85rem", marginBottom: "1rem" }}>ID de jugador (abreviado): {entry.player_id.slice(0, 8)} · Identificador de cuenta, no puntuación</p>
