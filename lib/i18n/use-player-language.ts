@@ -5,32 +5,15 @@ import { useEffect, useState } from "react";
 export type PlayerLanguage = "en" | "es";
 const STORAGE_KEY = "raceToWinLanguage";
 
+// English is the only public website language. Keep the hook API for existing consumers.
 export function usePlayerLanguage(): [PlayerLanguage, (language: PlayerLanguage) => void] {
-  const [language, setLanguage] = useState<PlayerLanguage>("en");
+  const [language] = useState<PlayerLanguage>("en");
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(STORAGE_KEY);
-      const detected = navigator.languages?.[0] || navigator.language || "en";
-      setLanguage(saved === "en" || saved === "es" ? saved : detected.toLowerCase().startsWith("es") ? "es" : "en");
-    } catch {
-      setLanguage((navigator.language || "en").toLowerCase().startsWith("es") ? "es" : "en");
-    }
+    document.documentElement.lang = "en";
+    try { window.localStorage.setItem(STORAGE_KEY, "en"); } catch { /* Storage may be disabled. */ }
   }, []);
-  const chooseLanguage = (next: PlayerLanguage) => {
-    setLanguage(next);
-    try { window.localStorage.setItem(STORAGE_KEY, next); } catch { /* Storage may be disabled. */ }
-    window.dispatchEvent(new Event("rtw-language-change"));
+  const chooseLanguage = (_next: PlayerLanguage) => {
+    try { window.localStorage.setItem(STORAGE_KEY, "en"); } catch { /* Storage may be disabled. */ }
   };
-  useEffect(() => {
-    const sync = () => {
-      try {
-        const saved = window.localStorage.getItem(STORAGE_KEY);
-        if (saved === "en" || saved === "es") setLanguage(saved);
-      } catch { /* Ignore blocked storage. */ }
-    };
-    window.addEventListener("rtw-language-change", sync);
-    return () => window.removeEventListener("rtw-language-change", sync);
-  }, []);
   return [language, chooseLanguage];
 }
-
