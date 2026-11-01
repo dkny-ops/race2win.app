@@ -2174,12 +2174,19 @@ body:has(.flappy-game-page) .site-footer{
  .flappy-game-page .flappy-start-actions > .flappy-inline-help{max-width:none!important;justify-self:stretch!important;}
 }
 
-/* Flappy: contain decorative strips within rounded score cards on desktop and mobile. */
+/* Flappy results: round the OUTERMOST visible section and clip its background. */
+.flappy-game-page .flappy-ranking,
+.flappy-game-page .flappy-personal-weekly {
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  clip-path: inset(0 round 22px);
+}
 .flappy-game-page .flappy-ranking .scores-ranking-panel,
 .flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
-  overflow: hidden;
-  isolation: isolate;
-  clip-path: inset(0 round 25px);
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 .flappy-game-page .flappy-personal-weekly__rule {
   border-radius: 8px;
@@ -2188,29 +2195,4 @@ body:has(.flappy-game-page) .site-footer{
 .flappy-game-page .flappy-ready-frame {
   overflow: hidden;
   border-radius: 20px;
-}
-
-/* Flappy results: remove the outer rounded card outline, not the score rows. */
-.flappy-game-page .flappy-ranking .scores-ranking-panel,
-.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  clip-path: none !important;
-  overflow: visible;
-  background: transparent !important;
-  isolation: auto;
-}
-.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel::before {
-  content: none !important;
-}
-
-/* Flappy results: rounded card corners without restoring unwanted outer outlines. */
-.flappy-game-page .flappy-ranking .scores-ranking-panel,
-.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
-  border-radius: 20px !important;
-  overflow: hidden;
-  border: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
 }
