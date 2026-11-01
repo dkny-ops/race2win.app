@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 import { FlappyVerifiedCanvas } from "./flappy-verified-canvas";
 import { FlappyRankingTable } from "@/components/scores/flappy-ranking";

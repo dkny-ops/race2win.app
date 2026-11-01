@@ -2117,3 +2117,9 @@ body:has(.flappy-game-page) .site-footer{
 @media(prefers-reduced-motion:reduce){
  .flappy-score-button{transition:none}
 }
+
+/* Swap result controls and help without changing the game canvas. */
+.flappy-top-results{margin:36px auto 28px;position:relative;z-index:3;}
+.flappy-top-results .flappy-score-controls{margin:0 auto;}
+.flappy-race-page .flappy-bottom-help{margin:1rem auto!important;}
+@media(min-width:981px){.flappy-top-results{margin-top:44px;}}

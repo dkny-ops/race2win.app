@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
 import { AudioPlayer } from "@/components/layout/site-audio";
@@ -11,7 +11,7 @@ import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, check
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
-export function FlappyVerifiedCanvas({ language, authenticated }: { language: "en" | "es"; authenticated: boolean }) {
+export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode }) {
   const es = language === "es";
   const canvas = useRef<HTMLCanvasElement>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
@@ -273,7 +273,7 @@ export function FlappyVerifiedCanvas({ language, authenticated }: { language: "e
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
-    {!expanded && status === "ready" ? <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link> : null}
+    {!expanded && status === "ready" ? <div className="flappy-top-results">{scoreControls}</div> : null}
     <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:".75rem",flexWrap:"wrap",margin:"1rem auto .5rem"}}>
       <Link href="/" className="button button--secondary">← BACK TO HOME</Link>
       {!expanded ? <div className="rtw-game-local-share"><ShareGameButton game="flappy-race" /></div> : null}
