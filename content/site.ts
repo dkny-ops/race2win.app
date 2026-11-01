@@ -28,7 +28,7 @@ export const FAQS: FaqItem[] = [
   {
     question: "Will there be prizes?",
     answer:
-      "Weekly prizes are $15 for first place, $3 for second, and $2 for third, subject to eligibility and manual administrator approval. Payments are never automatic.",
+      "Each game awards $5 for first place, $3 for second, and $2 for third weekly, subject to eligibility and manual administrator approval. Payments are never automatic.",
   },
   {
     question: "Will I need an account?",
