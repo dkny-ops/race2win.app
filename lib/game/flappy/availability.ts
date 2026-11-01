@@ -1,6 +1,7 @@
 export type FlappyAvailability = {
   limit: 5;
   remaining: number;
+  exempt?: boolean;
   serverNow: string;
   nextAvailableAt: string | null;
   activeUntil: string | null;
@@ -13,5 +14,6 @@ export function parseFlappyAvailability(value: unknown): FlappyAvailability {
       (a.nextAvailableAt !== null && !Number.isFinite(Date.parse(a.nextAvailableAt))) ||
       (a.activeUntil !== null && !Number.isFinite(Date.parse(a.activeUntil))) ||
       (a.remaining < 5 && a.nextAvailableAt === null)) throw new Error("Invalid availability");
+  if (a.exempt !== undefined && typeof a.exempt !== "boolean") throw new Error("Invalid availability");
   return a;
 }
