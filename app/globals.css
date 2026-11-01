@@ -2166,3 +2166,10 @@ body:has(.flappy-game-page) .site-footer{
  .flappy-game-page .flappy-start-actions > .flappy-inline-help{display:inline-flex!important;grid-column:2;grid-row:1;width:100%;min-height:52px;margin:0!important;}
  .flappy-game-page .flappy-bottom-help:not(.flappy-inline-help){display:none!important;}
 }
+
+/* Desktop Flappy: identical widths/heights for all four controls. */
+@media(min-width:981px){
+ .flappy-game-page .flappy-score-controls,.flappy-game-page .flappy-start-actions{width:min(100%,560px)!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:.8rem!important;}
+ .flappy-game-page .flappy-start-actions > .button,.flappy-game-page .flappy-start-actions > .flappy-inline-help,.flappy-game-page .flappy-score-button{box-sizing:border-box!important;width:100%!important;min-width:0!important;height:52px!important;min-height:52px!important;padding:.65rem .75rem!important;margin:0!important;border-radius:16px!important;}
+ .flappy-game-page .flappy-start-actions > .flappy-inline-help{max-width:none!important;justify-self:stretch!important;}
+}
