@@ -8,11 +8,12 @@ import { FlappyPersonalWeeklyScore } from "@/components/scores/flappy-personal-w
 
 export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
  const [language] = usePlayerLanguage();
- const [leaderboardOpen, setLeaderboardOpen] = useState(false);
- const [weeklyOpen, setWeeklyOpen] = useState(false);
+ const [openPanel, setOpenPanel] = useState<"leaderboard" | "weekly" | null>(null);
+ const leaderboardOpen = openPanel === "leaderboard";
+ const weeklyOpen = openPanel === "weekly";
  const scoreControls = <div className="flappy-score-controls">
-   <button className="flappy-score-button" type="button" aria-expanded={leaderboardOpen} aria-controls="flappy-leaderboard-panel" onClick={() => setLeaderboardOpen(!leaderboardOpen)}>LEADERBOARD</button>
-   <button className="flappy-score-button" type="button" aria-expanded={weeklyOpen} aria-controls="flappy-weekly-panel" onClick={() => setWeeklyOpen(!weeklyOpen)}>WEEKLY SCORE</button>
+   <button className="flappy-score-button" type="button" aria-expanded={leaderboardOpen} aria-controls="flappy-leaderboard-panel" onClick={() => setOpenPanel(leaderboardOpen ? null : "leaderboard")}>LEADERBOARD</button>
+   <button className="flappy-score-button" type="button" aria-expanded={weeklyOpen} aria-controls="flappy-weekly-panel" onClick={() => setOpenPanel(weeklyOpen ? null : "weekly")}>WEEKLY SCORE</button>
  </div>;
  return <div className="flappy-race-page" style={{ marginTop: ".75rem" }}>
    <FlappyVerifiedCanvas language={language} authenticated={authenticated} scoreControls={scoreControls} />
