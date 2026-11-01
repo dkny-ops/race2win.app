@@ -2081,3 +2081,8 @@ body:has(.flappy-game-page) .site-footer{
 @media(max-width:980px){
  body:has(.flappy-game-page)::before{background-position:center top;}
 }
+
+/* Flappy start screen: softly rounded playfield corners. */
+.flappy-game-page .flappy-ready-frame > canvas{
+ border-radius:20px!important;
+}
