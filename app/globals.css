@@ -2153,3 +2153,6 @@ body:has(.flappy-game-page) .site-footer{
  .flappy-game-page .flappy-bottom-help{min-height:46px;padding:.5rem .35rem;letter-spacing:.035em;font-size:clamp(.6rem,2.7vw,.78rem);}
  .flappy-game-page .flappy-bottom-help{width:calc(50% - .25rem);}
 }
+
+/* Flappy SHARE: only the outer action has a frame; remove the nested button frame. */
+.flappy-game-page .flappy-start-actions .rtw-game-local-share button{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;min-height:50px!important;}
