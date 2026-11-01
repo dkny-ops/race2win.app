@@ -2156,3 +2156,13 @@ body:has(.flappy-game-page) .site-footer{
 
 /* Flappy SHARE: only the outer action has a frame; remove the nested button frame. */
 .flappy-game-page .flappy-start-actions .rtw-game-local-share button{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;min-height:50px!important;}
+
+/* Flappy desktop: keep mobile help below, put desktop help beside Back to Home. */
+.flappy-game-page .flappy-inline-help{display:none!important;}
+@media(min-width:981px){
+ .flappy-game-page .flappy-start-actions{grid-template-rows:auto auto;}
+ .flappy-game-page .flappy-start-actions > .button{grid-column:1;grid-row:1;}
+ .flappy-game-page .flappy-start-actions > .rtw-game-local-share{display:none;}
+ .flappy-game-page .flappy-start-actions > .flappy-inline-help{display:inline-flex!important;grid-column:2;grid-row:1;width:100%;min-height:52px;margin:0!important;}
+ .flappy-game-page .flappy-bottom-help:not(.flappy-inline-help){display:none!important;}
+}
