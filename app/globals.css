@@ -355,7 +355,7 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .player-profile-page {
   background: radial-gradient(ellipse at 50% 10%, rgba(22, 102, 193, .18), transparent 58%), #030b17;
 }
-.player-profile-page .narrow { max-width: 780px; }
+.player-profile-page .narrow { max-width: 780px; margin-inline: auto; }
 .player-profile-heading {
   margin-bottom: clamp(1.4rem, 4vw, 2.2rem);
   padding: clamp(1.3rem, 4vw, 2.2rem);
