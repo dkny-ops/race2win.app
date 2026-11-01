@@ -3,6 +3,11 @@ export const FLAPPY_VERSION = "flappy-v1";
 export const MAX_TICKS = 36_000;
 export const MAX_INPUTS = 6_000;
 export const MIN_FLAP_TICKS = 4;
+// Narrow the 150px pipe opening by 1% every 90 seconds, capped at 20%.
+export function flappyGapHalf(tick: number): number {
+  const steps = Math.min(20, Math.floor(tick / 5400));
+  return Math.round(7500 * (100 - steps) / 100);
+}
 export type Pipe = { x: number; gap: number; passed: boolean };
 export type FlappyState = { tick: number; y: number; vy: number; pipes: Pipe[]; score: number; dead: boolean; rng: number };
 export function initialFlappy(seed: number): FlappyState {
@@ -28,10 +33,11 @@ export function stepFlappy(s: FlappyState, flap: boolean): void {
   for (let i = 0; i < difficultySteps; i++) {
     speed = Math.round(speed * (i < 2 ? 103 : (i + 1) % 4 === 0 ? 110 : 106) / 100);
   }
+  const gapHalf = flappyGapHalf(s.tick);
   for (const p of s.pipes) {
     p.x -= speed;
     if (!p.passed && p.x + 5400 < 8200) { p.passed = true; s.score++; }
-    if (9500 > p.x && 6900 < p.x + 5400 && (s.y - 1300 < p.gap - 7500 || s.y + 1300 > p.gap + 7500)) s.dead = true;
+    if (9500 > p.x && 6900 < p.x + 5400 && (s.y - 1300 < p.gap - gapHalf || s.y + 1300 > p.gap + gapHalf)) s.dead = true;
   }
   s.pipes = s.pipes.filter(p => p.x > -5400);
   if (s.y < 1300 || s.y > 44400) s.dead = true;
