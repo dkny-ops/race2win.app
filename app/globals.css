@@ -2010,7 +2010,7 @@ body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions > a,
 body:has(.flappy-game-page .rtw-play-count) .site-header .header-actions .logout-button{
  display:inline-flex;align-items:center;justify-content:center;gap:.55rem;
  min-height:36px;padding:.35rem .65rem;
- border:1px solid rgba(161,219,255,.45);border-radius:0;
+ border:1px solid rgba(161,219,255,.45);border-radius:12px;
  background:rgba(4,21,39,.62);color:var(--white);
  font:900 .68rem Arial,Helvetica,sans-serif;letter-spacing:.14em;
  white-space:nowrap;cursor:pointer;text-decoration:none;
