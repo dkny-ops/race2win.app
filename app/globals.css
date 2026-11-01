@@ -2189,3 +2189,18 @@ body:has(.flappy-game-page) .site-footer{
   overflow: hidden;
   border-radius: 20px;
 }
+
+/* Flappy results: remove the outer rounded card outline, not the score rows. */
+.flappy-game-page .flappy-ranking .scores-ranking-panel,
+.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+  overflow: visible;
+  background: transparent !important;
+  isolation: auto;
+}
+.flappy-game-page .flappy-personal-weekly .flappy-personal-weekly__panel::before {
+  content: none !important;
+}
