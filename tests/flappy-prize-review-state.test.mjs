@@ -10,7 +10,7 @@ function load({authorized=true,state='approved',winnerStatus=null,rpcError=false
  const fixtures={
   games:{id:'flappy-only'},
   weekly_tournament_totals:[{player_id:player,tournament_week_start:'2026-10-19',weekly_total_score:100,rank_position:1,tie_break_status:'resolved'}],
-  fraud_flags:[],daily_top_scores:[],profiles:[{user_id:player,username:'SyntheticPlayer'}],
+  fraud_flags:[],daily_top_scores:[],prize_balances:[{player_id:player,available_cents:0}],profiles:[{user_id:player,username:'SyntheticPlayer'}],
   provisional_winners:winnerStatus?[{player_id:player,award_type:'weekly_tournament',amount_cents:500,status:winnerStatus}]:[],
  };
  const admin={
@@ -25,7 +25,7 @@ function load({authorized=true,state='approved',winnerStatus=null,rpcError=false
  const imports={
   'react/jsx-runtime':require('react/jsx-runtime'),'next/link':()=>null,
   'next/navigation':{notFound:()=>{throw missing;}},
-  './prize-controls':{FlappyPrizeControls:controls},'../block-player-control':{BlockPlayerControl:()=>null},
+  './prize-controls':{FlappyPrizeControls:controls},'../balance-history':{BalanceHistory:()=>null},'../block-player-control':{BlockPlayerControl:()=>null},
   '@/lib/security/prize-admin':{getAuthorizedPrizeAdmin:async()=>authorized?{context:{userId:actor},admin}:null},
   '@/lib/competition/scores':{currentNewYorkTournamentWeek:()=> '2026-10-26'},
  };
