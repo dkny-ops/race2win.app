@@ -85,6 +85,17 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <GameCardShareButton game="flappy-race" />
             </article>
             </div>
+            <div className="home-game-entry">
+              <article className="home-game-tile home-game-tile--jumping" aria-labelledby="jumping-title" style={{position:"relative",background:"linear-gradient(145deg,#071827 0%,#102b49 52%,#143d4a 100%)",border:"1px solid rgba(56,220,220,.4)",overflow:"hidden"}}>
+                <div aria-hidden="true" style={{position:"absolute",right:"-2rem",top:"-2rem",width:"11rem",height:"11rem",border:"2px solid rgba(81,240,218,.3)",borderRadius:"50%",boxShadow:"0 0 80px rgba(26,210,210,.15)"}} />
+                <p className="eyebrow" style={{position:"relative"}}>{language==="es"?"PRÓXIMAMENTE · PRUEBAS PRIVADAS":"COMING SOON · PRIVATE TESTING"}</p>
+                <h2 id="jumping-title" style={{position:"relative"}}>JUMPING <em>RACE</em></h2>
+                <p style={{position:"relative",fontSize:".9rem",opacity:.85}}>{language==="es"?"Nuevo juego en desarrollo. Acceso exclusivo para cuentas de prueba autorizadas.":"New game in development. Authorized test accounts only."}</p>
+                <div className="home-game-actions" style={{position:"relative"}}>
+                  <Link href="/games/jumping-race" className="button button--primary">{language==="es"?"VER JUEGO 🔒":"VIEW GAME 🔒"}</Link>
+                </div>
+              </article>
+            </div>
           </div>
           <aside className="home-games-prize" aria-label={language === "es" ? "Premios totales de 20 dólares para los tres primeros lugares" : "20 dollar total prize pool for the top three"}>
             <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $20 total prize pool shared among the top three winners" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
