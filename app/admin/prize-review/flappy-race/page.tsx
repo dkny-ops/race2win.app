@@ -1,3 +1,5 @@
+import { FlappyPrizeControls } from "./prize-controls";
+import { BlockPlayerControl } from "../block-player-control";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
@@ -20,7 +22,7 @@ export default async function FlappyReviewPage() {
     admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position,tie_break_status").eq("game_id",gameId).eq("tournament_week_start",previousWeek).gte("rank_position",1).lte("rank_position",3).order("rank_position",{ascending:true}).limit(3),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").eq("game_id",gameId).in("status",["open","under_review","confirmed"]).limit(100),
     admin.from("provisional_winners").select("player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).eq("tournament_week_start",previousWeek).limit(20),
-    admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300)
+    admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score,validated_run_id").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300)
   ]);
   if ([totals,flags,winners,daily].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
   const ids = [...new Set([...(totals.data??[]).map(x=>x.player_id),...(flags.data??[]).map(x=>x.player_id),...(winners.data??[]).map(x=>x.player_id)])].filter((x):x is string=>typeof x==="string");
@@ -31,6 +33,7 @@ export default async function FlappyReviewPage() {
   return <main className="page-section shell narrow flappy-admin-review">
     <h1 className="flappy-admin-page-title">PANEL DE REVISIÓN SEMANAL</h1>
     <div className="button-row" style={{marginBottom:"1.25rem"}}>
+      <Link href="/admin/prize-review/auth-401" className="button button--secondary">REVISAR ACCESOS 401 →</Link>
       <Link href="/" className="button button--secondary">← VOLVER A HOME</Link>
       <Link href="/admin/prize-review/flappy-race/players" className="button button--primary">BUSCAR JUGADOR →</Link>
     </div>
@@ -47,8 +50,11 @@ export default async function FlappyReviewPage() {
           <div style={card}><small>PREMIO PROVISIONAL</small><h3>{prize?"$"+(Number(prize.amount_cents)/100).toFixed(2):"No asignado"}</h3></div>
           <div style={card}><small>ALERTAS ABIERTAS</small><h3>{alerts.length}</h3></div>
         </div>
+        <FlappyPrizeControls playerId={t.player_id} week={previousWeek} status={prize?.status??"pending"} />
+        <BlockPlayerControl playerId={t.player_id} username={name(t.player_id)} />
+        <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>
         <details><summary>Ver Top 7 de cada día</summary>
-          {top.length ? [...new Set(top.map(x=>x.tournament_day))].map(day=><div key={day} style={card}><strong>{day}</strong>{top.filter(x=>x.tournament_day===day).map(x=><p key={x.daily_rank}>#{x.daily_rank} · {x.score} puntos</p>)}</div>):<p>Sin Top 7 registrado.</p>}
+          {top.length ? [...new Set(top.map(x=>x.tournament_day))].map(day=><div key={day} style={card}><strong>{day}</strong>{top.filter(x=>x.tournament_day===day).map(x=><p key={x.daily_rank}>#{x.daily_rank} · <Link href={"/admin/prize-review/flappy-race/runs/"+x.validated_run_id}>{x.score.toLocaleString("en-US")} puntos ↗</Link></p>)}</div>):<p>Sin Top 7 registrado.</p>}
         </details>
         <details><summary>Historial y datos de revisión</summary>
           <p>ID: {t.player_id}</p><p>Desempate: {t.tie_break_status}</p>
