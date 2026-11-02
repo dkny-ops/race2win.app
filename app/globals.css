@@ -2234,7 +2234,7 @@ body:has(.flappy-game-page) .site-footer{
 
 
 /* Owner-only Flappy review: preserve the Flappy game card artwork and green arcade identity. */
-.flappy-admin-review .flappy-admin-banner{position:relative;isolation:isolate;overflow:hidden;min-height:185px;padding:1.4rem;margin-bottom:1.25rem;border:1px solid rgba(78,240,147,.7);border-radius:22px;background:linear-gradient(90deg,rgba(0,14,18,.9),rgba(0,14,18,.45)),url("/images/flappy-race-card.png") center/cover no-repeat;box-shadow:0 0 20px rgba(44,210,121,.18)}
+.flappy-admin-review .flappy-admin-banner{position:relative;isolation:isolate;overflow:hidden;min-height:185px;padding:1.4rem;margin-bottom:1.25rem;border:1px solid rgba(78,240,147,.7);border-radius:22px;background:linear-gradient(90deg,rgba(0,14,18,.9),rgba(0,14,18,.45)),url("/images/Flappy-bird%20.png") center/cover no-repeat;box-shadow:0 0 20px rgba(44,210,121,.18)}
 .flappy-admin-review .flappy-admin-banner h1{font-size:clamp(2rem,8vw,4rem);line-height:1.05;letter-spacing:-.035em;margin:.5rem 0}
 .flappy-admin-review .flappy-admin-banner p{position:relative;font-weight:800}
 .flappy-admin-review h2{font-size:clamp(1.4rem,5vw,2.3rem);line-height:1.15;letter-spacing:-.025em}
