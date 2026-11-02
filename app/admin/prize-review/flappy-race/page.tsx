@@ -18,13 +18,22 @@ export default async function FlappyReviewPage() {
   const monday = new Date(currentNewYorkTournamentWeek()+"T12:00:00Z");
   monday.setUTCDate(monday.getUTCDate()-7);
   const previousWeek = monday.toISOString().slice(0,10);
-  const [totals,flags,winners,daily] = await Promise.all([
+  const [totals,flags,winners,daily,prizeReview] = await Promise.all([
     admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position,tie_break_status").eq("game_id",gameId).eq("tournament_week_start",previousWeek).gte("rank_position",1).lte("rank_position",3).order("rank_position",{ascending:true}).limit(3),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").eq("game_id",gameId).in("status",["open","under_review","confirmed"]).limit(100),
     admin.from("provisional_winners").select("player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).eq("tournament_week_start",previousWeek).limit(20),
-    admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score,validated_run_id").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300)
+    admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score,validated_run_id").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300),
+    admin.rpc("flappy_admin_read_prize_cases", {p_actor:auth.context.userId,p_week:previousWeek})
   ]);
-  if ([totals,flags,winners,daily].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
+  if ([totals,flags,winners,daily,prizeReview].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
+  const prizeCaseStates = new Map<string,string>();
+  const dossier:unknown = prizeReview.data;
+  if (dossier && typeof dossier==="object" && !Array.isArray(dossier) && "prizesEnabled" in dossier && dossier.prizesEnabled===true && "candidates" in dossier && Array.isArray(dossier.candidates)) {
+    for (const candidate of dossier.candidates) {
+      if (!candidate || typeof candidate!=="object" || typeof candidate.playerId!=="string" || typeof candidate.state!=="string" || typeof candidate.effectiveRank!=="number" || !Number.isInteger(candidate.effectiveRank) || candidate.effectiveRank<1 || candidate.effectiveRank>3) continue;
+      if (["pending_review","needs_additional_review","approved","rejected"].includes(candidate.state)) prizeCaseStates.set(candidate.playerId,candidate.state);
+    }
+  }
   const ids = [...new Set([...(totals.data??[]).map(x=>x.player_id),...(flags.data??[]).map(x=>x.player_id),...(winners.data??[]).map(x=>x.player_id)])].filter((x):x is string=>typeof x==="string");
   const profiles = ids.length ? await admin.from("profiles").select("user_id,username").in("user_id",ids) : {data:[],error:null};
   const names = new Map((profiles.data??[]).map(x=>[x.user_id,x.username||x.user_id.slice(0,8)]));
@@ -50,7 +59,7 @@ export default async function FlappyReviewPage() {
           <div style={card}><small>PREMIO PROVISIONAL</small><h3>{prize?"$"+(Number(prize.amount_cents)/100).toFixed(2):"No asignado"}</h3></div>
           <div style={card}><small>ALERTAS ABIERTAS</small><h3>{alerts.length}</h3></div>
         </div>
-        <FlappyPrizeControls playerId={t.player_id} week={previousWeek} status={prize?.status??"pending"} />
+        <FlappyPrizeControls playerId={t.player_id} week={previousWeek} status={prizeCaseStates.get(t.player_id)??"pending_review"} />
         <BlockPlayerControl playerId={t.player_id} username={name(t.player_id)} />
         <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>
         <details><summary>Ver Top 7 de cada día</summary>

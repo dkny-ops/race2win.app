@@ -57,7 +57,8 @@ test("Flappy admin review requires owner authorization and is read-only",async()
  assert.match(searchApi,/\.eq\("slug","flappy-race"\)/);
  assert.match(searchApi,/\.eq\("game_id",game.id\)/);
  assert.doesNotMatch(searchApi,/admin\.from\("prize_balances"\)/);
- assert.doesNotMatch(source,/admin\.rpc\(/);
+ assert.match(source,/admin\.rpc\("flappy_admin_read_prize_cases"/);
+ assert.doesNotMatch(source,/admin\.rpc\("(?:flappy_admin_allocate_prize|flappy_decide_prize_candidate)"/);
  assert.doesNotMatch(source,/\.insert\(|\.update\(|\.delete\(|\.upsert\(/);
 });
 test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
