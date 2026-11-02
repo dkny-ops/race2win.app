@@ -2240,3 +2240,15 @@ body:has(.flappy-game-page) .site-footer{
 .flappy-admin-review h2{font-size:clamp(1.4rem,5vw,2.3rem);line-height:1.15;letter-spacing:-.025em}
 .flappy-admin-review .button--primary{background:linear-gradient(180deg,#09794a,#075232);border-color:#55f5a1;color:#fff;box-shadow:0 0 18px rgba(52,222,121,.3)}
 .flappy-admin-review .profile-card{background:linear-gradient(145deg,#071e22,#06121b)}
+
+/* Flappy admin: match the illustrated Home game card, including its soft image mask. */
+.flappy-admin-review .flappy-admin-banner{min-height:230px;display:flex;flex-direction:column;justify-content:center;padding:clamp(1.25rem,4vw,2rem);background:linear-gradient(105deg,rgba(2,20,28,.94),rgba(2,20,30,.78));border-color:rgba(71,236,144,.78);box-shadow:inset 0 1px #a6ffcb3b,0 0 16px #18dd7b29,0 15px 36px #0008}
+.flappy-admin-review .flappy-admin-banner::before{content:"";position:absolute;z-index:-1;inset:0;background:url('/images/Flappy-bird%20.png') 70% center/cover no-repeat;-webkit-mask-image:radial-gradient(ellipse 54% 75% at 75% 52%,#000 42%,transparent 96%);mask-image:radial-gradient(ellipse 54% 75% at 75% 52%,#000 42%,transparent 96%);opacity:.9}
+.flappy-admin-review .flappy-admin-banner .eyebrow{color:#7affc3;font-size:.7rem;letter-spacing:.12em}
+.flappy-admin-review .flappy-admin-banner h1{color:#fff;font-weight:900;letter-spacing:-.055em;text-shadow:0 2px 12px #000;max-width:75%}
+.flappy-admin-review .flappy-admin-banner h1 em{font-style:normal;color:#5cf88c;text-shadow:0 0 18px #28f57388}
+.flappy-admin-review .flappy-admin-banner p:last-child{color:#d6f8e9;text-shadow:0 2px 8px #000}
+.site-header .brand .flappy-admin-brand{display:inline-flex;align-items:center;gap:.55rem;font-size:clamp(1rem,3vw,1.45rem);font-weight:900;letter-spacing:-.035em;color:#fff;text-shadow:0 2px 9px #000}
+.site-header .brand .flappy-admin-brand::before{content:"";display:block;width:clamp(30px,5vw,45px);height:clamp(30px,5vw,45px);border-radius:50%;background:url('/images/Flappy-bird%20.png') 70% center/cover no-repeat;border:1px solid #54ed9c;box-shadow:0 0 12px #20e47c65}
+.site-header .brand .flappy-admin-brand em{font-style:normal;color:#5cf88c;text-shadow:0 0 12px #28f57388}
+@media(max-width:700px){.flappy-admin-review .flappy-admin-banner{min-height:195px}.flappy-admin-review .flappy-admin-banner h1{max-width:82%;font-size:clamp(2rem,9vw,3rem)}}
