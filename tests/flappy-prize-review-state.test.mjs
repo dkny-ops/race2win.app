@@ -19,7 +19,7 @@ function load({authorized=true,state='approved',winnerStatus=null,rpcError=false
    for(const method of ['select','eq','gte','lte','order','limit','in'])chain[method]=()=>chain;
    chain.maybeSingle=async()=>({data:fixtures[name],error:null});return chain;
   },
-  rpc:async(name,args)=>{calls.push({name,args});return {data:{prizesEnabled,candidates:[{playerId:player,state,effectiveRank:1}]},error:rpcError?{}:null};},
+  rpc:async(name,args)=>{calls.push({name,args});return {data:{enabled:prizesEnabled,candidates:[{playerId:player,state,effectiveRank:1}]},error:rpcError?{}:null};},
  };
  const missing=Error('NOT_FOUND');
  const imports={
