@@ -29,11 +29,7 @@ export default async function FlappyReviewPage() {
   const name=(id:string)=>names.get(id)||id.slice(0,8);
   const card={border:"1px solid #405469",borderRadius:14,padding:"1rem",marginBottom:".75rem",overflowWrap:"anywhere" as const};
   return <main className="page-section shell narrow flappy-admin-review">
-    <div className="flappy-admin-banner">
-      <p className="eyebrow">ARCADE GAME · OWNER REVIEW</p>
-      <h1>FLAPPY <em>RACE</em></h1>
-      <p>PANEL DE REVISIÓN SEMANAL</p>
-    </div>
+    <h1 className="flappy-admin-page-title">PANEL DE REVISIÓN SEMANAL</h1>
     <div className="button-row" style={{marginBottom:"1.25rem"}}>
       <Link href="/" className="button button--secondary">← VOLVER A HOME</Link>
       <Link href="/admin/prize-review/flappy-race/players" className="button button--primary">BUSCAR JUGADOR →</Link>
