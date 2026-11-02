@@ -16,7 +16,7 @@ export default async function FlappyReviewPage() {
   const [sessions,runs,totals,flags,winners,daily] = await Promise.all([
     admin.from("game_sessions").select("id,user_id,status,started_at,final_score,anti_fraud_status").eq("game_id",gameId).order("started_at",{ascending:false}).limit(50),
     admin.from("validated_runs").select("player_id,score,completed_at,eligibility_status").eq("game_id",gameId).order("completed_at",{ascending:false}).limit(50),
-    admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position").eq("game_id",gameId).order("tournament_week_start",{ascending:false}).limit(50),
+    admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position,tie_break_status").eq("game_id",gameId).order("tournament_week_start",{ascending:false}).limit(50),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").eq("game_id",gameId).order("created_at",{ascending:false}).limit(50),
     admin.from("provisional_winners").select("player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).order("created_at",{ascending:false}).limit(50),
     admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score").eq("game_id",gameId).order("tournament_day",{ascending:false}).limit(350)
