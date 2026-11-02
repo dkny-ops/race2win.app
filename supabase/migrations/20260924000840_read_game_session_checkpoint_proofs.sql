@@ -41,6 +41,5 @@ begin
   order by checkpoint.checkpoint_index;
 end;
 $$;
-
 revoke all on function public.rtw_read_game_session_checkpoint_proofs(uuid, uuid) from public, anon, authenticated;
 grant execute on function public.rtw_read_game_session_checkpoint_proofs(uuid, uuid) to service_role;

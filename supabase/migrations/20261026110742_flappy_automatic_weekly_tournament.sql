@@ -148,6 +148,8 @@ begin
     where id=s.id;
     return jsonb_build_object('checkpointTick',p_tick);
   end if;
+  -- Only a server-replayed collision can reach this point. This is integrity validation,
+  -- not a claim that the player is human; all evidence remains retained for finalists.
   v_outcome:=jsonb_build_object(
     'score',p_score,'collisionTick',p_tick,'eligibility','valid','verification','replay_verified'
   );
@@ -212,6 +214,7 @@ begin
   v_week:=date_trunc('week',(clock_timestamp() at time zone 'America/New_York')::date)::date-7;
   return public.flappy_close_week(null,v_week);
 exception when others then
+  -- Cron has no browser caller. Preserve all data and expose only a bounded status.
   return jsonb_build_object('week',v_week,'status','not_ready');
 end $$;
 
@@ -362,4 +365,4 @@ select cron.schedule(
 )
 where not exists(
   select 1 from cron.job where jobname='flappy_auto_close_previous_week'
-);
+);;

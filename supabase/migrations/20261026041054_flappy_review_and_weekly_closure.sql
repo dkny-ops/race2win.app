@@ -131,3 +131,4 @@ grant execute on function public.flappy_review_run(uuid,uuid,text,text),public.f
  public.flappy_close_week(uuid,date),public.flappy_read_week(date) to service_role;
 -- Register the independent catalogue entry, paused. No flag or prize activation.
 insert into public.games(slug,display_name,status) values('flappy-race','FlappyRace','paused') on conflict(slug) do nothing;
+;

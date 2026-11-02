@@ -16,3 +16,5 @@ update public.games set status='active',updated_at=clock_timestamp() where slug=
 update private.flappy_control set enabled=true where singleton=true;
 -- Emergency stop is a targeted registered forward migration setting enabled=false;
 -- retain sessions/review evidence. The independent reviewed code gate remains.
+;
+

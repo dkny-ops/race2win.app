@@ -58,6 +58,5 @@ begin
   returning session.id, session.gameplay_version, session.seed, session.started_at, session.expires_at;
 end;
 $$;
-
 revoke all on function public.rtw_start_official_game_session_v2(uuid, text, text, bigint) from public, anon, authenticated;
 grant execute on function public.rtw_start_official_game_session_v2(uuid, text, text, bigint) to service_role;

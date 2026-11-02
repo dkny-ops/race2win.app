@@ -1,0 +1,1 @@
+alter table public.game_sessions drop constraint game_sessions_expiry_window; alter table public.game_sessions add constraint game_sessions_expiry_window check (expires_at > started_at and (case when gameplay_version = 'rtw-v18' then true else expires_at <= started_at + interval '10 minutes' end));;

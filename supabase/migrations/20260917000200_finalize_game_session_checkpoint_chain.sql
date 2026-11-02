@@ -106,6 +106,5 @@ begin
     session.final_collision_at_ms;
 end;
 $$;
-
 revoke all on function public.rtw_finalize_game_session_with_checkpoints(uuid, uuid, text, integer, integer, bigint, integer, integer, jsonb) from public, anon, authenticated;
 grant execute on function public.rtw_finalize_game_session_with_checkpoints(uuid, uuid, text, integer, integer, bigint, integer, integer, jsonb) to service_role;

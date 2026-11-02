@@ -372,4 +372,4 @@ from public,anon,authenticated;
 grant execute on function public.flappy_activate_prize_program(uuid),
   public.flappy_decide_prize_candidate(uuid,date,uuid,text,text),
   public.flappy_admin_allocate_prize(uuid,date,uuid,text)
-to service_role;
+to service_role;;

@@ -1,0 +1,1 @@
+DO $migration$ DECLARE v text; BEGIN SELECT pg_get_functiondef('public.rtw_start_official_game_session_v4(uuid,text,text,bigint,uuid)'::regprocedure) INTO v; IF position('''rtw-v7'',''rtw-v8''' in v)=0 THEN RAISE EXCEPTION 'version guard missing'; END IF; EXECUTE replace(v, '''rtw-v7'',''rtw-v8''', '''rtw-v7'',''rtw-v8'',''rtw-v9'''); END $migration$;;

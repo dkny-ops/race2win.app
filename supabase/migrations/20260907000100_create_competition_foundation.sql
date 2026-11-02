@@ -6,7 +6,6 @@
 
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
-
 -- Shared, database-owned mutation quotas. A row is keyed by the verified
 -- player and action, so limits remain effective across stateless app instances.
 create table private.competition_action_rate_limits (
@@ -17,7 +16,6 @@ create table private.competition_action_rate_limits (
   updated_at timestamptz not null default now(),
   primary key (player_id, action)
 );
-
 create table public.games (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
@@ -26,21 +24,17 @@ create table public.games (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 insert into public.games (slug, display_name)
 values ('race-to-win', 'Race To Win')
 on conflict (slug) do nothing;
-
 -- Preserve any existing authoritative session history while replacing the
 -- single-game text check with a foreign key to the game catalogue.
 alter table public.game_sessions add column game_uuid uuid;
-
 update public.game_sessions as session
 set game_uuid = game.id
 from public.games as game
 where game.slug = 'race-to-win'
   and session.game_id = 'race-to-win';
-
 alter table public.game_sessions alter column game_uuid set not null;
 alter table public.game_sessions
   add constraint game_sessions_game_uuid_fkey
@@ -48,10 +42,8 @@ alter table public.game_sessions
 alter table public.game_sessions drop constraint game_sessions_game_id_check;
 alter table public.game_sessions drop column game_id;
 alter table public.game_sessions rename column game_uuid to game_id;
-
 create index game_sessions_game_player_created_at_idx
   on public.game_sessions (game_id, user_id, created_at desc);
-
 create function private.ny_tournament_day(p_value timestamptz)
 returns date
 language sql
@@ -60,7 +52,6 @@ set search_path = ''
 as $$
   select (p_value at time zone 'America/New_York')::date;
 $$;
-
 create function private.week_start_for_date(p_day date)
 returns date
 language sql
@@ -69,7 +60,6 @@ set search_path = ''
 as $$
   select date_trunc('week', p_day::timestamp)::date;
 $$;
-
 create function private.ny_tournament_week_start(p_value timestamptz)
 returns date
 language sql
@@ -78,11 +68,9 @@ set search_path = ''
 as $$
   select private.week_start_for_date(private.ny_tournament_day(p_value));
 $$;
-
 revoke all on function private.ny_tournament_day(timestamptz) from public, anon, authenticated;
 revoke all on function private.week_start_for_date(date) from public, anon, authenticated;
 revoke all on function private.ny_tournament_week_start(timestamptz) from public, anon, authenticated;
-
 create table public.validated_runs (
   id uuid primary key default gen_random_uuid(),
   game_session_id uuid not null unique references public.game_sessions(id) on delete restrict,
@@ -106,7 +94,6 @@ create table public.validated_runs (
     tournament_week_start = private.week_start_for_date(tournament_day)
   )
 );
-
 create index validated_runs_game_day_score_idx
   on public.validated_runs (game_id, tournament_day, player_id, score desc, completed_at asc);
 create index validated_runs_game_week_score_idx
@@ -116,7 +103,6 @@ create index validated_runs_player_created_at_idx
 create index validated_runs_review_queue_idx
   on public.validated_runs (eligibility_status, created_at)
   where eligibility_status <> 'valid';
-
 create table public.daily_top_scores (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete restrict,
@@ -132,10 +118,8 @@ create table public.daily_top_scores (
   ),
   unique (game_id, player_id, tournament_day, daily_rank)
 );
-
 create index daily_top_scores_week_player_idx
   on public.daily_top_scores (game_id, tournament_week_start, player_id, tournament_day, daily_rank);
-
 create table public.weekly_tournament_totals (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete restrict,
@@ -149,12 +133,10 @@ create table public.weekly_tournament_totals (
   calculated_at timestamptz not null default now(),
   unique (game_id, player_id, tournament_week_start)
 );
-
 create index weekly_tournament_totals_ranking_idx
   on public.weekly_tournament_totals (game_id, tournament_week_start, weekly_total_score desc, rank_position);
 create index weekly_tournament_totals_player_idx
   on public.weekly_tournament_totals (player_id, tournament_week_start desc);
-
 create table public.referral_codes (
   id uuid primary key default gen_random_uuid(),
   owner_user_id uuid not null references auth.users(id) on delete restrict,
@@ -164,11 +146,9 @@ create table public.referral_codes (
   revoked_at timestamptz,
   unique (owner_user_id, game_id)
 );
-
 create index referral_codes_lookup_idx
   on public.referral_codes (code)
   where revoked_at is null;
-
 create table public.referrals (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete restrict,
@@ -196,14 +176,12 @@ create table public.referrals (
     )
   )
 );
-
 create index referrals_inviter_status_idx
   on public.referrals (game_id, inviter_user_id, status, confirmed_tournament_week_start);
 create index referrals_invitee_idx on public.referrals (invitee_user_id);
 create index referrals_confirmation_week_idx
   on public.referrals (game_id, confirmed_tournament_week_start, inviter_user_id)
   where status = 'valid';
-
 create table public.referral_qualification_days (
   id uuid primary key default gen_random_uuid(),
   referral_id uuid not null references public.referrals(id) on delete restrict,
@@ -214,10 +192,8 @@ create table public.referral_qualification_days (
   last_recalculated_at timestamptz not null default now(),
   unique (referral_id, qualification_day)
 );
-
 create index referral_qualification_days_referral_idx
   on public.referral_qualification_days (referral_id, status, qualification_day);
-
 create table public.weekly_share_results (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete restrict,
@@ -229,10 +205,8 @@ create table public.weekly_share_results (
   calculated_at timestamptz not null default now(),
   unique (game_id, tournament_week_start, player_id)
 );
-
 create index weekly_share_results_ranking_idx
   on public.weekly_share_results (game_id, tournament_week_start, confirmed_share_count desc, rank_position);
-
 create table public.ad_reward_claims (
   id uuid primary key default gen_random_uuid(),
   game_session_id uuid not null unique references public.game_sessions(id) on delete restrict,
@@ -253,7 +227,6 @@ create table public.ad_reward_claims (
     verification_status <> 'verified' or (provider_event_id is not null and verified_at is not null)
   )
 );
-
 -- No provider is integrated yet. This table deliberately has no browser
 -- endpoint: a future provider must verify a signed server-side callback before
 -- setting verification_status to verified or consuming a reward.
@@ -268,10 +241,8 @@ create table public.normal_ad_delivery_events (
     check (delivery_status in ('requested', 'verified', 'failed')),
   created_at timestamptz not null default now()
 );
-
 create index normal_ad_delivery_events_player_game_idx
   on public.normal_ad_delivery_events (player_id, game_id, created_at desc);
-
 -- Rewarded-ad data is provider/server owned. Even a future service_role
 -- integration cannot attach a claimed reward to an arbitrary player or game.
 -- The unique session key makes Extra Life and 2x Points mutually exclusive.
@@ -327,11 +298,9 @@ begin
   return new;
 end;
 $$;
-
 create trigger ad_reward_claims_guard
   before insert or update on public.ad_reward_claims
   for each row execute function private.guard_ad_reward_claim();
-
 create table public.fraud_flags (
   id uuid primary key default gen_random_uuid(),
   player_id uuid references auth.users(id) on delete restrict,
@@ -348,13 +317,11 @@ create table public.fraud_flags (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create index fraud_flags_review_queue_idx
   on public.fraud_flags (status, severity desc, created_at)
   where status in ('open', 'under_review');
 create index fraud_flags_subject_idx on public.fraud_flags (subject_type, subject_id);
 create index fraud_flags_player_idx on public.fraud_flags (player_id, created_at desc);
-
 create table public.fraud_reviews (
   id uuid primary key default gen_random_uuid(),
   subject_type text not null check (subject_type in ('validated_run', 'referral', 'provisional_winner', 'payout')),
@@ -368,11 +335,9 @@ create table public.fraud_reviews (
   updated_at timestamptz not null default now(),
   unique (subject_type, subject_id)
 );
-
 create index fraud_reviews_queue_idx
   on public.fraud_reviews (status, opened_at)
   where status = 'under_review';
-
 create table public.provisional_winners (
   id uuid primary key default gen_random_uuid(),
   game_id uuid not null references public.games(id) on delete restrict,
@@ -399,13 +364,11 @@ create table public.provisional_winners (
   ),
   unique (game_id, tournament_week_start, award_type, player_id)
 );
-
 create index provisional_winners_player_claim_idx
   on public.provisional_winners (player_id, status, claim_deadline_at);
 create index provisional_winners_review_queue_idx
   on public.provisional_winners (status, created_at)
   where status in ('provisional', 'claim_started', 'under_review', 'verified', 'approved_for_payment');
-
 create table public.prize_ledger_entries (
   id uuid primary key default gen_random_uuid(),
   player_id uuid not null references auth.users(id) on delete restrict,
@@ -426,18 +389,15 @@ create table public.prize_ledger_entries (
     (entry_type = 'credit_reversal') = (reverses_ledger_entry_id is not null)
   )
 );
-
 create index prize_ledger_entries_player_created_idx
   on public.prize_ledger_entries (player_id, created_at desc);
 create index prize_ledger_entries_game_player_idx
   on public.prize_ledger_entries (game_id, player_id, created_at desc);
-
 create table public.prize_balances (
   player_id uuid primary key references auth.users(id) on delete restrict,
   available_cents bigint not null default 0 check (available_cents >= 0),
   updated_at timestamptz not null default now()
 );
-
 create table public.payouts (
   id uuid primary key default gen_random_uuid(),
   player_id uuid not null references auth.users(id) on delete restrict,
@@ -451,15 +411,12 @@ create table public.payouts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.prize_ledger_entries
   add constraint prize_ledger_entries_payout_fkey
   foreign key (payout_id) references public.payouts(id) on delete restrict;
-
 alter table public.prize_ledger_entries
   add constraint prize_ledger_entries_reverses_fkey
   foreign key (reverses_ledger_entry_id) references public.prize_ledger_entries(id) on delete restrict;
-
 -- A prize has one credit and each credit can be reversed only once. The
 -- historical credit itself remains immutable and visible to audit tooling.
 create unique index prize_ledger_one_credit_per_winner_idx
@@ -468,7 +425,6 @@ create unique index prize_ledger_one_credit_per_winner_idx
 create unique index prize_ledger_one_reversal_per_credit_idx
   on public.prize_ledger_entries (reverses_ledger_entry_id)
   where reverses_ledger_entry_id is not null;
-
 create table public.payout_credit_allocations (
   id uuid primary key default gen_random_uuid(),
   payout_id uuid not null references public.payouts(id) on delete restrict,
@@ -479,25 +435,21 @@ create table public.payout_credit_allocations (
   updated_at timestamptz not null default now(),
   unique (payout_id, credit_ledger_entry_id)
 );
-
 create unique index payout_credit_allocations_one_active_hold_idx
   on public.payout_credit_allocations (credit_ledger_entry_id)
   where status = 'held';
 create index payout_credit_allocations_payout_idx
   on public.payout_credit_allocations (payout_id, status);
-
 create index payouts_player_status_idx on public.payouts (player_id, status, requested_at desc);
 create unique index payouts_active_player_idx
   on public.payouts (player_id)
   where status in ('requested', 'under_review', 'approved');
-
 create table private.admin_users (
   user_id uuid primary key references auth.users(id) on delete restrict,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create table public.player_eligibility_records (
   id uuid primary key default gen_random_uuid(),
   player_id uuid not null references auth.users(id) on delete restrict,
@@ -514,7 +466,6 @@ create table public.player_eligibility_records (
   updated_at timestamptz not null default now(),
   unique nulls not distinct (player_id, game_id)
 );
-
 -- Derive one validated run directly from a finalized authoritative session.
 -- Client-supplied score, time, distance, game id, multiplier, and timestamps
 -- are overwritten from the server-owned session.
@@ -559,7 +510,6 @@ begin
   return new;
 end;
 $$;
-
 create function private.protect_validated_run_update()
 returns trigger
 language plpgsql
@@ -590,15 +540,12 @@ begin
   return new;
 end;
 $$;
-
 create trigger validated_runs_materialize
   before insert on public.validated_runs
   for each row execute function private.materialize_validated_run();
-
 create trigger validated_runs_protect_update
   before update on public.validated_runs
   for each row execute function private.protect_validated_run_update();
-
 -- A finalized, replay-validated game session is the sole source for an
 -- authoritative run. The client never inserts a score-bearing row.
 create function private.create_validated_run_from_finalized_session()
@@ -628,11 +575,9 @@ begin
   return new;
 end;
 $$;
-
 create trigger game_sessions_materialize_validated_run
   after update of status on public.game_sessions
   for each row execute function private.create_validated_run_from_finalized_session();
-
 -- Releasing an unpaid hold is an append-only accounting operation. It is used
 -- before reversing a disqualified credit so an invalid prize cannot remain
 -- locked in (or be paid by) a previously requested aggregate payout.
@@ -705,7 +650,6 @@ begin
   end loop;
 end;
 $$;
-
 create function private.flag_paid_winner_for_review(
   p_winner public.provisional_winners,
   p_actor_user_id uuid default null
@@ -735,7 +679,6 @@ begin
   );
 end;
 $$;
-
 -- Returns false only when the credit is already represented in a paid payout.
 -- Credits and reversals remain immutable facts; only a compensating entry is
 -- appended, after any unpaid aggregate hold has been released.
@@ -810,7 +753,6 @@ begin
   return true;
 end;
 $$;
-
 -- Reconcile server-derived rankings with any previously generated awards.
 -- Paid payouts are not rewritten; they are preserved and escalated for review.
 create function private.reconcile_stale_competition_winners(
@@ -884,7 +826,6 @@ begin
   end loop;
 end;
 $$;
-
 -- Materialize the Top 7 daily rows and weekly total/ranking from valid runs.
 -- Array ordering is PostgreSQL lexicographic, which implements the required
 -- best-score, second-best-score, and so on tie break exactly.
@@ -987,7 +928,6 @@ begin
   perform private.reconcile_stale_competition_winners(p_game_id, p_week_start, 'weekly_tournament');
 end;
 $$;
-
 create function private.refresh_weekly_share_results(p_game_id uuid, p_week_start date)
 returns void
 language plpgsql
@@ -1023,7 +963,6 @@ begin
   perform private.reconcile_stale_competition_winners(p_game_id, p_week_start, 'weekly_shares');
 end;
 $$;
-
 create function private.refresh_referral_qualification(p_invitee_user_id uuid)
 returns void
 language plpgsql
@@ -1110,7 +1049,6 @@ begin
   end if;
 end;
 $$;
-
 create function private.after_validated_run_change()
 returns trigger
 language plpgsql
@@ -1135,11 +1073,9 @@ begin
   return null;
 end;
 $$;
-
 create trigger validated_runs_refresh_competition
   after insert or update of eligibility_status or delete on public.validated_runs
   for each row execute function private.after_validated_run_change();
-
 create function private.prevent_referral_relationship_change()
 returns trigger
 language plpgsql
@@ -1158,7 +1094,6 @@ begin
   return new;
 end;
 $$;
-
 -- The eligibility cutoff is server time, even for a future trusted internal
 -- writer. No supplied referral timestamp can backdate qualifying activity.
 create function private.materialize_referral_attachment()
@@ -1171,7 +1106,6 @@ begin
   return new;
 end;
 $$;
-
 create function private.after_referral_change()
 returns trigger
 language plpgsql
@@ -1192,19 +1126,15 @@ begin
   return null;
 end;
 $$;
-
 create trigger referrals_protect_relationship
   before update on public.referrals
   for each row execute function private.prevent_referral_relationship_change();
-
 create trigger referrals_materialize_attachment
   before insert on public.referrals
   for each row execute function private.materialize_referral_attachment();
-
 create trigger referrals_refresh_share_results
   after insert or update of status, confirmed_tournament_week_start on public.referrals
   for each row execute function private.after_referral_change();
-
 create function private.apply_prize_ledger_entry()
 returns trigger
 language plpgsql
@@ -1220,7 +1150,6 @@ begin
   return new;
 end;
 $$;
-
 create function private.guard_prize_balance_write()
 returns trigger
 language plpgsql
@@ -1233,7 +1162,6 @@ begin
   return new;
 end;
 $$;
-
 create function private.prevent_prize_ledger_mutation()
 returns trigger
 language plpgsql
@@ -1243,19 +1171,15 @@ begin
   raise exception 'Prize ledger entries are append-only.' using errcode = '42501';
 end;
 $$;
-
 create trigger prize_ledger_apply_balance
   after insert on public.prize_ledger_entries
   for each row execute function private.apply_prize_ledger_entry();
-
 create trigger prize_balances_guard_write
   before insert or update or delete on public.prize_balances
   for each row execute function private.guard_prize_balance_write();
-
 create trigger prize_ledger_prevent_mutation
   before update or delete on public.prize_ledger_entries
   for each row execute function private.prevent_prize_ledger_mutation();
-
 create function private.protect_provisional_winner()
 returns trigger
 language plpgsql
@@ -1294,11 +1218,9 @@ begin
   return new;
 end;
 $$;
-
 create trigger provisional_winners_protect_state
   before update on public.provisional_winners
   for each row execute function private.protect_provisional_winner();
-
 -- Server-only RPCs. They are in public only because the REST RPC gateway
 -- exposes that schema; PUBLIC, anon, and authenticated receive no EXECUTE.
 create function public.rtw_consume_competition_action_rate_limit(
@@ -1341,7 +1263,6 @@ begin
   return v_count <= v_limit;
 end;
 $$;
-
 create function public.rtw_start_official_game_session(
   p_player_id uuid,
   p_game_slug text,
@@ -1392,7 +1313,6 @@ begin
   returning session.id, session.gameplay_version, session.seed, session.expires_at;
 end;
 $$;
-
 create function public.rtw_ensure_referral_code(p_player_id uuid, p_game_slug text)
 returns text
 language plpgsql
@@ -1439,7 +1359,6 @@ begin
   raise exception 'Could not allocate referral code.' using errcode = 'P0001';
 end;
 $$;
-
 create function public.rtw_attach_referral(p_invitee_user_id uuid, p_game_slug text, p_code text)
 returns uuid
 language plpgsql
@@ -1515,7 +1434,6 @@ begin
   return v_referral_id;
 end;
 $$;
-
 create function public.rtw_begin_prize_claim(p_player_id uuid, p_winner_id uuid)
 returns boolean
 language plpgsql
@@ -1554,7 +1472,6 @@ begin
   return true;
 end;
 $$;
-
 create function public.rtw_admin_transition_winner(
   p_actor_user_id uuid,
   p_winner_id uuid,
@@ -1621,7 +1538,6 @@ begin
   end if;
 end;
 $$;
-
 -- Fraud decisions are server-only and leave evidence in place. Changing a run
 -- or referral status fires the recalculation triggers above instead of
 -- deleting historical rows or trusting a client-side ranking.
@@ -1663,7 +1579,6 @@ begin
   end if;
 end;
 $$;
-
 create function public.rtw_admin_set_referral_status(
   p_actor_user_id uuid,
   p_referral_id uuid,
@@ -1705,7 +1620,6 @@ begin
   end if;
 end;
 $$;
-
 create function public.rtw_begin_balance_payout_request(p_player_id uuid)
 returns uuid
 language plpgsql
@@ -1829,7 +1743,6 @@ begin
   return v_payout_id;
 end;
 $$;
-
 create function public.rtw_generate_provisional_winners(
   p_actor_user_id uuid,
   p_game_slug text,
@@ -1918,7 +1831,6 @@ begin
   end if;
 end;
 $$;
-
 create function public.rtw_normal_ad_cadence(p_player_id uuid, p_game_slug text)
 returns smallint
 language plpgsql
@@ -1939,7 +1851,6 @@ begin
   return 2;
 end;
 $$;
-
 revoke all on function private.materialize_validated_run() from public, anon, authenticated;
 revoke all on function private.protect_validated_run_update() from public, anon, authenticated;
 revoke all on function private.release_unsettled_payout_holds(uuid, uuid, uuid) from public, anon, authenticated;
@@ -1981,7 +1892,6 @@ grant execute on function public.rtw_admin_set_referral_status(uuid, uuid, text,
 grant execute on function public.rtw_begin_balance_payout_request(uuid) to service_role;
 grant execute on function public.rtw_generate_provisional_winners(uuid, text, date) to service_role;
 grant execute on function public.rtw_normal_ad_cadence(uuid, text) to service_role;
-
 -- No Data API access to private or competitive state. RLS is retained as
 -- defense in depth should a future grant be made by mistake.
 alter table public.games enable row level security;
@@ -2004,7 +1914,6 @@ alter table public.payout_credit_allocations enable row level security;
 alter table public.player_eligibility_records enable row level security;
 alter table private.admin_users enable row level security;
 alter table private.competition_action_rate_limits enable row level security;
-
 revoke all on table public.games from public, anon, authenticated;
 revoke all on table public.validated_runs from public, anon, authenticated;
 revoke all on table public.daily_top_scores from public, anon, authenticated;
@@ -2025,7 +1934,6 @@ revoke all on table public.payout_credit_allocations from public, anon, authenti
 revoke all on table public.player_eligibility_records from public, anon, authenticated;
 revoke all on table private.admin_users from public, anon, authenticated;
 revoke all on table private.competition_action_rate_limits from public, anon, authenticated;
-
 -- The only runtime database principal with access is the server-side
 -- service_role client. These grants are explicit so that a fresh project does
 -- not rely on Supabase default privileges; they do not grant a browser role.

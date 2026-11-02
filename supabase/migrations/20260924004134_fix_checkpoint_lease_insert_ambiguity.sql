@@ -92,6 +92,5 @@ begin
     true, true, v_new_lease;
 end;
 $$;
-
 revoke all on function public.rtw_record_game_session_checkpoint_with_lease(uuid, uuid, integer, text, integer) from public, anon, authenticated;
 grant execute on function public.rtw_record_game_session_checkpoint_with_lease(uuid, uuid, integer, text, integer) to service_role;

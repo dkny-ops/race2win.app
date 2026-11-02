@@ -37,5 +37,4 @@ begin
   return new;
 end;
 $$;
-
 revoke all on function private.apply_prize_ledger_entry() from public, anon, authenticated;

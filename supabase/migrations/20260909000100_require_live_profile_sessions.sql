@@ -14,11 +14,9 @@ as $$
       and (session.not_after is null or session.not_after > now())
   );
 $$;
-
 revoke all on function private.has_active_profile_session() from public, anon, authenticated;
 -- Required only by the bound RLS expression. The private schema remains unexposed.
 grant execute on function private.has_active_profile_session() to authenticated;
-
 create policy "Profiles require an active Auth session"
   on public.profiles as restrictive for all to authenticated
   using ((select private.has_active_profile_session()))

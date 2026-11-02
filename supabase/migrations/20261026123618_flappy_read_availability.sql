@@ -17,3 +17,4 @@ begin
 end $$;
 revoke all on function public.flappy_read_availability(uuid) from public,anon,authenticated;
 grant execute on function public.flappy_read_availability(uuid) to service_role;
+;

@@ -105,7 +105,6 @@ begin
   end if;
 end;
 $$;
-
 -- Server-side invoker triggers create derived competition data during an
 -- authoritative finalization. Grant only the exact helpers and derived-table
 -- writes they require; browser roles retain the historical revocations.
@@ -122,7 +121,6 @@ grant execute on function
   private.release_unsettled_payout_holds(uuid, uuid, uuid),
   private.flag_paid_winner_for_review(public.provisional_winners, uuid)
 to service_role;
-
 grant insert, delete on public.daily_top_scores to service_role;
 grant insert, update, delete on public.weekly_tournament_totals to service_role;
 grant insert, delete on public.weekly_share_results to service_role;
@@ -132,5 +130,4 @@ grant insert, update on public.prize_balances to service_role;
 grant update (id) on public.prize_ledger_entries to service_role;
 grant usage on schema auth to service_role;
 grant select (id, email_confirmed_at) on auth.users to service_role;
-
 revoke all on function private.refresh_referral_qualification(uuid) from public, anon, authenticated;

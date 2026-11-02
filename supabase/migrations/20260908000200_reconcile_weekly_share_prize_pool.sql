@@ -5,30 +5,23 @@
 alter table public.provisional_winners
   add column allocation_revision integer not null default 1
     check (allocation_revision >= 1);
-
 alter table public.provisional_winners
   drop constraint if exists provisional_winners_game_id_tournament_week_start_award_typ_key;
-
 alter table public.provisional_winners
   add constraint provisional_winners_allocation_revision_unique
   unique (game_id, tournament_week_start, award_type, player_id, allocation_revision);
-
 alter table public.provisional_winners
   drop constraint if exists provisional_winners_allocation_status_check;
-
 alter table public.provisional_winners
   add constraint provisional_winners_allocation_status_check
   check (allocation_status in ('allocated', 'requires_manual_allocation', 'superseded'));
-
 alter table public.provisional_winners
   drop constraint if exists provisional_winners_amount_shape;
-
 alter table public.provisional_winners
   add constraint provisional_winners_amount_shape check (
     (allocation_status in ('allocated', 'superseded') and amount_cents is not null)
     or (allocation_status = 'requires_manual_allocation' and amount_cents is null)
   );
-
 -- A player can have historical Share award revisions, but only one active
 -- allocation for a given game/week. Superseded records retain audit history.
 create unique index provisional_winners_one_active_share_allocation_idx
@@ -36,13 +29,11 @@ create unique index provisional_winners_one_active_share_allocation_idx
   where award_type = 'weekly_shares'
     and allocation_status = 'allocated'
     and status not in ('disqualified', 'expired');
-
 -- Preserve the original one-award invariant for the unaffected weekly
 -- tournament path while Share awards gain versioned history.
 create unique index provisional_winners_one_weekly_tournament_award_idx
   on public.provisional_winners (game_id, tournament_week_start, award_type, player_id)
   where award_type = 'weekly_tournament';
-
 -- Records that official award generation was invoked even if that week had no
 -- Share winner at the time. Later corrections may then reconcile the already
 -- generated competition; ordinary live qualification refreshes cannot create
@@ -55,9 +46,7 @@ create table private.competition_award_generations (
   generated_at timestamptz not null default now(),
   primary key (game_id, tournament_week_start, award_type)
 );
-
 revoke all on table private.competition_award_generations from public, anon, authenticated;
-
 create function private.weekly_share_prize_pool_cents()
 returns integer
 language sql
@@ -66,7 +55,6 @@ set search_path = ''
 as $$
   select 1000;
 $$;
-
 -- This is a database-level backstop for every INSERT/UPDATE, including an
 -- accidental trusted-server write. Reconciliation and the guard acquire the
 -- same transaction-scoped key, so concurrent writers cannot both observe a
@@ -105,12 +93,10 @@ begin
   return new;
 end;
 $$;
-
 create trigger provisional_winners_guard_weekly_share_pool
   before insert or update of game_id, tournament_week_start, award_type, amount_cents, allocation_status, status
   on public.provisional_winners
   for each row execute function private.guard_weekly_share_prize_pool();
-
 -- A confirmed Share remains permanently attached to the competition week in
 -- which its fifth qualifying New York day was completed. There is intentionally
 -- no ordinary writer exception: any future exceptional repair needs a separate,
@@ -148,7 +134,6 @@ begin
   return new;
 end;
 $$;
-
 -- NULL from current_setting(..., true) is not a safe value. IS DISTINCT FROM
 -- makes the ledger-only balance guard fail closed when no internal setting was
 -- established by the append-only ledger trigger.
@@ -164,7 +149,6 @@ begin
   return new;
 end;
 $$;
-
 -- Superseding an allocation is allowed only to the private reconciler. Normal
 -- state transitions and all immutable award fields retain their existing
 -- protections; paid/disqualified/expired records can never be superseded.
@@ -237,7 +221,6 @@ begin
   return new;
 end;
 $$;
-
 -- Rebuilds the complete canonical Share award set under the one game/week
 -- lock. The generator never accepts an amount, a winner, or a split from the
 -- caller. If any changed allocation has already reached a paid payout, no
@@ -458,7 +441,6 @@ begin
   end loop;
 end;
 $$;
-
 -- A Share refresh rebuilds the canonical ranking then reconciles it only after
 -- an official award-generation marker exists. Unlike the generic winner
 -- reconciler, it never uses membership-only INSERT ... DO NOTHING semantics.
@@ -497,7 +479,6 @@ begin
   perform private.reconcile_weekly_share_prize_pool(p_game_id, p_week_start, false, null);
 end;
 $$;
-
 -- The public server-only generator delegates Share allocation to the complete
 -- reconciler. Tournament awards remain unchanged.
 create or replace function public.rtw_generate_provisional_winners(
@@ -558,7 +539,6 @@ begin
   perform private.reconcile_weekly_share_prize_pool(v_game_id, p_week_start, true, p_actor_user_id);
 end;
 $$;
-
 revoke all on function private.weekly_share_prize_pool_cents() from public, anon, authenticated;
 revoke all on function private.guard_weekly_share_prize_pool() from public, anon, authenticated;
 revoke all on function private.reconcile_weekly_share_prize_pool(uuid, date, boolean, uuid) from public, anon, authenticated;
@@ -567,7 +547,6 @@ revoke all on function private.guard_prize_balance_write() from public, anon, au
 revoke all on function private.protect_provisional_winner() from public, anon, authenticated;
 revoke all on function private.refresh_weekly_share_results(uuid, date) from public, anon, authenticated;
 revoke all on function public.rtw_generate_provisional_winners(uuid, text, date) from public, anon, authenticated;
-
 grant usage on schema private to service_role;
 grant select, insert on table private.competition_award_generations to service_role;
 grant insert, delete on table public.weekly_share_results to service_role;

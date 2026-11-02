@@ -1,3 +1,5 @@
+> Production history was unified on November 1, 2026. For the current application database and fresh reconstruction, use [production-migration-unification.md](../../docs/production-migration-unification.md) and `production-provenance/verify.cjs`. The TEST-specific procedure below documents its original baseline; it is not the runner for the current production migration directory.
+
 # Forward-only TEST upgrade — 2026-09-09
 
 Target: **racetowin.app / lndvnufmbuzdbinapvze / Free**. Baseline Git: `68756bec082b9120c603ee5abd7b6da19b732e57`.
@@ -52,4 +54,5 @@ Comparison ignores physical database-name metadata and normalizes comments/white
 Do not grant schema CREATE or expose service_role in a client to work around a failed check.
 
 Reference: [Supabase database migration guidance](https://supabase.com/docs/guides/deployment/database-migrations).
+
 

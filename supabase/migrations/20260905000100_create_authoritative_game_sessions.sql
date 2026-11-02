@@ -29,17 +29,13 @@ create table public.game_sessions (
     ))
   )
 );
-
 create index game_sessions_owner_active_created_at_idx
   on public.game_sessions (user_id, created_at desc)
   where status = 'active';
-
 alter table public.game_sessions enable row level security;
-
 -- Do not expose sessions or official results through the Data API. RLS remains
 -- enabled as defense in depth if a future grant is added accidentally.
 revoke all on table public.game_sessions from public, anon, authenticated;
-
 create or replace function private.protect_game_session_integrity()
 returns trigger
 language plpgsql
@@ -72,9 +68,7 @@ begin
   return new;
 end;
 $$;
-
 revoke all on function private.protect_game_session_integrity() from public, anon, authenticated;
-
 create trigger game_sessions_protect_integrity
   before update on public.game_sessions
   for each row execute function private.protect_game_session_integrity();

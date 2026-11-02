@@ -40,3 +40,4 @@ end $$;
 revoke all on function public.flappy_admin_read(uuid,integer,uuid) from public,anon,authenticated;
 grant execute on function public.flappy_admin_read(uuid,integer,uuid) to service_role;
 -- Recovery: close both existing competition gates; retain evidence. Never auto-drop.
+;

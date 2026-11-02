@@ -5,11 +5,9 @@
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 select pg_advisory_xact_lock(hashtextextended('rtw:migration:converge-test-state', 0));
-
 create unique index if not exists provisional_winners_one_weekly_tournament_award_idx
   on public.provisional_winners (game_id, tournament_week_start, award_type, player_id)
   where award_type = 'weekly_tournament';
-
 create or replace function private.reconcile_weekly_share_prize_pool(
   p_game_id uuid,
   p_week_start date,
@@ -226,7 +224,6 @@ begin
   end loop;
 end;
 $$;
-
 create or replace function public.rtw_generate_provisional_winners(
   p_actor_user_id uuid,
   p_game_slug text,
@@ -285,12 +282,10 @@ begin
   perform private.reconcile_weekly_share_prize_pool(v_game_id, p_week_start, true, p_actor_user_id);
 end;
 $$;
-
 revoke all on function private.reconcile_weekly_share_prize_pool(uuid,date,boolean,uuid) from public, anon, authenticated;
 revoke all on function public.rtw_generate_provisional_winners(uuid,text,date) from public, anon, authenticated;
 grant execute on function private.reconcile_weekly_share_prize_pool(uuid,date,boolean,uuid) to service_role;
 grant execute on function public.rtw_generate_provisional_winners(uuid,text,date) to service_role;
-
 -- Row triggers do not intercept TRUNCATE. Remove inherited platform defaults
 -- on this application's tables, then restore the explicit runtime allowlist.
 -- Preserve UPDATE(id) on the ledger for SELECT FOR UPDATE; mutations still fail.
@@ -334,7 +329,6 @@ grant insert, select, update on table public.validated_runs to service_role;
 grant delete, insert, select on table public.weekly_share_results to service_role;
 grant delete, insert, select, update on table public.weekly_tournament_totals to service_role;
 grant update (id) on table public.prize_ledger_entries to service_role;
-
 -- Invoker referral/finalize triggers reach this constant helper through Share
 -- reconciliation. Browser roles remain revoked; no definer escalation needed.
 grant execute on function private.weekly_share_prize_pool_cents() to service_role;

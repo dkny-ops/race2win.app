@@ -191,3 +191,4 @@ grant execute on function public.flappy_consume_quota(uuid,text),public.flappy_s
   public.flappy_review_run(uuid,uuid,text,text),public.flappy_read_ranking(date,integer) to service_role;
 -- Rollback: close both gates and retain all evidence. Removing this migration's
 -- functions/tables is a separate, explicitly destructive operation; never auto-drop.
+;

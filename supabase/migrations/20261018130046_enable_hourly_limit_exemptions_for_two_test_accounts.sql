@@ -1,0 +1,1 @@
+insert into public.rtw_hourly_limit_test_exemptions(player_id,reason) values ('89565250-aafb-4508-a945-39cb329a5650','BadBoy internal gameplay testing'),('9a216afd-7447-41d2-a7d0-e701cd579d14','test1 internal gameplay testing') on conflict(player_id) do update set reason=excluded.reason;;

@@ -66,4 +66,4 @@ returns jsonb language sql stable security definer set search_path='' as $$
   else null end;
 $$;
 revoke all on function public.flappy_admin_read_prize_cases(uuid,date) from public,anon,authenticated;
-grant execute on function public.flappy_admin_read_prize_cases(uuid,date) to service_role;
+grant execute on function public.flappy_admin_read_prize_cases(uuid,date) to service_role;;

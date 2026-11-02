@@ -17,16 +17,13 @@ create table private.game_session_checkpoints (
   primary key (game_session_id, checkpoint_index),
   unique (game_session_id, milestone_score)
 );
-
 create index game_session_checkpoints_player_accepted_idx
   on private.game_session_checkpoints (player_id, accepted_at desc);
-
 alter table private.competition_action_rate_limits
   drop constraint competition_action_rate_limits_action_check;
 alter table private.competition_action_rate_limits
   add constraint competition_action_rate_limits_action_check
   check (action in ('referral_attach', 'prize_claim', 'balance_claim', 'game_checkpoint'));
-
 create or replace function public.rtw_consume_competition_action_rate_limit(
   p_player_id uuid,
   p_action text
@@ -70,14 +67,11 @@ begin
   return v_count <= v_limit;
 end;
 $$;
-
 revoke all on function public.rtw_consume_competition_action_rate_limit(uuid, text) from public, anon, authenticated;
 grant execute on function public.rtw_consume_competition_action_rate_limit(uuid, text) to service_role;
-
 alter table private.game_session_checkpoints enable row level security;
 revoke all on table private.game_session_checkpoints from public, anon, authenticated;
 grant select, insert on table private.game_session_checkpoints to service_role;
-
 -- This trigger serializes checkpoint insertion with session finalization by
 -- taking a row lock on the authoritative session. It derives ownership and
 -- rules version from that session, so a server bug or a future broad grant
@@ -112,13 +106,10 @@ begin
   return new;
 end;
 $$;
-
 revoke all on function private.validate_game_session_checkpoint() from public, anon, authenticated;
-
 create trigger game_session_checkpoints_validate
   before insert on private.game_session_checkpoints
   for each row execute function private.validate_game_session_checkpoint();
-
 -- Bound checkpoint storage to the short authoritative-session lifetime. This
 -- function is server-only; scheduled retention, if configured later, can
 -- remove only settled session evidence after the product retention window.
@@ -144,5 +135,4 @@ begin
   return v_deleted;
 end;
 $$;
-
 revoke all on function private.prune_expired_game_session_checkpoints(timestamptz) from public, anon, authenticated, service_role;

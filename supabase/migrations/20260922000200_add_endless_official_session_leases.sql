@@ -6,7 +6,6 @@
 alter table public.game_sessions
   add column if not exists checkpoint_interval_score integer,
   add column if not exists activity_lease_expires_at timestamptz;
-
 -- Existing rtw-v6 rows must retain their original immutable lifecycle and
 -- fixed-expiry semantics. In particular, an active legacy row cannot be
 -- backfilled: the integrity trigger intentionally rejects every active-row
@@ -16,12 +15,10 @@ alter table public.game_sessions
   drop constraint if exists game_sessions_checkpoint_interval_score_check,
   add constraint game_sessions_checkpoint_interval_score_check
     check (checkpoint_interval_score is null or checkpoint_interval_score = 1000);
-
 alter table public.game_sessions
   drop constraint if exists game_sessions_gameplay_version_check,
   add constraint game_sessions_gameplay_version_check
     check (gameplay_version in ('rtw-v6', 'rtw-v7'));
-
 alter table public.game_sessions
   add constraint game_sessions_versioned_checkpoint_lease_shape check (
     (gameplay_version = 'rtw-v6'
@@ -31,12 +28,10 @@ alter table public.game_sessions
       and checkpoint_interval_score = 1000
       and activity_lease_expires_at is not null)
   );
-
 comment on column public.game_sessions.expires_at is
   'Legacy fixed expiry retained for historical rtw-v6 compatibility. rtw-v7 authorization uses activity_lease_expires_at only.';
 comment on column public.game_sessions.activity_lease_expires_at is
   'Server-controlled renewable activity lease. It changes only inside a validated checkpoint function.';
-
 -- Active sessions may only change their lease from the privileged validated
 -- checkpoint function. Finalization and expiry may change status, but neither
 -- can rewrite authoritative identity, inputs, scores, or lease history.
@@ -108,9 +103,7 @@ begin
   return new;
 end;
 $$;
-
 revoke all on function private.protect_game_session_integrity() from public, anon, authenticated;
-
 -- New starts receive a six-minute activity lease. The maximum time required
 -- to reach a 1,000-point checkpoint at the minimum authoritative velocity is
 -- under five minutes, leaving a conservative 45-second network margin. Every
@@ -171,17 +164,14 @@ begin
     session.expires_at, session.checkpoint_interval_score, session.activity_lease_expires_at;
 end;
 $$;
-
 revoke all on function public.rtw_start_official_game_session_v3(uuid, text, text, bigint) from public, anon, authenticated;
 grant execute on function public.rtw_start_official_game_session_v3(uuid, text, text, bigint) to service_role;
-
 -- Checkpoint rows retain historical v6 (5,000-point) evidence and accept v7
 -- (1,000-point) evidence. The session itself is the source of the interval.
 alter table private.game_session_checkpoints
   drop constraint if exists game_session_checkpoints_milestone_score_check,
   add constraint game_session_checkpoints_milestone_score_positive_check
     check (milestone_score > 0);
-
 create or replace function private.validate_game_session_checkpoint()
 returns trigger
 language plpgsql
@@ -223,11 +213,9 @@ begin
   return new;
 end;
 $$;
-
 revoke all on function private.validate_game_session_checkpoint() from public, anon, authenticated;
 revoke insert on table private.game_session_checkpoints from service_role;
 grant select on table private.game_session_checkpoints to service_role;
-
 -- This is the sole v7 lease-renewal path. It takes one row lock, checks the
 -- unexpired lease while locked, stores contiguous checkpoint evidence, then
 -- renews to a fixed server timestamp. A concurrent exact retry observes the
@@ -320,10 +308,8 @@ begin
     true, true, v_new_lease;
 end;
 $$;
-
 revoke all on function public.rtw_record_game_session_checkpoint_with_lease(uuid, uuid, integer, text, integer) from public, anon, authenticated;
 grant execute on function public.rtw_record_game_session_checkpoint_with_lease(uuid, uuid, integer, text, integer) to service_role;
-
 -- Finalization uses the renewable lease, never the legacy expires_at value.
 -- Missing checkpoints are backfilled only from a replay result already
 -- reconstructed by the server route; the function serializes that write with
@@ -419,10 +405,8 @@ begin
     session.final_distance_millimeters, session.final_elapsed_ms, session.final_collision_at_ms;
 end;
 $$;
-
 revoke all on function public.rtw_finalize_game_session_with_checkpoints(uuid, uuid, text, integer, integer, bigint, integer, integer, jsonb) from public, anon, authenticated;
 grant execute on function public.rtw_finalize_game_session_with_checkpoints(uuid, uuid, text, integer, integer, bigint, integer, integer, jsonb) to service_role;
-
 -- At most eight checkpoint actions per minute. rtw-v7 reaches at most one
 -- ordinary milestone about every 75 seconds at top speed; this permits bounded
 -- retries while absorbing abusive request storms.
@@ -451,6 +435,5 @@ begin
   return v_count <= v_limit;
 end;
 $$;
-
 revoke all on function public.rtw_consume_competition_action_rate_limit(uuid, text) from public, anon, authenticated;
 grant execute on function public.rtw_consume_competition_action_rate_limit(uuid, text) to service_role;

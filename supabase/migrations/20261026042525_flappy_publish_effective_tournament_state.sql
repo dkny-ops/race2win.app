@@ -17,3 +17,4 @@ $$;
 
 revoke all on function public.flappy_read_ranking(date,integer) from public,anon,authenticated;
 grant execute on function public.flappy_read_ranking(date,integer) to service_role;
+;

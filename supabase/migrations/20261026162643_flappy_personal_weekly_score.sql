@@ -1,5 +1,6 @@
--- Server-only personal FlappyRace weekly score read model.
--- No score, prize, payment, advertisement, or game-state mutation is performed.
+-- Personal FlappyRace weekly score, server-only.
+-- Returns only the caller-selected player/week values supplied by the trusted server.
+-- No financial, prize, payment, or score mutation is performed.
 create or replace function public.flappy_read_personal_week(p_player uuid, p_week date)
 returns jsonb
 language sql
@@ -56,4 +57,4 @@ as $$
 $$;
 
 revoke all on function public.flappy_read_personal_week(uuid, date) from public, anon, authenticated;
-grant execute on function public.flappy_read_personal_week(uuid, date) to service_role;
+grant execute on function public.flappy_read_personal_week(uuid, date) to service_role;;
