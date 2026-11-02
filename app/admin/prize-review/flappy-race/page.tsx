@@ -31,7 +31,7 @@ export default async function FlappyReviewPage() {
   return <main className="page-section shell narrow flappy-admin-review">
     <div className="flappy-admin-banner">
       <p className="eyebrow">ARCADE GAME · OWNER REVIEW</p>
-      <h1>FLAPPY RACE</h1>
+      <h1>FLAPPY <em>RACE</em></h1>
       <p>PANEL DE REVISIÓN SEMANAL</p>
     </div>
     <div className="button-row" style={{marginBottom:"1.25rem"}}>
