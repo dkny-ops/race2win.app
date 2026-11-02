@@ -41,7 +41,7 @@ test('approved frozen candidate enables credit review even when no financial win
 test('financial winner status cannot impersonate candidate approval; disabled prize program fails closed',async()=>{
  const pending=load({state:'pending_review',winnerStatus:'approved_for_payment'});
  assert.equal(pending.find(await pending.render())[0].status,'pending_review');
- const disabled=load({prizesEnabled:false});assert.notEqual(disabled.find(await disabled.render())[0].status,'approved');
+ const disabled=load({prizesEnabled:false});assert.equal(disabled.find(await disabled.render()).length,0,'disabled prize program must not render credit controls');
 });
 test('candidate read errors and unauthorized page access fail closed',async()=>{
  await assert.rejects(load({rpcError:true}).render());
