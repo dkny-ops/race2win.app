@@ -25,7 +25,10 @@ export default async function RunAuditPage({ params }: { params: Promise<{ runId
   const { runId } = await params;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(runId)) notFound();
 
-  // Only Flappy Race Top 7 runs may be opened here. Never expose another game.\n  const { data: game, error: gameError } = await admin.from("games").select("id").eq("slug", "flappy-race").maybeSingle();\n  if (gameError || !game) notFound();\n  // Require the exact run to belong to a server-maintained daily Top 7.
+  // Only Flappy Race Top 7 runs may be opened here. Never expose another game.
+  const { data: game, error: gameError } = await admin.from("games").select("id").eq("slug", "flappy-race").maybeSingle();
+  if (gameError || !game) notFound();
+  // Require the exact run to belong to a server-maintained daily Top 7.
   const { data: top, error: topError } = await admin.from("daily_top_scores")
     .select("player_id,tournament_day,tournament_week_start,daily_rank,score,validated_run_id")
     .eq("validated_run_id", runId).eq("game_id", game.id).maybeSingle();
