@@ -80,6 +80,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               
               <div className="home-game-actions">
                 <Link href="/games/flappy-race" className="button button--primary">{language === "es" ? "JUGAR" : "PLAY"}</Link>
+                {owner ? <ButtonLink href="/admin/prize-review/flappy-race" variant="secondary">ADMIN</ButtonLink> : null}
               </div>
               <GameCardShareButton game="flappy-race" />
             </article>
