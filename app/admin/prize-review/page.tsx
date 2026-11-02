@@ -86,18 +86,6 @@ export default async function AdminPrizeReviewPage() {
       <Link className="button button--primary" href="/admin/prize-review/auth-401">REVISAR ACCESOS 401 →</Link>
       <Link className="button button--primary" href="/admin/prize-review/players">VER JUGADORES →</Link>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,280px),1fr))",gap:"1rem",marginBottom:"1.5rem"}}>
-      <article className="profile-card" style={{padding:"1.25rem",border:"1px solid rgba(255,255,255,.2)",borderRadius:14}}>
-        <h2>RACE TO WIN</h2>
-        <p>Revisión de resultados y partidas de Race To Win.</p>
-        <Link className="button button--primary" href="/admin/prize-review/players">VER JUGADORES →</Link>
-      </article>
-      <article className="profile-card" style={{padding:"1.25rem",border:"1px solid rgba(255,255,255,.2)",borderRadius:14}}>
-        <h2>FLAPPY RACE</h2>
-        <p>Revisión exclusiva de partidas, resultados, premios provisionales y alertas de Flappy Race.</p>
-        <Link className="button button--primary" href="/admin/prize-review/flappy-race">REVISAR PARTIDAS →</Link>
-      </article>
-    </div>
     <p>Semana del {previousWeek} · Resumen de ganadores y premios. Solo lectura: este panel no ejecuta pagos ni modifica balances.</p>
     {(totals.data ?? []).length === 0 ? <p>No ranked players for this week.</p> : (totals.data ?? []).map((entry) => {
       const winner = (winners.data ?? []).find((w) => w.player_id === entry.player_id && w.award_type === "weekly_tournament");
