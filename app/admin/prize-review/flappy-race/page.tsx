@@ -27,14 +27,19 @@ export default async function FlappyReviewPage() {
   ]);
   if ([totals,flags,winners,daily,prizeReview].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
   const prizeCaseStates = new Map<string,string>();
+  const candidates: {playerId:string;username:string;weeklyTotal:number;effectiveRank:number;state:string;scores:number[]}[] = [];
   const dossier:unknown = prizeReview.data;
-  if (dossier && typeof dossier==="object" && !Array.isArray(dossier) && "prizesEnabled" in dossier && dossier.prizesEnabled===true && "candidates" in dossier && Array.isArray(dossier.candidates)) {
+  if (dossier && typeof dossier==="object" && !Array.isArray(dossier) && "prizesEnabled" in dossier && dossier.enabled===true && "candidates" in dossier && Array.isArray(dossier.candidates)) {
     for (const candidate of dossier.candidates) {
       if (!candidate || typeof candidate!=="object" || typeof candidate.playerId!=="string" || typeof candidate.state!=="string" || typeof candidate.effectiveRank!=="number" || !Number.isInteger(candidate.effectiveRank) || candidate.effectiveRank<1 || candidate.effectiveRank>3) continue;
-      if (["pending_review","needs_additional_review","approved","rejected"].includes(candidate.state)) prizeCaseStates.set(candidate.playerId,candidate.state);
+      if (["pending_review","needs_additional_review","approved","rejected"].includes(candidate.state)) {
+        prizeCaseStates.set(candidate.playerId,candidate.state);
+        candidates.push({playerId:candidate.playerId,username:typeof candidate.username==="string"?candidate.username:"",weeklyTotal:typeof candidate.weeklyTotal==="number"?candidate.weeklyTotal:0,effectiveRank:candidate.effectiveRank,state:candidate.state,scores:Array.isArray(candidate.scores)?candidate.scores.filter((v:unknown):v is number=>typeof v==="number"):[]});
+      }
     }
   }
-  const ids = [...new Set([...(totals.data??[]).map(x=>x.player_id),...(flags.data??[]).map(x=>x.player_id),...(winners.data??[]).map(x=>x.player_id)])].filter((x):x is string=>typeof x==="string");
+  candidates.sort((a,b)=>a.effectiveRank-b.effectiveRank);
+  const ids = [...new Set([...candidates.map(x=>x.playerId),...(totals.data??[]).map(x=>x.player_id),...(flags.data??[]).map(x=>x.player_id),...(winners.data??[]).map(x=>x.player_id)])].filter((x):x is string=>typeof x==="string");
   const profiles = ids.length ? await admin.from("profiles").select("user_id,username").in("user_id",ids) : {data:[],error:null};
   const names = new Map((profiles.data??[]).map(x=>[x.user_id,x.username||x.user_id.slice(0,8)]));
   const name=(id:string)=>names.get(id)||id.slice(0,8);
@@ -47,26 +52,28 @@ export default async function FlappyReviewPage() {
       <Link href="/admin/prize-review/flappy-race/players" className="button button--primary">BUSCAR JUGADOR →</Link>
     </div>
     <p>Ganadores de la semana del {previousWeek}. Solo se muestran los primeros tres puestos; premios sujetos a revisión humana.</p>
-    {(totals.data??[]).length===0 ? <p>No hay ganadores clasificados para esta semana.</p> : (totals.data??[]).map(t=>{
-      const prize=(winners.data??[]).find(x=>x.player_id===t.player_id&&x.award_type==="weekly_tournament");
-      const alerts=(flags.data??[]).filter(x=>x.player_id===t.player_id);
-      const top=(daily.data??[]).filter(x=>x.player_id===t.player_id);
-      return <article className="profile-card" key={t.player_id} style={{padding:"1.25rem",marginBottom:"1rem",border:"1px solid rgba(110,255,173,.3)",borderRadius:14}}>
-        <h2 style={{fontSize:"clamp(1.4rem,5vw,2.3rem)"}}>#{t.rank_position} · {name(t.player_id)}</h2>
-        <p>ID de jugador: {t.player_id.slice(0,8)}</p>
+    {candidates.length===0 ? <p>No hay candidatos clasificados para esta semana.</p> : candidates.map(t=>{
+      const prize=(winners.data??[]).find(x=>x.player_id===t.playerId&&x.award_type==="weekly_tournament");
+      const alerts=(flags.data??[]).filter(x=>x.player_id===t.playerId);
+      const top=(daily.data??[]).filter(x=>x.player_id===t.playerId);
+      return <article className="profile-card" key={t.playerId} style={{padding:"1.25rem",marginBottom:"1rem",border:"1px solid rgba(110,255,173,.3)",borderRadius:14}}>
+        <h2 style={{fontSize:"clamp(1.4rem,5vw,2.3rem)"}}>#{t.effectiveRank} · {(t.username||name(t.playerId))}</h2>
+        <p>ID de jugador: {t.playerId.slice(0,8)}</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:".75rem"}}>
-          <div style={card}><small>TOTAL SEMANAL</small><h3>{t.weekly_total_score.toLocaleString("en-US")}</h3></div>
+          <div style={card}><small>TOTAL SEMANAL</small><h3>{t.weeklyTotal.toLocaleString("en-US")}</h3></div>
           <div style={card}><small>PREMIO PROVISIONAL</small><h3>{prize?"$"+(Number(prize.amount_cents)/100).toFixed(2):"No asignado"}</h3></div>
           <div style={card}><small>ALERTAS ABIERTAS</small><h3>{alerts.length}</h3></div>
         </div>
-        <FlappyPrizeControls playerId={t.player_id} week={previousWeek} status={prizeCaseStates.get(t.player_id)??"pending_review"} />
-        <BlockPlayerControl playerId={t.player_id} username={name(t.player_id)} />
+        <p>Estado del candidato: {t.state==="pending_review"?"Pendiente de revisión":t.state==="approved"?"Aprobado":t.state==="rejected"?"Rechazado":"Revisión adicional"}</p>
+        <FlappyPrizeControls playerId={t.playerId} week={previousWeek} status={prizeCaseStates.get(t.playerId)??"pending_review"} />
+        <BlockPlayerControl playerId={t.playerId} username={name(t.playerId)} />
         <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>
+        <details><summary>Ver puntuaciones clasificadas</summary><p>{t.scores.length?t.scores.join(" · "):"Sin puntuaciones registradas."}</p></details>
         <details><summary>Ver Top 7 de cada día</summary>
           {top.length ? [...new Set(top.map(x=>x.tournament_day))].map(day=><div key={day} style={card}><strong>{day}</strong>{top.filter(x=>x.tournament_day===day).map(x=><p key={x.daily_rank}>#{x.daily_rank} · <Link href={"/admin/prize-review/flappy-race/runs/"+x.validated_run_id}>{x.score.toLocaleString("en-US")} puntos ↗</Link></p>)}</div>):<p>Sin Top 7 registrado.</p>}
         </details>
         <details><summary>Historial y datos de revisión</summary>
-          <p>ID: {t.player_id}</p><p>Desempate: {t.tie_break_status}</p>
+          <p>ID: {t.playerId}</p><p>Desempate: {"Clasificación Flappy"}</p>
           <p>Premio: {prize?.status??"No asignado"} · {prize?.admin_note??"Sin observaciones"}</p>
           {alerts.map((f,i)=><p key={i}>{f.severity} · {f.status} · {f.signal_summary}</p>)}
         </details>
