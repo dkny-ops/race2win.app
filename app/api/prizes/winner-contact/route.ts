@@ -19,6 +19,18 @@ export async function GET() {
       admin.from("prize_balances").select("available_cents").eq("player_id", playerId).maybeSingle(),
       admin.from("profiles").select("username").eq("user_id", playerId).maybeSingle(),
     ]);
+    if (profileError) return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
+    const { data: flappy, error: flappyError } = await admin.rpc("flappy_player_winner_contact", { p_player: playerId });
+    if (flappyError) return NextResponse.json({ eligible: false }, { status: 503, headers: NO_STORE_HEADERS });
+    if (flappy && typeof flappy === "object" && !Array.isArray(flappy) &&
+        [1,2,3].includes(flappy.rankPosition) &&
+        [500,300,200][flappy.rankPosition-1] === flappy.prizeCents) {
+      const whatsappUrl = getWhatsAppClaimUrl(profile?.username ?? undefined, "FlappyRace");
+      return NextResponse.json({
+        eligible: Boolean(whatsappUrl), prizeCents: flappy.prizeCents,
+        rankPosition: flappy.rankPosition, whatsappUrl: whatsappUrl ?? null,
+      }, { headers: NO_STORE_HEADERS });
+    }
     if (balanceError || profileError || safeCents(balance?.available_cents) < 2000) {
       return NextResponse.json({ eligible: false }, { headers: NO_STORE_HEADERS });
     }
