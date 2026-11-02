@@ -20,7 +20,7 @@ export function FlappyPrizeControls({playerId,week,status}:{playerId:string;week
  }
  return <section style={{display:"grid",gap:".7rem",margin:"1rem 0"}}>
   <h3 style={{fontSize:"1rem"}}>Acciones del propietario</h3>
-  <p>Estado: {status}. Primero revisa las partidas y alertas. Aprobar candidato NO acredita dinero; acreditar NO ejecuta un pago.</p>
+  <p>Estado: {status}. Primero revisa las partidas y alertas. Aprobar candidato NO acredita dinero. Validar balance acredita el premio, pero NUNCA envía dinero. El propietario realiza el pago por fuera del sistema.</p>
   <label>Motivo y evidencia de la decisión <textarea required rows={3} maxLength={500} value={note} onChange={e=>setNote(e.target.value)} style={{display:"block",width:"100%"}} /></label>
   <div className="button-row">
    <button type="button" className="button button--secondary" disabled={busy||!note.trim()} onClick={()=>void act("approved")}>APROBAR CANDIDATO</button>
@@ -28,7 +28,7 @@ export function FlappyPrizeControls({playerId,week,status}:{playerId:string;week
    <button type="button" className="button button--secondary" disabled={busy||!note.trim()} onClick={()=>void act("rejected")}>RECHAZAR CANDIDATO</button>
    <button type="button" className="button button--primary" disabled={busy||!note.trim()||status!=="approved"} onClick={()=>void act("allocate")}>VALIDAR BALANCE</button>
   </div>
-  <p>Pago exitoso: no disponible en este panel hasta contar con un registro de pago Flappy independiente y verificado.</p>
+  <p>Pago exitoso: este botón solo debe registrar un pago que el propietario YA realizó personalmente. Pendiente de conectar a un registro Flappy independiente; no se puede confirmar todavía.</p>
   {message&&<p role="status">{message}</p>}
  </section>;
 }
