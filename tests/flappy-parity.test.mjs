@@ -38,10 +38,16 @@ test("official transport sets bounded timeout and refuses unavailable service",a
   await assert.rejects(client.startFlappyOfficial());assert.equal(calls,1);
  }finally{globalThis.fetch=original;}
 });
-test("legacy individual Flappy review route is unavailable before any data access",()=>{
- const sentinel=new Error("NOT_FOUND");
- const page=load("app/admin/prize-review/flappy-race/page.tsx",{"next/navigation":{notFound:()=>{throw sentinel;}}});
- assert.throws(()=>page.default({searchParams:Promise.resolve({session:"00000000-0000-4000-8000-000000000000"})}),err=>err===sentinel);
+test("Flappy admin review requires owner authorization and is read-only",async()=>{
+ const source=readFileSync(new URL("../app/admin/prize-review/flappy-race/page.tsx",import.meta.url),"utf8");
+ assert.match(source,/getAuthorizedPrizeAdmin/);
+ assert.match(source,/if \(!auth\) notFound\(\)/);
+ assert.match(source,/\.eq\("game_id",gameId\)/);
+ assert.match(source,/PARTIDAS DE JUGADORES/);
+ assert.match(source,/RESULTADOS VALIDADOS/);
+ assert.match(source,/PREMIOS PROVISIONALES/);
+ assert.doesNotMatch(source,/admin\.rpc\(/);
+ assert.doesNotMatch(source,/\.insert\(|\.update\(|\.delete\(|\.upsert\(/);
 });
 test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
  const client=load("lib/game/flappy/official-client.ts",{"./engine":engine,"./availability":load("lib/game/flappy/availability.ts")});
