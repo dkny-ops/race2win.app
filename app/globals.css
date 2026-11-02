@@ -2252,3 +2252,58 @@ body:has(.flappy-game-page) .site-footer{
 .site-header .brand .flappy-admin-brand::before{content:"";display:block;width:clamp(30px,5vw,45px);height:clamp(30px,5vw,45px);border-radius:50%;background:url('/images/Flappy-bird%20.png') 70% center/cover no-repeat;border:1px solid #54ed9c;box-shadow:0 0 12px #20e47c65}
 .site-header .brand .flappy-admin-brand em{font-style:normal;color:#5cf88c;text-shadow:0 0 12px #28f57388}
 @media(max-width:700px){.flappy-admin-review .flappy-admin-banner{min-height:195px}.flappy-admin-review .flappy-admin-banner h1{max-width:82%;font-size:clamp(2rem,9vw,3rem)}}
+
+
+/* Flappy owner pages: reuse the exact metallic-green logo from the game header. */
+.flappy-admin-review .flappy-admin-banner{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:.65rem;
+  min-height:clamp(150px,25vw,210px);
+  padding:1.5rem 1rem;
+  background:#031b29;
+  border:1px solid rgba(64,170,200,.25);
+  border-radius:0;
+  box-shadow:none;
+  text-align:center;
+}
+.flappy-admin-review .flappy-admin-banner::before{
+  content:"";
+  position:static;
+  display:block;
+  width:min(100%,660px);
+  height:clamp(65px,12vw,125px);
+  flex:none;
+  background:url('/images/flappy-race-logo-banner.png') center/contain no-repeat;
+  -webkit-mask-image:none;
+  mask-image:none;
+  opacity:1;
+}
+.flappy-admin-review .flappy-admin-banner h1{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+.flappy-admin-review .flappy-admin-banner .eyebrow{display:none}
+.flappy-admin-review .flappy-admin-banner p:last-child{
+  margin:0;
+  color:#d7e9f1;
+  font-size:clamp(.8rem,2.5vw,1rem);
+  letter-spacing:.12em;
+  text-shadow:none;
+}
+@media(max-width:700px){
+  .flappy-admin-review .flappy-admin-banner{
+    min-height:155px;
+    padding:1.2rem .75rem;
+  }
+  .flappy-admin-review .flappy-admin-banner::before{height:85px}
+}
