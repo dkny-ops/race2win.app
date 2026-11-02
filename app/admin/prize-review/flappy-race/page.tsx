@@ -29,7 +29,7 @@ export default async function FlappyReviewPage() {
   const prizeCaseStates = new Map<string,string>();
   const candidates: {playerId:string;username:string;weeklyTotal:number;effectiveRank:number;state:string;scores:number[]}[] = [];
   const dossier:unknown = prizeReview.data;
-  if (dossier && typeof dossier==="object" && !Array.isArray(dossier) && "prizesEnabled" in dossier && dossier.enabled===true && "candidates" in dossier && Array.isArray(dossier.candidates)) {
+  if (dossier && typeof dossier==="object" && !Array.isArray(dossier) && "enabled" in dossier && dossier.enabled===true && "candidates" in dossier && Array.isArray(dossier.candidates)) {
     for (const candidate of dossier.candidates) {
       if (!candidate || typeof candidate!=="object" || typeof candidate.playerId!=="string" || typeof candidate.state!=="string" || typeof candidate.effectiveRank!=="number" || !Number.isInteger(candidate.effectiveRank) || candidate.effectiveRank<1 || candidate.effectiveRank>3) continue;
       if (["pending_review","needs_additional_review","approved","rejected"].includes(candidate.state)) {
