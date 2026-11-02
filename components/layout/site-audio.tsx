@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Channel = "site" | "race" | "flappy";
-const SOURCES: Record<Channel,string> = { site: "/Music%201.mp3", race: "/Race1.mp3", flappy: "/Flappy.mp3" };
+const SOURCES: Record<Channel,string> = { site: "/Music%201.mp3", race: "/Race1.mp3", flappy: "/Flappy10.mp3" };
 const VOLUME: Record<Channel,number> = { site: .22, race: .42, flappy: .42 };
 const active = new Map<Channel,HTMLAudioElement>();
 function syncSite() {
