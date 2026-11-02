@@ -2307,3 +2307,28 @@ body:has(.flappy-game-page) .site-footer{
   }
   .flappy-admin-review .flappy-admin-banner::before{height:85px}
 }
+
+/* Flappy admin: logo lives only in the top navigation and links to Home. */
+.site-header .brand .flappy-admin-brand--logo{
+ display:block;
+ width:clamp(190px,42vw,330px);
+ height:clamp(52px,10vw,76px);
+ background:url('/images/flappy-race-logo-banner.png') center/contain no-repeat;
+ border:0;
+ box-shadow:none;
+ font-size:0;
+ color:transparent;
+ overflow:hidden;
+}
+.site-header .brand .flappy-admin-brand--logo::before{display:none}
+.flappy-admin-review .flappy-admin-page-title{
+ font-size:clamp(1.2rem,4vw,1.65rem);
+ line-height:1.25;
+ text-align:center;
+ letter-spacing:.07em;
+ margin:0 0 1.4rem;
+ color:#e4f1f9;
+}
+@media(max-width:700px){
+ .site-header .brand .flappy-admin-brand--logo{width:clamp(180px,47vw,270px);height:56px}
+}
