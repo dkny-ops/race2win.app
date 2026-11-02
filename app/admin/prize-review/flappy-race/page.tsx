@@ -21,7 +21,7 @@ export default async function FlappyReviewPage() {
   const [totals,flags,winners,daily,prizeReview] = await Promise.all([
     admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position,tie_break_status").eq("game_id",gameId).eq("tournament_week_start",previousWeek).gte("rank_position",1).lte("rank_position",3).order("rank_position",{ascending:true}).limit(3),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").eq("game_id",gameId).in("status",["open","under_review","confirmed"]).limit(100),
-    admin.from("provisional_winners").select("player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).eq("tournament_week_start",previousWeek).limit(20),
+    admin.from("provisional_winners").select("id,player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).eq("tournament_week_start",previousWeek).limit(20),
     admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score,validated_run_id").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300),
     admin.rpc("flappy_admin_read_prize_cases", {p_actor:auth.context.userId,p_week:previousWeek})
   ]);
@@ -40,6 +40,9 @@ export default async function FlappyReviewPage() {
   }
   candidates.sort((a,b)=>a.effectiveRank-b.effectiveRank);
   const ids = [...new Set([...candidates.map(x=>x.playerId),...(totals.data??[]).map(x=>x.player_id),...(flags.data??[]).map(x=>x.player_id),...(winners.data??[]).map(x=>x.player_id)])].filter((x):x is string=>typeof x==="string");
+  const balanceResult = ids.length ? await admin.from("prize_balances").select("player_id,available_cents").in("player_id",ids) : {data:[],error:null};
+  if (balanceResult.error) throw new Error("No se pudieron verificar los balances");
+  const balances = new Map((balanceResult.data??[]).map(x=>[x.player_id,x.available_cents]));
   const profiles = ids.length ? await admin.from("profiles").select("user_id,username").in("user_id",ids) : {data:[],error:null};
   const names = new Map((profiles.data??[]).map(x=>[x.user_id,x.username||x.user_id.slice(0,8)]));
   const name=(id:string)=>names.get(id)||id.slice(0,8);
@@ -65,7 +68,7 @@ export default async function FlappyReviewPage() {
           <div style={card}><small>ALERTAS ABIERTAS</small><h3>{alerts.length}</h3></div>
         </div>
         <p>Estado del candidato: {t.state==="pending_review"?"Pendiente de revisión":t.state==="approved"?"Aprobado":t.state==="rejected"?"Rechazado":"Revisión adicional"}</p>
-        <FlappyPrizeControls playerId={t.playerId} week={previousWeek} status={prizeCaseStates.get(t.playerId)??"pending_review"} />
+        <FlappyPrizeControls playerId={t.playerId} week={previousWeek} status={prizeCaseStates.get(t.playerId)??"pending_review"} balanceCents={balances.get(t.playerId)??0} prizeCents={t.effectiveRank===1?500:t.effectiveRank===2?300:200} credited={prize?.status==="approved_for_payment"} winnerId={prize?.status==="approved_for_payment"?prize.id:undefined} />
         <BlockPlayerControl playerId={t.playerId} username={name(t.playerId)} />
         <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>
         <details><summary>Ver puntuaciones clasificadas</summary><p>{t.scores.length?t.scores.join(" · "):"Sin puntuaciones registradas."}</p></details>
