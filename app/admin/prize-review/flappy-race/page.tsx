@@ -1,3 +1,4 @@
+import { BalanceHistory } from "../balance-history";
 import { FlappyPrizeControls } from "./prize-controls";
 import { BlockPlayerControl } from "../block-player-control";
 import Link from "next/link";
@@ -68,6 +69,7 @@ export default async function FlappyReviewPage() {
           <div style={card}><small>ALERTAS ABIERTAS</small><h3>{alerts.length}</h3></div>
         </div>
         <p>Estado del candidato: {t.state==="pending_review"?"Pendiente de revisión":t.state==="approved"?"Aprobado":t.state==="rejected"?"Rechazado":"Revisión adicional"}</p>
+        <BalanceHistory playerId={t.playerId} />
         <FlappyPrizeControls playerId={t.playerId} week={previousWeek} status={prizeCaseStates.get(t.playerId)??"pending_review"} balanceCents={balances.get(t.playerId)??0} prizeCents={t.effectiveRank===1?500:t.effectiveRank===2?300:200} credited={prize?.status==="approved_for_payment"} winnerId={prize?.status==="approved_for_payment"?prize.id:undefined} />
         <BlockPlayerControl playerId={t.playerId} username={name(t.playerId)} />
         <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>
