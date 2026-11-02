@@ -1,6 +1,6 @@
 import { recordCompetitionAccess, competitionAccessMessage } from "@/lib/security/competition-access";
 import "server-only";
-import { createHash, randomInt, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { readBoundedJson } from "@/lib/competition/request-body";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -18,6 +18,8 @@ export async function flappyPlayerAccess(player: string): Promise<"allowed" | "r
   return data?.terms_version === "2026-10-18" ? "allowed" : "terms_required";
 }
 const defaults: Deps = { access: flappyPlayerAccess, enabled: FLAPPY_COMPETITION_ENABLED, user: async () => (await getVerifiedUserContext())?.userId ?? null, admin: createAdminClient, now: Date.now };
+// Fixed course for every official Flappy Race session. Change only with owner approval.
+const FLAPPY_COURSE_SEED = 20261101;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function flapDigest(inputs: number[]): string { return createHash("sha256").update(JSON.stringify(inputs)).digest("hex"); }
 const headers = { "Cache-Control": "private, no-store" };
@@ -52,7 +54,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       if (gate.data && !turnstile) return reject(action, 503, "verification_unavailable");
       const identity = await recordCompetitionAccess(player, "flappy-race", request);
       if (identity !== "allowed") return NextResponse.json({ message: competitionAccessMessage(identity), code: identity }, { status: identity === "unavailable" ? 503 : 403, headers });
-      const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: randomInt(0x100000000), p_version: FLAPPY_VERSION });
+      const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: FLAPPY_COURSE_SEED, p_version: FLAPPY_VERSION });
       // Match only known database errors; never expose SQL/error details.
       if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");
       if (error?.code === "P0001" && error.message === "Concurrent session") return reject(action, 409, "session_active");
