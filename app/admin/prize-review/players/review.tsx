@@ -9,7 +9,7 @@ type Player = {
   flags: { severity: string; status: string; signal_summary: string; created_at: string }[];
 };
 const date = (v: string) => new Date(v).toLocaleString("es", { timeZone: "America/New_York" });
-export function PlayersReview() {
+export function PlayersReview({game = "all"}:{game?: "all" | "flappy-race"}) {
   const [q,setQ] = useState("");
   const [players,setPlayers] = useState<Player[]>([]);
   const [loading,setLoading] = useState(false);
@@ -18,7 +18,7 @@ export function PlayersReview() {
   async function load(query: string) {
     setLoading(true);setError("");
     try {
-      const response = await fetch("/api/admin/players?q=" + encodeURIComponent(query), { cache: "no-store" });
+      const response = await fetch((game === "flappy-race" ? "/api/admin/flappy-race/players?q=" : "/api/admin/players?q=") + encodeURIComponent(query), { cache: "no-store" });
       if (!response.ok) throw new Error("No se pudo cargar la información.");
       const body = await response.json() as { players: Player[] };
       setPlayers(body.players);setSelected(null);
@@ -40,7 +40,7 @@ export function PlayersReview() {
       {selected===p.id && <div style={{marginTop:"1rem"}}>
         <p><strong>Correo confirmado:</strong> {p.email || "No disponible"}</p>
         <p><strong>Registro:</strong> {date(p.createdAt)} (Nueva York)</p>
-        <p><strong>Balance disponible:</strong> {"$" + (Number(p.balanceCents)/100).toFixed(2)}</p>
+        {game === "all" ? <p><strong>Balance disponible:</strong> {"$" + (Number(p.balanceCents)/100).toFixed(2)}</p> : null}
         <h3>Resultados semanales</h3>
         {p.weekly.length ? p.weekly.map((w,i)=><p key={i}>{w.tournament_week_start}: {w.weekly_total_score} puntos · posición {w.rank_position}</p>):<p>Sin resultados semanales.</p>}
         <h3>Últimas partidas</h3>
