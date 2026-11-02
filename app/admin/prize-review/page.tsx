@@ -1,3 +1,4 @@
+import { BalanceHistory } from "./balance-history";
 import { RtwCandidateRejection } from "@/components/game/rtw-candidate-rejection";
 import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
@@ -109,6 +110,7 @@ export default async function AdminPrizeReviewPage() {
             <p style={{ fontWeight: 800, fontSize: "1.35rem" }}>{playerFlags.length}</p>
           </div>
         </div>
+        <BalanceHistory playerId={entry.player_id} />
         <CompetitionIdentityEvidence actor={authorization.context.userId} player={entry.player_id} week={previousWeek} />
         <h3 style={{ fontSize: "1rem" }}>Acciones del propietario</h3>
         <p></p>
