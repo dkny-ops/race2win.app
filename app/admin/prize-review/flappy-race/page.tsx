@@ -29,7 +29,7 @@ export default async function FlappyReviewPage() {
   const card={border:"1px solid #405469",borderRadius:14,padding:"1rem",marginBottom:".75rem",overflowWrap:"anywhere" as const};
   return <main className="page-section shell narrow">
     <p className="eyebrow">OWNER REVIEW · SOLO LECTURA</p>
-    <Link href="/admin/prize-review" className="button button--secondary">← VOLVER AL PANEL</Link>
+    <Link href="/" className="button button--secondary">← VOLVER A HOME</Link>
     <h1>PANEL DE REVISIÓN · FLAPPY RACE</h1>
     <p>Revisión exclusiva de Flappy Race. Últimos 50 registros por sección; sin modificaciones financieras.</p>
     <h2>JUGADORES · SEMANA ACTUAL</h2>
