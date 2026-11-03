@@ -65,12 +65,10 @@ export function JumpingRaceGame(){
   if(p.y>H+130){s.over=true;setScore(s.score);setStatus("over")}
  }
  draw(ctx,s);id=requestAnimationFrame(tick)};id=requestAnimationFrame(tick);return()=>cancelAnimationFrame(id)},[]);
- return <section style={{maxWidth:960,margin:"0 auto",textAlign:"center"}}>
-  <canvas ref={canvas} width={W} height={H} onPointerDown={e=>{if(e.pointerType!=="mouse"){e.preventDefault();jump()}}} aria-label="Jumping Race, toca el juego para saltar dos veces" style={{width:"100%",height:"auto",display:"block",border:"2px solid #5260a8",borderRadius:14,touchAction:"manipulation",background:"#151943"}} />
-  <div style={{display:"flex",justifyContent:"center",gap:16,margin:"1rem 0",flexWrap:"wrap"}}>
-   {status!=="playing"?<button className="button button--primary" onClick={start}>{status==="over"?"REINICIAR":"JUGAR"}</button>:<button className="button button--primary" onPointerDown={e=>{e.preventDefault();jump()}} style={{minWidth:170,minHeight:75,fontSize:"1.4rem",touchAction:"manipulation"}}>JUMP ⬆</button>}
-  </div>
-  <p>Score: {score} · PC: ESPACIO / ↑ · Celular: TOCA LA PANTALLA · Segundo toque en el aire = DOBLE SALTO</p>
-  <p style={{opacity:.75,fontSize:".85rem"}}>Versión de desarrollo. Sin puntuaciones oficiales, anuncios ni premios.</p>
+ return <section onPointerDown={e=>{if(status==="playing"&&e.pointerType!=="mouse"){e.preventDefault();jump()}}} style={status==="playing"?{position:"fixed",inset:0,zIndex:2147483000,background:"#090d2d",display:"flex",alignItems:"center",justifyContent:"center",width:"100vw",height:"100dvh",overflow:"hidden",touchAction:"none"}:{maxWidth:960,margin:"0 auto",textAlign:"center"}}>
+  <canvas ref={canvas} width={W} height={H} onPointerDown={e=>{if(e.pointerType==="mouse"&&status==="playing"){e.preventDefault();jump()}}} aria-label="Jumping Race, toca el juego para saltar dos veces" style={status==="playing"?{width:"100%",height:"100%",objectFit:"contain",display:"block",touchAction:"none",background:"#090d2d"}:{width:"100%",height:"auto",display:"block",border:"2px solid #5260a8",borderRadius:14,touchAction:"manipulation",background:"#151943"}} />
+  {status!=="playing"&&<div style={{display:"flex",justifyContent:"center",gap:16,margin:"1rem 0",flexWrap:"wrap"}}><button className="button button--primary" onClick={start}>{status==="over"?"REINICIAR":"JUGAR"}</button></div>}
+  {status!=="playing"&&<p>Score: {score} · PC: ESPACIO / ↑ · Celular: TOCA LA PANTALLA · Segundo toque en el aire = DOBLE SALTO</p>}
+  {status!=="playing"&&<p style={{opacity:.75,fontSize:".85rem"}}>Versión de desarrollo. Sin puntuaciones oficiales, anuncios ni premios.</p>}
  </section>;
 }
