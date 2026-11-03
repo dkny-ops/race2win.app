@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { canAccessGamePreview } from "@/lib/security/game-preview-access";
 import { JumpingRaceGame } from "@/components/game/jumping-race-game";
 export const dynamic = "force-dynamic";
@@ -7,7 +8,7 @@ export default async function JumpingRacePage(){
  const allowed=await canAccessGamePreview("jumping-race");
  return <main className="page-section shell" style={{paddingTop:"7rem",minHeight:"70vh",textAlign:"center"}}>
   <p className="eyebrow">JUMPING RACE · COMING SOON</p>
-  <h1 className="jumping-race-page-title">JUMPING <em>RACE</em></h1>
+  <h1 style={{maxWidth:850,margin:"0 auto 1.5rem"}}><Image src="/games/jumping-race/jumping-race-logo.svg" alt="Jumping Race" width={1200} height={260} unoptimized priority style={{width:"100%",height:"auto"}} /></h1>
   {allowed?<JumpingRaceGame/>:<>
    <p>Este juego se encuentra en desarrollo y pruebas privadas.</p>
    <p>Estará disponible cuando finalice su preparación.</p>
