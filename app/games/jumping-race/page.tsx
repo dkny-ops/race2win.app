@@ -8,7 +8,7 @@ export default async function JumpingRacePage(){
  const allowed=await canAccessGamePreview("jumping-race");
  return <main className="page-section shell" style={{paddingTop:"7rem",minHeight:"70vh",textAlign:"center"}}>
   <p className="eyebrow">JUMPING RACE · COMING SOON</p>
-  <h1 className="jumping-race-game-banner"><Image src="/games/jumping-race/22170F02-4064-4DF7-BF86-DB04AACC04E3.png" alt="Jumping Race" width={1536} height={512} unoptimized priority style={{width:"100%",height:"auto",objectFit:"contain"}} /></h1>
+  <h1 className="jumping-race-game-banner"><Link href="/" aria-label="Volver a Home" style={{display:"block"}}><Image src="/games/jumping-race/22170F02-4064-4DF7-BF86-DB04AACC04E3.png" alt="Jumping Race — volver a Home" width={1536} height={512} unoptimized priority style={{width:"100%",height:"auto",objectFit:"contain"}} /></Link></h1>
   {allowed?<JumpingRaceGame/>:<>
    <p>Este juego se encuentra en desarrollo y pruebas privadas.</p>
    <p>Estará disponible cuando finalice su preparación.</p>
