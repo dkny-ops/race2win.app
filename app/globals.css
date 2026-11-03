@@ -2347,3 +2347,8 @@ body:has(.flappy-game-page) .site-footer{
 .jumping-race-page-title{font-size:clamp(2.4rem,6vw,5rem)}
 
 .jumping-race-header-logo{display:block;width:clamp(145px,25vw,285px);height:auto;max-height:72px;object-fit:contain}
+
+/* Jumping Race game banner: match Race To Win's responsive top artwork treatment. */
+.jumping-race-game-banner{width:100%;max-width:950px;margin:0 auto 12px;line-height:0}
+.jumping-race-game-banner img{display:block;width:100%;height:auto;object-fit:contain}
+@media(max-width:980px){.jumping-race-game-banner{width:min(92vw,660px);margin:0 auto 14px}}
