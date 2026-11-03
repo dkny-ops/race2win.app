@@ -117,7 +117,6 @@ export class RaceToWinWorld {
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.mapping = THREE.EquirectangularReflectionMapping;
       this.beachBackground = texture;
       this.scene.background = texture;
       this.scene.backgroundIntensity = 1;
