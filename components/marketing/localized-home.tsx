@@ -89,7 +89,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <article className="home-game-tile home-game-tile--jumping" aria-labelledby="jumping-title" style={{position:"relative",background:"linear-gradient(145deg,#10113a 0%,#30216d 52%,#431c66 100%)",border:"1px solid rgba(170,85,255,.55)",overflow:"hidden"}}>
                 <div aria-hidden="true" style={{position:"absolute",right:"-2rem",top:"-2rem",width:"11rem",height:"11rem",border:"2px solid rgba(202,96,255,.4)",borderRadius:"50%",boxShadow:"0 0 80px rgba(185,64,255,.23)"}} />
                 <p className="eyebrow" style={{position:"relative"}}>{language==="es"?"PRÓXIMAMENTE · PRUEBAS PRIVADAS":"COMING SOON · PRIVATE TESTING"}</p>
-                <h2 id="jumping-title" className="jumping-race-card-title" style={{position:"relative"}}>JUMPING <em>RACE</em></h2>
+                <h2 id="jumping-title" style={{position:"relative",margin:0}}><Image src="/games/jumping-race/jumping-race-logo.svg" alt="Jumping Race" width={1200} height={260} unoptimized style={{width:"100%",height:"auto",display:"block"}} /></h2>
                 <p style={{position:"relative",fontSize:".9rem",opacity:.85}}>{language==="es"?"Nuevo juego en desarrollo. Acceso exclusivo para cuentas de prueba autorizadas.":"New game in development. Authorized test accounts only."}</p>
                 <div className="home-game-actions" style={{position:"relative"}}>
                   <Link href="/games/jumping-race" className="button button--primary">{language==="es"?"VER JUEGO 🔒":"VIEW GAME 🔒"}</Link>
