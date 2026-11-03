@@ -73,7 +73,6 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
-  private beachBackground: THREE.Texture | null = null;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -111,27 +110,8 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.48;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    // Coastal daylight backdrop is visual-only: simulation and collision logic stay unchanged.
-    this.scene.background = new THREE.Color("#69c9f6");
-    this.scene.fog = new THREE.FogExp2("#a8e5ed", this.quality.mobile ? 0.0022 : 0.0018);
-    new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
-      if (this.disposed) { texture.dispose(); return; }
-      texture.colorSpace = THREE.SRGBColorSpace;
-      // Crop to sky and distant coast: the full photo contains a second road
-      // which conflicts with the real, moving Three.js road.
-      const image = texture.image as HTMLImageElement;
-      const crop = document.createElement("canvas");
-      crop.width = 1024; crop.height = 512;
-      const context = crop.getContext("2d");
-      if (!context) { texture.dispose(); return; }
-      context.drawImage(image, 0, 0, image.width, image.height * 0.43, 0, 0, crop.width, crop.height);
-      texture.dispose();
-      const skyTexture = new THREE.CanvasTexture(crop);
-      skyTexture.colorSpace = THREE.SRGBColorSpace;
-      this.beachBackground = skyTexture;
-      this.scene.background = skyTexture;
-      this.scene.backgroundIntensity = 1;
-    }, undefined, () => { /* Keep blue daylight sky if the image cannot load. */ });
+    this.scene.background = new THREE.Color("#090f1b");
+    this.scene.fog = new THREE.FogExp2("#1b2635", this.quality.mobile ? 0.007 : 0.0055);
 
     this.camera.position.set(0, 7.25, 14.1);
     this.camera.lookAt(0, 1.05, -21);
@@ -150,9 +130,10 @@ export class RaceToWinWorld {
     this.player.root.castShadow = true;
     this.scene.add(this.player.root);
 
-    this.speedStreaks = new SpeedStreakSystem(0);
-    // Disable translucent point sprites that produce square artifacts on mobile GPUs.
-    this.roadHaze = new RoadHazeSystem(0);
+    this.speedStreaks = new SpeedStreakSystem(this.quality.particleCount);
+    this.scene.add(this.speedStreaks.object);
+    this.roadHaze = new RoadHazeSystem(Math.ceil(this.quality.particleCount * 0.68));
+    this.scene.add(this.roadHaze.object);
     this.tireSmoke = new TireSmokeSystem(this.quality.mobile ? 36 : 64);
     this.scene.add(this.tireSmoke.object);
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
@@ -201,7 +182,6 @@ export class RaceToWinWorld {
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
     this.city.dispose();
-    this.beachBackground?.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
     this.renderer.dispose();
@@ -209,10 +189,10 @@ export class RaceToWinWorld {
   }
 
   private addLights(): void {
-    const hemisphere = new THREE.HemisphereLight("#e5f8ff", "#638b80", 2.65);
+    const hemisphere = new THREE.HemisphereLight("#d7e6ff", "#111821", 2.05);
     this.scene.add(hemisphere);
 
-    const moon = new THREE.DirectionalLight("#fff3d7", 3.9);
+    const moon = new THREE.DirectionalLight("#dce8ff", 3.65);
     moon.position.set(-14, 25, 8);
     moon.castShadow = this.quality.shadows;
     if (this.quality.shadows) {
@@ -225,7 +205,7 @@ export class RaceToWinWorld {
     }
     this.scene.add(moon);
 
-    const horizon = new THREE.PointLight("#8bd9ff", 26, 155, 2);
+    const horizon = new THREE.PointLight("#4c8dd2", 38, 155, 2);
     horizon.position.set(0, 12, -80);
     this.scene.add(horizon);
     const warmRim = new THREE.PointLight("#ffd0a0", 30, 42, 2);
