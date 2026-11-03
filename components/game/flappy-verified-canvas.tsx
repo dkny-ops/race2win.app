@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
 import { AudioPlayer } from "@/components/layout/site-audio";
-import { FlappyRewardOptions } from "./flappy-reward-options";
 import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, flappyGapHalf, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
 import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
@@ -63,7 +62,6 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
   const [score, setScore] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [rewardExpanded, setRewardExpanded] = useState(false);
   const [result, setResult] = useState<FlappyResult | null>(null);
   const [officialError, setOfficialError] = useState<string | null>(null);
   const [availability, setAvailability] = useState<FlappyAvailability | null>(null);
@@ -271,14 +269,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     return () => {active=false;window.clearInterval(timer);};
   },[status,result,fail,finishVerification,stopVerification]);
   useEffect(() => {
-    if (!["over","rejected"].includes(status) || rewardExpanded) return;
+    if (!["over","rejected"].includes(status)) return;
     const timer = window.setTimeout(() => {
       running.current=false; official.current=null; pendingFlap.current=false;
       engine.current=initialFlappy(0); inputs.current=[];
       setExpanded(false);setScore(0);setCountdown(null);setResult(null);setStatus("ready");
     },5000);
     return () => window.clearTimeout(timer);
-  },[status,authenticated,rewardExpanded]);
+  },[status,authenticated]);
   useEffect(() => {
     if (status !== "over" && status !== "rejected") return;
     const timer = window.setTimeout(() => void refreshAvailability(), 0);
@@ -297,7 +295,6 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
         <h2>GAME OVER</h2>
         {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
-        {terminal ? <FlappyRewardOptions es={es} onOpenChange={setRewardExpanded} /> : null}
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
