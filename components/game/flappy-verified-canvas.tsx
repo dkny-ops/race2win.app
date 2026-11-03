@@ -124,7 +124,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     if (busy.current || running.current || blocked) return;
     window.dispatchEvent(new Event("rtw-audio-start-flappy"));
     busy.current = true;
-    setOfficialError(null); setRewardExpanded(false); setStatus("starting"); setResult(null); setScore(0);
+    setOfficialError(null); setStatus("starting"); setResult(null); setScore(0);
     try {
       if (!authenticated) throw new FlappyOfficialError("unauthenticated");
       const session = await startFlappyOfficial();
