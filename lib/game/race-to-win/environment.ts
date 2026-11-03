@@ -66,17 +66,15 @@ export function createRoadAssets(): RoadAssets {
     railGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
     postGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
     lampGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
-    roadMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#182330", roughness: 0.7, metalness: 0.44 })),
-    shoulderMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#26323c", roughness: 0.63, metalness: 0.52 })),
+    roadMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#303c4e", roughness: 0.96, metalness: 0.02 })),
+    shoulderMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#e9c87c", roughness: 1, metalness: 0 })),
     markingMaterial: collectMaterial(new THREE.MeshStandardMaterial({
-      color: "#c7eeff",
-      emissive: "#075ad8",
-      emissiveIntensity: 1.45,
-      roughness: 0.38,
-      metalness: 0.38,
+      color: "#ffffff",
+      roughness: 1,
+      metalness: 0,
     })),
-    railMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#354757", roughness: 0.42, metalness: 0.83 })),
-    postMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#152433", roughness: 0.59, metalness: 0.7 })),
+    railMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#f6f6f1", roughness: 0.9, metalness: 0 })),
+    postMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#e63c38", roughness: 0.85, metalness: 0 })),
     blueLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#d8efff", emissive: "#438fd7", emissiveIntensity: 3.1 })),
     orangeLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#fff0d3", emissive: "#ffad5c", emissiveIntensity: 3.5 })),
     dispose() {
@@ -106,16 +104,11 @@ export function createRoadSegment(assets: RoadAssets, segmentIndex: number): THR
     }
   }
 
-  for (let z = -40; z <= 40; z += 20) {
-    // Fifth Avenue uses mostly warm-white street illumination. The occasional
-    // cool fixture keeps the existing electric-blue Race To Win identity.
-    const lampMaterial = (Math.round((z + 40) / 20) + segmentIndex) % 5 === 0
-      ? assets.blueLampMaterial
-      : assets.orangeLampMaterial;
+  // Alternating red-and-white safety barriers like the coastal reference.
+  for (let z = -46; z < 48; z += 4) {
     for (const side of [-1, 1]) {
-      const x = side * 12.2;
-      root.add(staticMesh(assets.postGeometry, assets.postMaterial, [x, 2.25, z], [0.14, 4.5, 0.14]));
-      root.add(staticMesh(assets.lampGeometry, lampMaterial, [x - side * 0.6, 4.5, z], [1.35, 0.12, 0.23]));
+      const material = Math.floor((z + 46) / 4) % 2 === 0 ? assets.postMaterial : assets.railMaterial;
+      root.add(staticMesh(assets.shoulderGeometry, material, [side * 10.15, 0.43, z + 2], [0.55, 0.85, 3.98]));
     }
   }
 
