@@ -12,7 +12,7 @@ import { ROUTES } from "@/lib/routes";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 import { claimGuestTrial, guestTrialUsed } from "@/lib/game/guest-trial";
 
-type ScreenState = "loading" | "ready" | "starting" | "countdown" | "running" | "finalizing" | "crashed" | "finalize-failed" | "extra-life" | "unavailable";
+type ScreenState = "loading" | "ready" | "starting" | "countdown" | "running" | "finalizing" | "crashed" | "finalize-failed" | "unavailable";
 type OfficialSession = Readonly<{
   sessionId: string;
   seed: number;
@@ -280,7 +280,6 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     }
   }, [cancelCheckpointRetries, cancelCountdown, cancelGameOverReturn, router, setState, refreshOpportunities, guest]);
 
-  const selectExtraLife = useCallback(() => { cancelCountdown(); cancelGameOverReturn(); setState("extra-life"); }, [cancelCountdown, cancelGameOverReturn, setState]);
 
   useEffect(() => {
     const canvas = canvasRef.current; const stage = stageRef.current;
@@ -346,9 +345,8 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     {screenState === "starting" ? <div className="rtw-loading" role="status">{guest ? "PREPARING FREE TRIAL…" : "PREPARING OFFICIAL SESSION…"}</div> : null}
     {(screenState === "countdown" || (screenState === "running" && countdown === "GO")) && countdown ? <div className="rtw-countdown" aria-live="assertive">{countdown}</div> : null}
     {screenState === "finalizing" ? <div className="rtw-loading" role="status">VALIDATING RUN…</div> : null}
-    {screenState === "crashed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><h3>GAME OVER</h3>{officialFinalMetrics ? <dl className="rtw-final-stats"><div><dt>OFFICIAL SCORE</dt><dd>{officialFinalMetrics.score.toLocaleString()}</dd></div><div><dt>TIME</dt><dd>{formatTime(officialFinalMetrics.elapsedSeconds)}</dd></div></dl> : null}<div className="rtw-game-over-actions">{guest ? <Link className="rtw-action rtw-action--primary" href="/sign-in?next=%2Fgames%2Frace-to-win">SIGN IN TO CONTINUE</Link> : <><button type="button" className="rtw-action rtw-action--primary rtw-game-over-button" onClick={() => void beginOfficialRun()}>PLAY AGAIN</button><button type="button" className="rtw-action rtw-action--placeholder rtw-game-over-button" onClick={selectExtraLife}>EXTRA LIFE <small>COMING SOON</small></button></>}</div></div> : null}
+    {screenState === "crashed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><h3>GAME OVER</h3>{officialFinalMetrics ? <dl className="rtw-final-stats"><div><dt>OFFICIAL SCORE</dt><dd>{officialFinalMetrics.score.toLocaleString()}</dd></div><div><dt>TIME</dt><dd>{formatTime(officialFinalMetrics.elapsedSeconds)}</dd></div></dl> : null}<div className="rtw-game-over-actions">{guest ? <Link className="rtw-action rtw-action--primary" href="/sign-in?next=%2Fgames%2Frace-to-win">SIGN IN TO CONTINUE</Link> : <><button type="button" className="rtw-action rtw-action--primary rtw-game-over-button" onClick={() => void beginOfficialRun()}>PLAY AGAIN</button></>}</div></div> : null}
     {screenState === "finalize-failed" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">RUN NOT VALIDATED</p><h3>GAME OVER</h3><p>{runNotice}</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
-    {screenState === "extra-life" ? <div className="rtw-overlay rtw-overlay--game-over" role="status"><p className="rtw-kicker">EXTRA LIFE</p><h3>COMING SOON</h3><p>Extra Life is reserved for a future authoritative reward flow. No local reward has been granted.</p><button type="button" className="rtw-action rtw-action--primary" onClick={returnToStartScreen}>RETURN TO START</button></div> : null}
     {screenState === "loading" ? <div className="rtw-loading" role="status">LOADING TRACK…</div> : null}
     {screenState === "unavailable" ? <div className="rtw-overlay rtw-overlay--unavailable" role="status"><h3>TRACK UNAVAILABLE</h3><p>The browser lost its 3D graphics context. Close other heavy tabs, then retry. If this continues, restart Safari.</p><button type="button" className="rtw-action rtw-action--primary" onClick={() => { setStartupError(null); setState("loading"); setCanvasGeneration((value) => value + 1); }}>RETRY 3D TRACK</button><p style={{ overflowWrap: "anywhere", fontSize: "0.8rem", marginTop: "1rem", userSelect: "text" }}>{startupError ?? "No diagnostic available"}</p></div> : null}
   </div>;
