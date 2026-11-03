@@ -2345,3 +2345,5 @@ body:has(.flappy-game-page) .site-footer{
 }
 .jumping-race-card-title{font-size:clamp(1.8rem,3vw,2.7rem)}
 .jumping-race-page-title{font-size:clamp(2.4rem,6vw,5rem)}
+
+.jumping-race-header-logo{display:block;width:clamp(145px,25vw,285px);height:auto;max-height:72px;object-fit:contain}
