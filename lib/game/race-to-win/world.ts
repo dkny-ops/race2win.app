@@ -113,12 +113,23 @@ export class RaceToWinWorld {
 
     // Coastal daylight backdrop is visual-only: simulation and collision logic stay unchanged.
     this.scene.background = new THREE.Color("#69c9f6");
-    this.scene.fog = new THREE.FogExp2("#a8e5ed", this.quality.mobile ? 0.0038 : 0.0028);
+    this.scene.fog = new THREE.FogExp2("#a8e5ed", this.quality.mobile ? 0.0022 : 0.0018);
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
-      this.beachBackground = texture;
-      this.scene.background = texture;
+      // Crop to sky and distant coast: the full photo contains a second road
+      // which conflicts with the real, moving Three.js road.
+      const image = texture.image as HTMLImageElement;
+      const crop = document.createElement("canvas");
+      crop.width = 1024; crop.height = 512;
+      const context = crop.getContext("2d");
+      if (!context) { texture.dispose(); return; }
+      context.drawImage(image, 0, 0, image.width, image.height * 0.43, 0, 0, crop.width, crop.height);
+      texture.dispose();
+      const skyTexture = new THREE.CanvasTexture(crop);
+      skyTexture.colorSpace = THREE.SRGBColorSpace;
+      this.beachBackground = skyTexture;
+      this.scene.background = skyTexture;
       this.scene.backgroundIntensity = 1;
     }, undefined, () => { /* Keep blue daylight sky if the image cannot load. */ });
 
@@ -139,10 +150,9 @@ export class RaceToWinWorld {
     this.player.root.castShadow = true;
     this.scene.add(this.player.root);
 
-    this.speedStreaks = new SpeedStreakSystem(this.quality.particleCount);
-    this.scene.add(this.speedStreaks.object);
-    this.roadHaze = new RoadHazeSystem(Math.ceil(this.quality.particleCount * 0.68));
-    this.scene.add(this.roadHaze.object);
+    this.speedStreaks = new SpeedStreakSystem(0);
+    // Disable translucent point sprites that produce square artifacts on mobile GPUs.
+    this.roadHaze = new RoadHazeSystem(0);
     this.tireSmoke = new TireSmokeSystem(this.quality.mobile ? 36 : 64);
     this.scene.add(this.tireSmoke.object);
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
