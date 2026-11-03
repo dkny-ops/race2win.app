@@ -39,7 +39,7 @@ function draw(ctx:CanvasRenderingContext2D,s:State){
 export function JumpingRaceGame(){
  const canvas=useRef<HTMLCanvasElement>(null),game=useRef<State>(fresh()),jumpQueued=useRef(false);
  const [status,setStatus]=useState<"ready"|"playing"|"over">("ready");const [score,setScore]=useState(0);
- const jump=useCallback(()=>{jumpQueued.current=true},[]);
+ const jump=useCallback(()=>{if(game.current.started&&!game.current.over)jumpQueued.current=true},[]);
  const start=useCallback(()=>{game.current=fresh();game.current.started=true;setScore(0);setStatus("playing");jumpQueued.current=false},[]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.code==="Space"||e.code==="ArrowUp"){e.preventDefault();if(!e.repeat)jump()}};window.addEventListener("keydown",key);return()=>window.removeEventListener("keydown",key)},[jump]);
  useEffect(()=>{const c=canvas.current,ctx=c?.getContext("2d");if(!ctx)return;let id=0;let previous=0;
@@ -66,11 +66,11 @@ export function JumpingRaceGame(){
  }
  draw(ctx,s);id=requestAnimationFrame(tick)};id=requestAnimationFrame(tick);return()=>cancelAnimationFrame(id)},[]);
  return <section style={{maxWidth:960,margin:"0 auto",textAlign:"center"}}>
-  <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race, juego de plataformas con doble salto" style={{width:"100%",height:"auto",display:"block",border:"2px solid #5260a8",borderRadius:14,touchAction:"manipulation",background:"#151943"}} />
+  <canvas ref={canvas} width={W} height={H} onPointerDown={e=>{if(e.pointerType!=="mouse"){e.preventDefault();jump()}}} aria-label="Jumping Race, toca el juego para saltar dos veces" style={{width:"100%",height:"auto",display:"block",border:"2px solid #5260a8",borderRadius:14,touchAction:"manipulation",background:"#151943"}} />
   <div style={{display:"flex",justifyContent:"center",gap:16,margin:"1rem 0",flexWrap:"wrap"}}>
    {status!=="playing"?<button className="button button--primary" onClick={start}>{status==="over"?"REINICIAR":"JUGAR"}</button>:<button className="button button--primary" onPointerDown={e=>{e.preventDefault();jump()}} style={{minWidth:170,minHeight:75,fontSize:"1.4rem",touchAction:"manipulation"}}>JUMP ⬆</button>}
   </div>
-  <p>Score: {score} · PC: ESPACIO / ↑ · Celular: JUMP · Segundo toque en el aire = DOBLE SALTO</p>
+  <p>Score: {score} · PC: ESPACIO / ↑ · Celular: TOCA LA PANTALLA · Segundo toque en el aire = DOBLE SALTO</p>
   <p style={{opacity:.75,fontSize:".85rem"}}>Versión de desarrollo. Sin puntuaciones oficiales, anuncios ni premios.</p>
  </section>;
 }
