@@ -21,14 +21,6 @@ test("admin replay checks persisted collision, score, version and digest without
  for(const change of [{score:999},{tick:state.tick+1},{digest:"0".repeat(64)},{version:"unknown"},{inputs:[99]}])assert.equal(audit.summarizeFlappyAudit({...row,...change}).replayMatches,false);
  assert.equal(audit.summarizeFlappyAudit({...row,seed:null,inputs:null}).replayMatches,null);
 });
-test("reward panel exposes unavailable state and never grants or simulates an ad",()=>{
- const rewards=load("lib/game/flappy/rewards.ts").FLAPPY_REWARDS;
- assert.equal(rewards.extraLifeAvailable,false);assert.equal(rewards.doublePointsAvailable,false);assert.ok(Object.isFrozen(rewards));
- const ui=load("components/game/flappy-reward-options.tsx",{"@/lib/game/flappy/rewards":{FLAPPY_REWARDS:rewards}});
- const {renderToStaticMarkup}=require("react-dom/server"),{createElement}=require("react");
- const html=renderToStaticMarkup(createElement(ui.FlappyRewardOptions,{es:true}));
- assert.match(html,/EXTRA LIFE/);assert.match(html,/PRÓXIMAMENTE/);assert.match(html,/aria-expanded="false"/);
-});
 test("official transport sets bounded timeout and refuses unavailable service",async()=>{
  const client=load("lib/game/flappy/official-client.ts",{"./engine":engine,"./availability":load("lib/game/flappy/availability.ts")});
  const original=globalThis.fetch;
@@ -72,10 +64,10 @@ test("official client accepts server clock scheduling and rejects a missing serv
 });
 
 
-test("FlappyRace keeps Extra Life inside the terminal overlay and removes stale public score copy",()=>{
+test("FlappyRace terminal overlay has no Extra Life and removes stale public score copy",()=>{
  const source=readFileSync(new URL("../components/game/flappy-verified-canvas.tsx",import.meta.url),"utf8");
- assert.equal((source.match(/<FlappyRewardOptions es=\{es\}/g)||[]).length,1);
- assert.match(source,/\{terminal \? <FlappyRewardOptions es=\{es\} onOpenChange=\{setRewardExpanded\} \/> : null\}/);
+ assert.doesNotMatch(source,/FlappyRewardOptions|rewardExpanded|EXTRA LIFE/);
+ assert.match(source,/PLAY AGAIN/);
  assert.doesNotMatch(source,/In-progress score · awaiting validation/);
  assert.doesNotMatch(source,/Only verified, reviewed official results count\. No withdrawable prizes\./);
 });
