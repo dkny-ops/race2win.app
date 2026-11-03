@@ -73,6 +73,7 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
+  private beachBackground: THREE.Texture | null = null;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -110,8 +111,17 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.48;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.scene.background = new THREE.Color("#090f1b");
-    this.scene.fog = new THREE.FogExp2("#1b2635", this.quality.mobile ? 0.007 : 0.0055);
+    // Coastal daylight backdrop is visual-only: simulation and collision logic stay unchanged.
+    this.scene.background = new THREE.Color("#69c9f6");
+    this.scene.fog = new THREE.FogExp2("#a8e5ed", this.quality.mobile ? 0.0038 : 0.0028);
+    new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
+      if (this.disposed) { texture.dispose(); return; }
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      this.beachBackground = texture;
+      this.scene.background = texture;
+      this.scene.backgroundIntensity = 1;
+    }, undefined, () => { /* Keep blue daylight sky if the image cannot load. */ });
 
     this.camera.position.set(0, 7.25, 14.1);
     this.camera.lookAt(0, 1.05, -21);
@@ -182,6 +192,7 @@ export class RaceToWinWorld {
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
     this.city.dispose();
+    this.beachBackground?.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
     this.renderer.dispose();
@@ -189,10 +200,10 @@ export class RaceToWinWorld {
   }
 
   private addLights(): void {
-    const hemisphere = new THREE.HemisphereLight("#d7e6ff", "#111821", 2.05);
+    const hemisphere = new THREE.HemisphereLight("#e5f8ff", "#638b80", 2.65);
     this.scene.add(hemisphere);
 
-    const moon = new THREE.DirectionalLight("#dce8ff", 3.65);
+    const moon = new THREE.DirectionalLight("#fff3d7", 3.9);
     moon.position.set(-14, 25, 8);
     moon.castShadow = this.quality.shadows;
     if (this.quality.shadows) {
@@ -205,7 +216,7 @@ export class RaceToWinWorld {
     }
     this.scene.add(moon);
 
-    const horizon = new THREE.PointLight("#4c8dd2", 38, 155, 2);
+    const horizon = new THREE.PointLight("#8bd9ff", 26, 155, 2);
     horizon.position.set(0, 12, -80);
     this.scene.add(horizon);
     const warmRim = new THREE.PointLight("#ffd0a0", 30, 42, 2);
