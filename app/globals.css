@@ -1502,7 +1502,7 @@ body:has(.rtw-game-page) .site-header .header-inner{justify-content:flex-end}
   bottom:55px!important;
  }
  .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap {
-  top:42%!important;bottom:auto!important;
+  top:58%!important;bottom:auto!important;
  }
  .rtw-game-page .rtw-stage--ready .rtw-overlay--ready .rtw-play-wrap .rtw-action--play-glass {
   min-height:clamp(58px,9svh,76px)!important;
