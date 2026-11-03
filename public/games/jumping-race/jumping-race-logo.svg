@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" role="img" aria-label="Jumping Race">
+<defs><linearGradient id="silver" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#a9d6ff"/></linearGradient><linearGradient id="pink" x2="0" y2="1"><stop stop-color="#ff83ff"/><stop offset=".5" stop-color="#ec39f9"/><stop offset="1" stop-color="#8b1fdf"/></linearGradient><filter id="glow" x="-25%" y="-70%" width="150%" height="240%"><feGaussianBlur stdDeviation="8"/></filter></defs>
+<g font-family="Arial Black,Arial,sans-serif" font-weight="900" font-style="italic" font-size="150" letter-spacing="-8" transform="translate(35 181) skewX(-8)">
+<text x="0" y="0" fill="#0788ff" stroke="#087aff" stroke-width="10" filter="url(#glow)">JUMPING</text><text x="735" y="0" fill="#ec31ff" stroke="#db22ff" stroke-width="10" filter="url(#glow)">RACE</text>
+<text x="0" y="0" fill="url(#silver)" stroke="#1d82ff" stroke-width="3" paint-order="stroke">JUMPING</text><text x="735" y="0" fill="url(#pink)" stroke="#fa8dff" stroke-width="3" paint-order="stroke">RACE</text>
+</g><path d="M9 100 L120 100 L75 110 L15 110 M1048 199 L1192 199 L1138 208 L1040 208" fill="#37baff" stroke="#087bff" stroke-width="3"/></svg>
