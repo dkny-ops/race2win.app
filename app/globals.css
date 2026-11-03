@@ -2332,3 +2332,16 @@ body:has(.flappy-game-page) .site-footer{
 @media(max-width:700px){
  .site-header .brand .flappy-admin-brand--logo{width:clamp(180px,47vw,270px);height:56px}
 }
+
+
+/* Jumping Race identity: shared by Home card and all Jumping Race routes. */
+.jumping-race-brand,.jumping-race-card-title,.jumping-race-page-title{
+  font-family:inherit;font-weight:950;letter-spacing:.065em;text-transform:uppercase;
+  color:#f7f8ff;text-shadow:0 0 12px rgba(59,207,255,.65),0 0 26px rgba(59,207,255,.22);
+}
+.jumping-race-brand{display:inline-block;font-size:clamp(1rem,2vw,1.65rem);line-height:1.1;white-space:nowrap}
+.jumping-race-brand span,.jumping-race-card-title em,.jumping-race-page-title em{
+  color:#c97bff;font-style:normal;text-shadow:0 0 12px rgba(193,83,255,.8),0 0 28px rgba(244,79,199,.4);
+}
+.jumping-race-card-title{font-size:clamp(1.8rem,3vw,2.7rem)}
+.jumping-race-page-title{font-size:clamp(2.4rem,6vw,5rem)}
