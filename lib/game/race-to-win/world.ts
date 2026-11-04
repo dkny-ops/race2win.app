@@ -39,7 +39,9 @@ export function getRaceToWinQuality(): RaceToWinQuality {
   return {
     mobile,
     shadows: !mobile,
-    roadSegments: mobile ? 6 : 8,
+    // Extend the repeating road and coastal floor beyond the camera far plane.
+    // This prevents a bright moving strip where the last segment ends.
+    roadSegments: mobile ? 9 : 11,
     trafficLimit: mobile ? 18 : 30,
     particleCount: mobile ? 28 : 58,
     pixelRatioCap: mobile ? 1.25 : 1.75,
