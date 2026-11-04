@@ -55,7 +55,7 @@ export function getRaceToWinQuality(): RaceToWinQuality {
 export class RaceToWinWorld {
   public readonly renderer: THREE.WebGLRenderer;
   public readonly scene = new THREE.Scene();
-  public readonly camera = new THREE.PerspectiveCamera(58, 1, 0.1, 430);
+  public readonly camera = new THREE.PerspectiveCamera(58, 1, 0.1, 650);
   public readonly quality: RaceToWinQuality;
 
   private readonly roadAssets = createRoadAssets();
@@ -119,7 +119,9 @@ export class RaceToWinWorld {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene.background = new THREE.Color("#42baff");
-    this.scene.fog = new THREE.Fog("#bfe8ef", 140, 410);
+    // The pale fog created a visible white band over the distant asphalt.
+    // The coastal image already provides atmospheric perspective.
+    this.scene.fog = null;
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
