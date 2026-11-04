@@ -58,6 +58,33 @@ export function createRoadAssets(): RoadAssets {
     materials.push(item);
     return item;
   };
+  // Sample only unmarked asphalt from the existing artwork, in memory.
+  // The source PNG is never rewritten and lane markings remain 3D geometry.
+  let disposed = false;
+  const canvas = document.createElement("canvas");
+  canvas.width = 256; canvas.height = 512;
+  const fallback = canvas.getContext("2d");
+  if (fallback) { fallback.fillStyle = "#666c74"; fallback.fillRect(0, 0, canvas.width, canvas.height); }
+  const asphalt = new THREE.CanvasTexture(canvas);
+  new THREE.TextureLoader().load("/images/Race123.PNG", (source) => {
+    if (disposed) { source.dispose(); return; }
+    const context = canvas.getContext("2d");
+    if (context) {
+      // Mirror the patch in both axes so repeat boundaries meet seamlessly.
+      for (let row = 0; row < 2; row++) for (let column = 0; column < 2; column++) {
+        context.save();
+        context.translate(column === 0 ? 0 : 256, row === 0 ? 0 : 512);
+        context.scale(column === 0 ? 1 : -1, row === 0 ? 1 : -1);
+        context.drawImage(source.image, 745, 680, 90, 250, 0, 0, 128, 256);
+        context.restore();
+      }
+      asphalt.needsUpdate = true;
+    }
+    source.dispose();
+  });
+  asphalt.colorSpace = THREE.SRGBColorSpace;
+  asphalt.wrapS = asphalt.wrapT = THREE.RepeatWrapping;
+  asphalt.repeat.set(2, 4);
 
   return {
     roadGeometry: collectGeometry(new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_SEGMENT_LENGTH)),
@@ -66,7 +93,7 @@ export function createRoadAssets(): RoadAssets {
     railGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
     postGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
     lampGeometry: collectGeometry(new THREE.BoxGeometry(1, 1, 1)),
-    roadMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#303c4e", roughness: 0.96, metalness: 0.02 })),
+    roadMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#b5b5b5", map: asphalt, roughness: 0.96, metalness: 0.02 })),
     shoulderMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#e9c87c", roughness: 1, metalness: 0 })),
     markingMaterial: collectMaterial(new THREE.MeshStandardMaterial({
       color: "#ffffff",
@@ -78,6 +105,8 @@ export function createRoadAssets(): RoadAssets {
     blueLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#d8efff", emissive: "#438fd7", emissiveIntensity: 3.1 })),
     orangeLampMaterial: collectMaterial(new THREE.MeshStandardMaterial({ color: "#fff0d3", emissive: "#ffad5c", emissiveIntensity: 3.5 })),
     dispose() {
+      disposed = true;
+      asphalt.dispose();
       for (const item of geometry) item.dispose();
       for (const item of materials) item.dispose();
     },
@@ -92,10 +121,11 @@ export function createRoadSegment(assets: RoadAssets, segmentIndex: number): THR
   road.rotation.x = -Math.PI / 2;
   root.add(road);
 
-  for (const x of [-10.2, 10.2]) {
-    root.add(staticMesh(assets.shoulderGeometry, assets.shoulderMaterial, [x, 0.04, 0], [2.45, 0.1, ROAD_SEGMENT_LENGTH]));
-    root.add(staticMesh(assets.railGeometry, assets.railMaterial, [x + Math.sign(x) * 1.25, 1.08, 0], [0.16, 0.16, ROAD_SEGMENT_LENGTH]));
-    root.add(staticMesh(assets.railGeometry, assets.railMaterial, [x + Math.sign(x) * 1.25, 0.48, 0], [0.12, 0.12, ROAD_SEGMENT_LENGTH]));
+  const edgePaint = assets.orangeLampMaterial;
+  edgePaint.color.set("#ffd52a");
+  edgePaint.emissive.set("#000000");
+  for (const side of [-1, 1]) {
+    root.add(staticMesh(assets.markingGeometry, edgePaint, [side * 8.65, 0.065, 0], [0.17, 0.045, ROAD_SEGMENT_LENGTH]));
   }
 
   for (let z = -42; z <= 42; z += 12) {
@@ -104,13 +134,8 @@ export function createRoadSegment(assets: RoadAssets, segmentIndex: number): THR
     }
   }
 
-  // Alternating red-and-white safety barriers like the coastal reference.
-  for (let z = -46; z < 48; z += 4) {
-    for (const side of [-1, 1]) {
-      const material = Math.floor((z + 46) / 4) % 2 === 0 ? assets.postMaterial : assets.railMaterial;
-      root.add(staticMesh(assets.shoulderGeometry, material, [side * 10.15, 0.43, z + 2], [0.55, 0.85, 3.98]));
-    }
-  }
+  // The original artwork supplies the coastal curbs and shoulders. Extra
+  // opaque geometry here would cover its plants, beach furniture and sand.
 
   return root;
 }
@@ -161,7 +186,7 @@ export class SpeedStreakSystem {
   }
 }
 
-/** Low-density blue road haze adds depth without a costly post-processing pass. */
+/** Subtle sunlit road dust, without a costly post-processing pass. */
 export class RoadHazeSystem {
   public readonly object: THREE.Points;
   private readonly positions: Float32Array;
@@ -172,8 +197,8 @@ export class RoadHazeSystem {
     this.positions = new Float32Array(count * 3);
     geometry.setAttribute("position", new THREE.BufferAttribute(this.positions, 3));
     const material = new THREE.PointsMaterial({
-      color: "#82cfff",
-      size: 4.8,
+      color: "#e7dfca",
+      size: 0.18,
       transparent: true,
       opacity: 0.075,
       depthWrite: false,
@@ -191,7 +216,7 @@ export class RoadHazeSystem {
   public update(distanceMeters: number, speedKph: number): void {
     const drift = distanceMeters * (0.12 + Math.min(speedKph / 3000, 0.08));
     const material = this.object.material as THREE.PointsMaterial;
-    material.opacity = 0.05 + Math.min(Math.max((speedKph - 90) / 110, 0), 1) * 0.055;
+    material.opacity = 0.025 + Math.min(Math.max((speedKph - 90) / 110, 0), 1) * 0.025;
     for (let index = 0; index < this.slots.length; index += 1) {
       const slot = this.slots[index]!;
       const z = -((slot.offset + drift) % 175) - 3;
