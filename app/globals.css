@@ -1113,6 +1113,20 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
  background:none;
 }
 .rtw-game-page .rtw-stage .rtw-vignette{background:radial-gradient(ellipse at 50% 55%,transparent 55%,rgba(20,57,65,.1) 100%)}
+/* A faint halo over the existing sun, behind controls; never intercepts input. */
+.rtw-game-page .rtw-stage:not(.rtw-stage--loading):not(.rtw-stage--unavailable)::after{
+ content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+ background:radial-gradient(ellipse 12% 20% at 66% 7%,rgba(255,255,255,.08),transparent 100%);
+ opacity:.04;animation:rtw-tropical-sunlight 16s ease-in-out infinite;
+}
+.rtw-game-page .rtw-stage--running::after{animation-duration:10s}
+@keyframes rtw-tropical-sunlight{0%,100%{opacity:.04}50%{opacity:.12}}
+@media(max-width:720px){
+ .rtw-game-page .rtw-stage:not(.rtw-stage--loading):not(.rtw-stage--unavailable)::after{background-position:center;background-image:radial-gradient(ellipse 35% 20% at 110% 7%,rgba(255,255,255,.08),transparent 100%)}
+}
+@media(prefers-reduced-motion:reduce){
+ .rtw-game-page .rtw-stage:not(.rtw-stage--loading):not(.rtw-stage--unavailable)::after{animation:none;opacity:0}
+}
 @media(max-width:720px){
  .rtw-game-page .rtw-stage .rtw-ready-artwork{background-position:center,58% center}
 }
