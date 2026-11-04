@@ -145,6 +145,8 @@ export class RaceToWinWorld {
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
     this.player.root.castShadow = true;
+    // Hide the low-detail fallback while the actual car model is loading.
+    this.player.root.visible = false;
     this.scene.add(this.player.root);
 
     this.speedStreaks = new SpeedStreakSystem(this.quality.particleCount);
@@ -338,6 +340,9 @@ export class RaceToWinWorld {
       this.removeVisual(previous);
       this.player = replacement;
       this.scene.add(replacement.root);
+    } else {
+      // If the model cannot load, keep the game playable with the fallback.
+      this.player.root.visible = true;
     }
 
     // Existing procedural traffic is intentionally discarded so the next frame
