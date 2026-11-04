@@ -73,7 +73,7 @@ export function createRoadAssets(): RoadAssets {
       // Mirror the patch in both axes so repeat boundaries meet seamlessly.
       for (let row = 0; row < 2; row++) for (let column = 0; column < 2; column++) {
         context.save();
-        context.translate(column === 0 ? 0 : 256, row === 0 ? 0 : 512);
+        context.translate(column === 0 ? 0 : 128, row === 0 ? 0 : 256);
         context.scale(column === 0 ? 1 : -1, row === 0 ? 1 : -1);
         context.drawImage(source.image, 745, 680, 90, 250, 0, 0, 128, 256);
         context.restore();
