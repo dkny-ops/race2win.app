@@ -6,21 +6,21 @@ Base: `9780a38df407db04e4b1d250b7ef941a8a31ad6e` (`main`). Before editing, a com
 
 `public/images/Race123.PNG` is unchanged. SHA-256: `3D589F507E135853273B4C28FBBAF2C63B0E27C943D38B95D8AA67DA7FBC602C`.
 
-Only presentation changes: the original image is the proportionally fitted background, an unmarked asphalt patch is sampled in memory for the moving road, and soft environmental reflections use its color palette. Sunlight, ambient fill, daytime fog, coastal colors, curved palm leaves, umbrellas, beach huts and lifeguard cabins form the foreground scene. The previous opaque ready-screen poster and dark vignette no longer hide that scene; menu controls and layout are unchanged.
+Only presentation changes: the original image supplies the actual vegetation, hut, beach, umbrellas, chairs and lifeguard tower. An image-backed composition registers its painted road edges with the live road projection. No opaque green terrain, sand/ocean planes, duplicate palms or substitute buildings cover the original scenery. The prior procedural city is no longer instantiated. An unmarked asphalt patch is sampled in memory for the moving road, and soft environmental reflections use its color palette. Sunlight, ambient fill and daytime fog illuminate the existing moving vehicles. The previous opaque ready-screen poster and dark vignette no longer hide that scene; menu controls and layout are unchanged.
 
-The camera, simulation, input handling, collisions, gameplay version, scoring, audio, session handling and security code are unchanged. Visual props stay outside the 18-unit road. Recycled scenery is decorative only.
+The camera, simulation, input handling, collisions, gameplay version, scoring, audio, session handling and security code are unchanged. The image layer is drawn behind the existing 18-unit 3D road and vehicles without writing depth. Registration reads camera transforms but never changes them.
 
 ## Validation
 
 - Optimized Next.js build and TypeScript check.
-- 133 existing tests pass; two additional scenery tests verify road clearance, recycling continuity and disposal for mobile and desktop quality.
+- 133 existing tests pass; two additional scenery tests verify camera immutability, background draw/depth ordering, image sampling bounds and resource ownership/disposal for mobile and desktop quality.
 - Targeted ESLint for modified TypeScript and the new tests.
 - Local browser checks at 1440×1000 and a simulated touch device at 390×844: ready screen, guest countdown, running traffic, keyboard lane input and touch swipe. Captures are local review artifacts.
 - No official session, database migration, production configuration, merge or production deployment is part of this change.
 
 ## Real limitations
 
-A single flat PNG does not supply depth, hidden surfaces, meshes or a seamless traversable panorama. The background remains a fixed illustration, while simplified 3D foreground scenery scrolls. This is an approximation, not a pixel-identical 3D reconstruction: the joins and perspective differences remain visible, especially during lateral camera following. Image-based reflections are palette-matched approximations because the source is not a panoramic lighting capture.
+A single flat PNG does not supply depth, hidden surfaces, meshes or a seamless traversable panorama. The original scenery remains an image-backed 2.5D layer; the existing 3D road and cars supply movement. Its lower image region is registered to the road with an affine transform, which keeps straight photo features straight but adapts their on-screen proportions. This is not a pixel-identical 3D reconstruction. Perspective differences can remain during lane following. Image-based reflections are palette-matched approximations because the source is not a panoramic lighting capture.
 
 Portrait screens crop the sides of the landscape image to preserve its proportions. Showing both complete sides at once would require a different composition or camera/layout changes, which are excluded from this scope. Mobile quality retains the existing reduced pixel ratio and disabled shadow maps. Emulated touch/browser checks do not certify physical iPhone/Safari or Android GPU performance.
 

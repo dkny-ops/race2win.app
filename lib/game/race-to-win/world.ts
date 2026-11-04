@@ -9,7 +9,7 @@ import {
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
 } from "./environment";
-import { RaceToWinCity } from "./city";
+import { CoastalBackdrop } from "./coastal-backdrop";
 import {
   createModelVehicleVisual,
   disposeModelVehicleVisual,
@@ -58,7 +58,7 @@ export class RaceToWinWorld {
   private readonly roadAssets = createRoadAssets();
   private readonly vehicleAssets = createVehicleAssets();
   private readonly roadSegments: THREE.Group[] = [];
-  private readonly city: RaceToWinCity;
+  private readonly coastalBackdrop = new CoastalBackdrop();
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
   private readonly trafficVisualPool: { variantIndex: number; visual: VehicleVisual }[] = [];
@@ -118,7 +118,7 @@ export class RaceToWinWorld {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
       this.coastalTexture = texture;
-      this.scene.background = texture;
+      this.coastalBackdrop.setTexture(texture);
       // Soft image-based fill makes metallic paint reflect the same beach
       // palette instead of turning black under direct sunlight alone.
       const environmentSource = texture.clone();
@@ -129,7 +129,6 @@ export class RaceToWinWorld {
       this.scene.environmentIntensity = 0.65;
       environmentSource.dispose();
       generator.dispose();
-      this.fitCoastalBackground();
     });
 
     this.camera.position.set(0, 7.25, 14.1);
@@ -141,8 +140,7 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    this.city = new RaceToWinCity(this.quality);
-    this.scene.add(this.city.object);
+    this.scene.add(this.coastalBackdrop.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
@@ -167,7 +165,6 @@ export class RaceToWinWorld {
     this.renderer.setSize(safeWidth, safeHeight, false);
     this.camera.aspect = safeWidth / safeHeight;
     this.camera.updateProjectionMatrix();
-    this.fitCoastalBackground();
   }
 
   public update(snapshot: RaceToWinSnapshot, deltaSeconds: number): void {
@@ -175,6 +172,7 @@ export class RaceToWinWorld {
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
     this.updateCamera(snapshot, deltaSeconds);
+    this.coastalBackdrop.update(this.camera);
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     if (snapshot.state === "running" && !this.wasRunning) this.tireSmoke.trigger(snapshot.player.laneX, false);
@@ -201,7 +199,7 @@ export class RaceToWinWorld {
     this.roadHaze.dispose();
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
-    this.city.dispose();
+    this.coastalBackdrop.dispose();
     this.coastalTexture?.dispose();
     this.coastalEnvironment?.dispose();
     this.roadAssets.dispose();
@@ -229,25 +227,12 @@ export class RaceToWinWorld {
 
   }
 
-  private fitCoastalBackground(): void {
-    const texture = this.coastalTexture;
-    if (!texture) return;
-    // Preserve the original artwork's proportions. A portrait viewport must
-    // crop the sides; stretching would distort palms, buildings and the sun.
-    const artwork = texture.image as HTMLImageElement;
-    const imageAspect = artwork.width / artwork.height;
-    const aspect = this.camera.aspect;
-    texture.repeat.set(Math.min(1, aspect / imageAspect), Math.min(1, imageAspect / aspect));
-    texture.offset.set((1 - texture.repeat.x) / 2, (1 - texture.repeat.y) / 2);
-  }
-
   private updateRoad(distanceMeters: number): void {
     const scroll = distanceMeters % ROAD_SEGMENT_LENGTH;
     for (let index = 0; index < this.roadSegments.length; index += 1) {
       const logicalIndex = index - 1;
       this.roadSegments[index]!.position.z = scroll - logicalIndex * ROAD_SEGMENT_LENGTH;
     }
-    this.city.update(distanceMeters);
   }
 
   private updatePlayer(snapshot: RaceToWinSnapshot, deltaSeconds: number): void {

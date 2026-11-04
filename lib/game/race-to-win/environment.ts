@@ -128,23 +128,14 @@ export function createRoadSegment(assets: RoadAssets, segmentIndex: number): THR
     root.add(staticMesh(assets.markingGeometry, edgePaint, [side * 8.65, 0.065, 0], [0.17, 0.045, ROAD_SEGMENT_LENGTH]));
   }
 
-  for (const x of [-10.2, 10.2]) {
-    root.add(staticMesh(assets.shoulderGeometry, assets.shoulderMaterial, [x, 0.04, 0], [2.45, 0.1, ROAD_SEGMENT_LENGTH]));
-  }
-
   for (let z = -42; z <= 42; z += 12) {
     for (const x of [-2.5, 2.5]) {
       root.add(staticMesh(assets.markingGeometry, assets.markingMaterial, [x, 0.065, z], [0.19, 0.045, 6.2]));
     }
   }
 
-  // Alternating red-and-white safety barriers like the coastal reference.
-  for (let z = -46; z < 48; z += 4) {
-    for (const side of [-1, 1]) {
-      const material = Math.floor((z + 46) / 4) % 2 === 0 ? assets.postMaterial : assets.railMaterial;
-      root.add(staticMesh(assets.shoulderGeometry, material, [side * 10.15, 0.43, z + 2], [0.55, 0.85, 3.98]));
-    }
-  }
+  // The original artwork supplies the coastal curbs and shoulders. Extra
+  // opaque geometry here would cover its plants, beach furniture and sand.
 
   return root;
 }
