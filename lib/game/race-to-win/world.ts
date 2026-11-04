@@ -73,6 +73,8 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
+  private coastalTexture: THREE.Texture | null = null;
+  private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -107,11 +109,28 @@ export class RaceToWinWorld {
     this.renderer.shadowMap.enabled = this.quality.shadows;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.68;
+    this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.scene.background = new THREE.Color("#090f1b");
-    this.scene.fog = new THREE.FogExp2("#1b2635", this.quality.mobile ? 0.007 : 0.0055);
+    this.scene.background = new THREE.Color("#42baff");
+    this.scene.fog = new THREE.Fog("#bfe8ef", 140, 410);
+    new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
+      if (this.disposed) { texture.dispose(); return; }
+      texture.colorSpace = THREE.SRGBColorSpace;
+      this.coastalTexture = texture;
+      this.scene.background = texture;
+      // Soft image-based fill makes metallic paint reflect the same beach
+      // palette instead of turning black under direct sunlight alone.
+      const environmentSource = texture.clone();
+      environmentSource.mapping = THREE.EquirectangularReflectionMapping;
+      const generator = new THREE.PMREMGenerator(this.renderer);
+      this.coastalEnvironment = generator.fromEquirectangular(environmentSource);
+      this.scene.environment = this.coastalEnvironment.texture;
+      this.scene.environmentIntensity = 0.65;
+      environmentSource.dispose();
+      generator.dispose();
+      this.fitCoastalBackground();
+    });
 
     this.camera.position.set(0, 7.25, 14.1);
     this.camera.lookAt(0, 1.05, -21);
@@ -148,6 +167,7 @@ export class RaceToWinWorld {
     this.renderer.setSize(safeWidth, safeHeight, false);
     this.camera.aspect = safeWidth / safeHeight;
     this.camera.updateProjectionMatrix();
+    this.fitCoastalBackground();
   }
 
   public update(snapshot: RaceToWinSnapshot, deltaSeconds: number): void {
@@ -182,6 +202,8 @@ export class RaceToWinWorld {
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
     this.city.dispose();
+    this.coastalTexture?.dispose();
+    this.coastalEnvironment?.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
     this.renderer.dispose();
@@ -189,28 +211,34 @@ export class RaceToWinWorld {
   }
 
   private addLights(): void {
-    const hemisphere = new THREE.HemisphereLight("#d7e6ff", "#111821", 2.05);
+    const hemisphere = new THREE.HemisphereLight("#c9edff", "#d4bd83", 2.6);
     this.scene.add(hemisphere);
 
-    const moon = new THREE.DirectionalLight("#dce8ff", 3.65);
-    moon.position.set(-14, 25, 8);
-    moon.castShadow = this.quality.shadows;
+    const sun = new THREE.DirectionalLight("#fff6d8", 3.2);
+    sun.position.set(35, 60, -45);
+    sun.castShadow = this.quality.shadows;
     if (this.quality.shadows) {
-      moon.shadow.mapSize.set(1024, 1024);
-      moon.shadow.camera.left = -32;
-      moon.shadow.camera.right = 32;
-      moon.shadow.camera.top = 32;
-      moon.shadow.camera.bottom = -32;
-      moon.shadow.bias = -0.00035;
+      sun.shadow.mapSize.set(1024, 1024);
+      sun.shadow.camera.left = -32;
+      sun.shadow.camera.right = 32;
+      sun.shadow.camera.top = 32;
+      sun.shadow.camera.bottom = -32;
+      sun.shadow.bias = -0.00035;
     }
-    this.scene.add(moon);
+    this.scene.add(sun);
 
-    const horizon = new THREE.PointLight("#4c8dd2", 38, 155, 2);
-    horizon.position.set(0, 12, -80);
-    this.scene.add(horizon);
-    const warmRim = new THREE.PointLight("#ffd0a0", 30, 42, 2);
-    warmRim.position.set(-9, 5, 9);
-    this.scene.add(warmRim);
+  }
+
+  private fitCoastalBackground(): void {
+    const texture = this.coastalTexture;
+    if (!texture) return;
+    // Preserve the original artwork's proportions. A portrait viewport must
+    // crop the sides; stretching would distort palms, buildings and the sun.
+    const artwork = texture.image as HTMLImageElement;
+    const imageAspect = artwork.width / artwork.height;
+    const aspect = this.camera.aspect;
+    texture.repeat.set(Math.min(1, aspect / imageAspect), Math.min(1, imageAspect / aspect));
+    texture.offset.set((1 - texture.repeat.x) / 2, (1 - texture.repeat.y) / 2);
   }
 
   private updateRoad(distanceMeters: number): void {
