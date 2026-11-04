@@ -1,5 +1,7 @@
 # Race123 daytime coastal integration
 
+For the later moving, simplified tropical coast, see [coastal-ambient-motion.md](coastal-ambient-motion.md). This document records the initial static-image integration.
+
 ## Scope and recovery
 
 Base: `9780a38df407db04e4b1d250b7ef941a8a31ad6e` (`main`). Before editing, a complete Git bundle was created and verified locally as `race2win-before-visual.bundle`.

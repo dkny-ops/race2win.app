@@ -10,6 +10,7 @@ import {
   SpeedStreakSystem,
 } from "./environment";
 import { CoastalBackdrop } from "./coastal-backdrop";
+import { CoastalScenery } from "./coastal-scenery";
 import {
   createModelVehicleVisual,
   disposeModelVehicleVisual,
@@ -59,6 +60,7 @@ export class RaceToWinWorld {
   private readonly vehicleAssets = createVehicleAssets();
   private readonly roadSegments: THREE.Group[] = [];
   private readonly coastalBackdrop = new CoastalBackdrop();
+  private readonly coastalScenery: CoastalScenery;
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
   private readonly trafficVisualPool: { variantIndex: number; visual: VehicleVisual }[] = [];
@@ -75,6 +77,8 @@ export class RaceToWinWorld {
   private disposed = false;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
+  private sceneryTexture: THREE.Texture | null = null;
+  private sceneryFailed = false;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -118,7 +122,7 @@ export class RaceToWinWorld {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
       this.coastalTexture = texture;
-      this.coastalBackdrop.setTexture(texture);
+      if (this.sceneryFailed) this.coastalBackdrop.setTexture(texture);
       // Soft image-based fill makes metallic paint reflect the same beach
       // palette instead of turning black under direct sunlight alone.
       const environmentSource = texture.clone();
@@ -129,6 +133,15 @@ export class RaceToWinWorld {
       this.scene.environmentIntensity = 0.65;
       environmentSource.dispose();
       generator.dispose();
+    });
+    new THREE.TextureLoader().load("/images/coastal-horizon.webp", (texture) => {
+      if (this.disposed) { texture.dispose(); return; }
+      texture.colorSpace = THREE.SRGBColorSpace;
+      this.sceneryTexture = texture;
+      this.coastalBackdrop.setTexture(texture);
+    }, undefined, () => {
+      this.sceneryFailed = true;
+      if (!this.disposed && this.coastalTexture) this.coastalBackdrop.setTexture(this.coastalTexture);
     });
 
     this.camera.position.set(0, 7.25, 14.1);
@@ -141,11 +154,13 @@ export class RaceToWinWorld {
       this.scene.add(segment);
     }
     this.scene.add(this.coastalBackdrop.object);
+    this.coastalScenery = new CoastalScenery(this.quality);
+    this.scene.add(this.coastalScenery.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
     this.player.root.castShadow = true;
-    // Hide the low-detail fallback while the actual car model is loading.
+    // Keep the temporary blocky car hidden until the detailed model is ready.
     this.player.root.visible = false;
     this.scene.add(this.player.root);
 
@@ -174,7 +189,13 @@ export class RaceToWinWorld {
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
     this.updateCamera(snapshot, deltaSeconds);
-    this.coastalBackdrop.update(this.camera);
+    this.coastalBackdrop.update(this.camera, {
+      deltaSeconds,
+      distanceMeters: snapshot.metrics.distanceMeters,
+      speedKph: snapshot.metrics.speedKph,
+      running: snapshot.state === "running",
+    });
+    this.coastalScenery.update({ deltaSeconds, distanceMeters: snapshot.metrics.distanceMeters, speedKph: snapshot.metrics.speedKph, running: snapshot.state === "running" });
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     if (snapshot.state === "running" && !this.wasRunning) this.tireSmoke.trigger(snapshot.player.laneX, false);
@@ -202,7 +223,9 @@ export class RaceToWinWorld {
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
     this.coastalBackdrop.dispose();
+    this.coastalScenery.dispose();
     this.coastalTexture?.dispose();
+    this.sceneryTexture?.dispose();
     this.coastalEnvironment?.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
@@ -341,7 +364,7 @@ export class RaceToWinWorld {
       this.player = replacement;
       this.scene.add(replacement.root);
     } else {
-      // If the model cannot load, keep the game playable with the fallback.
+      // Keep the game usable when the detailed model fails to load.
       this.player.root.visible = true;
     }
 

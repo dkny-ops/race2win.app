@@ -5,10 +5,15 @@ import ts from "typescript";
 import * as THREE from "three";
 
 const source = readFileSync(new URL("../lib/game/race-to-win/coastal-backdrop.ts", import.meta.url), "utf8");
+const motionSource = readFileSync(new URL("../lib/game/race-to-win/coastal-motion.ts", import.meta.url), "utf8");
+const motionModule = { exports: {} };
+new Function("require", "module", "exports", ts.transpileModule(motionSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText)(() => THREE, motionModule, motionModule.exports);
 const compiledModule = { exports: {} };
 new Function("require", "module", "exports", ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText)(() => THREE, compiledModule, compiledModule.exports);
+}).outputText)(name => name === "three" ? THREE : motionModule.exports, compiledModule, compiledModule.exports);
 
 for (const mobile of [false, true]) {
   test(`image scenery cannot occlude traffic, change the camera or dispose its borrowed image (${mobile ? "mobile" : "desktop"})`, () => {
