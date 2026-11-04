@@ -200,17 +200,7 @@ function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
   rearStrip.userData.rtwRuntimeGeometry = true;
   chassis.add(rearStrip);
 
-  for (const side of [-1, 1]) {
-    const sideStripMaterial = accentMaterial.clone();
-    sideStripMaterial.color.set("#c8f2ff");
-    sideStripMaterial.emissive.set("#168cff");
-    sideStripMaterial.emissiveIntensity = 2.1;
-    const sideStrip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.07, 3.75), sideStripMaterial);
-    sideStrip.name = "race-to-win-player-side-led";
-    sideStrip.position.set(side * 2.34, 0.48, 0.46);
-    sideStrip.userData.rtwRuntimeGeometry = true;
-    chassis.add(sideStrip);
-  }
+
 }
 
 /** Creates a per-instance visual from an owned GLB without mutating the source asset. */
