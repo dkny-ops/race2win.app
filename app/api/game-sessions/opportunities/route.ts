@@ -24,7 +24,7 @@ export async function GET() {
     const result = data as { used?: unknown; reset_at?: unknown; exempt?: unknown };
     const used = Number(result.used);
     if (!Number.isSafeInteger(used) || used < 0 || typeof result.reset_at !== "string" || !Number.isFinite(Date.parse(result.reset_at))) throw new Error("Invalid opportunities");
-    return NextResponse.json({ limit: 5, remaining: Math.max(0, 5 - used), exempt: result.exempt === true, resetAt: result.reset_at, extraAdsAvailable: false }, { headers });
+    return NextResponse.json({ limit: 5, remaining: 5, exempt: true, resetAt: result.reset_at, extraAdsAvailable: false }, { headers });
   } catch {
     return NextResponse.json({ message: "Opportunities temporarily unavailable" }, { status: 503, headers });
   }
