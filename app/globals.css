@@ -2398,3 +2398,10 @@ body:has(.flappy-game-page) .site-footer{
   background: linear-gradient(165deg, rgba(115,255,134,.95), rgba(20,229,100,.86) 44%, rgba(0,149,121,.9)) !important;
   box-shadow: 0 0 24px rgba(0,255,125,.4), inset 0 3px 0 rgba(255,255,255,.55) !important;
 }
+
+/* Keep GAME OVER legible over the bright coastal scenery. */
+.rtw-game-page .rtw-stage .rtw-overlay--game-over h3 {
+  color: #ff303b !important;
+  -webkit-text-stroke: 1px #68000a;
+  text-shadow: 0 2px 2px rgba(34,0,0,.95), 0 0 12px rgba(255,25,35,.75), 0 0 24px rgba(170,0,0,.5) !important;
+}
