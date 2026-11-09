@@ -115,7 +115,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     };
     return (messages[code] ?? ["Error del servidor. Vuelve a intentarlo en unos momentos.", "Server error. Please try again shortly."])[es ? 0 : 1];
   };
-  const blocked = !authenticated || !FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || (availability.remaining === 0 && !availability.exempt) || availability.activeUntil !== null;
+  const blocked = authenticated && (!FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || (availability.remaining === 0 && !availability.exempt) || availability.activeUntil !== null);
   const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const fail = useCallback(() => { running.current = false; stopVerification(); if (mounted.current) { setResult(null); setStatus("rejected"); } }, [stopVerification]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
@@ -126,13 +126,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
     busy.current = true;
     setOfficialError(null); setStatus("starting"); setResult(null); setScore(0);
     try {
-      if (!authenticated) throw new FlappyOfficialError("unauthenticated");
-      const session = await startFlappyOfficial();
-      void refreshAvailability();
+      const session = authenticated ? await startFlappyOfficial() : null;
+      if (authenticated) void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
-      beginVerification(session.sessionId, session.turnstile);
-      const seed = session.seed;
+      if (session) beginVerification(session.sessionId, session.turnstile);
+      const seed = session ? session.seed : Math.floor(Math.random() * 0x1_0000_0000);
       engine.current = initialFlappy(seed); inputs.current = []; pendingFlap.current = false;
       nextCheckpoint.current = 300;
       origin.current = session ? performance.now() + (Date.parse(session.startsAt) - Date.parse(session.serverNow)) : performance.now() + 3000;
@@ -305,14 +304,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
       <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy flappy-inline-help" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link>
     </div>
     <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
-    {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
-    <div style={{margin:"1rem auto",maxWidth:360}}>
+    {!authenticated ? <p>{es ? "Modo invitado: juega gratis. Las puntuaciones no cuentan para premios ni rankings." : "Guest mode: play for free. Scores do not count toward prizes or leaderboards."} <Link href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "Iniciar sesión para competir" : "Sign in to compete"}</Link></p> : null}
+    {authenticated ? <div style={{margin:"1rem auto",maxWidth:360}}>
       <p style={{margin:".5rem 0"}}>{es ? "Partidas disponibles" : "Races available"}: <span className="rtw-play-count" style={{position:"static"}} aria-live="polite"><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{availabilityError ? "—" : availability?.exempt ? "∞" : `${availability?.remaining ?? "…"}/5`}</span></p>
       {availability?.nextAvailableAt && !availability.exempt ? <p style={{margin:".5rem 0"}}>{es ? "Próxima partida disponible en" : "Next race available in"}: <strong>{recovery}</strong></p> : null}
       {availability?.remaining === 0 && !availability.exempt ? <p role="status">{errorMessage("attempts_exhausted")}</p> : null}
       {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
       {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
-    </div>
+    </div> : null}
     {officialError ? <p role="alert">{errorMessage(officialError)} {officialError==="terms_required" ? <Link href="/terms/accept">TERMS</Link> : officialError==="review_required" ? <Link href="/support/access">SUPPORT</Link> : officialError==="unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}</p> : null}
   </div>;
 }
