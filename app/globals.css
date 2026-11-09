@@ -2437,3 +2437,16 @@ body:has(.flappy-game-page) .site-footer{
     white-space: nowrap;
   }
 }
+
+/* Keep mobile sign-in navigation visibly outside the bordered form. */
+@media (max-width: 980px) {
+  body:has(.sign-in-page) .sign-in-page {
+    padding-top: 12rem;
+  }
+  body:has(.sign-in-page) .sign-in-panel {
+    margin-top: 64px;
+  }
+  body:has(.sign-in-page) .site-header .mobile-header-actions {
+    top: 103px;
+  }
+}
