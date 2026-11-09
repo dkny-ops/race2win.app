@@ -2405,3 +2405,35 @@ body:has(.flappy-game-page) .site-footer{
   -webkit-text-stroke: 1px rgba(255,255,255,.95);
   text-shadow: 0 2px 0 rgba(95,0,15,.8), 0 0 5px rgba(255,255,255,.95), 0 0 12px rgba(255,255,255,.65), 0 0 22px rgba(255,75,85,.35) !important;
 }
+
+
+/* Mobile sign-in: place SIGN IN and MENU on a separate right-aligned row
+   below the centered Race To Win banner, never over the logo. */
+@media (max-width: 980px) {
+  body:has(.sign-in-page) .site-header .header-inner {
+    min-height: 156px;
+    position: relative;
+  }
+  body:has(.sign-in-page) .site-header .brand {
+    top: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100vw - 2rem);
+  }
+  body:has(.sign-in-page) .site-header .mobile-header-actions {
+    position: absolute;
+    top: 103px;
+    right: 0;
+    left: auto;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 20px;
+    z-index: 15;
+  }
+  body:has(.sign-in-page) .site-header .mobile-header-sign-in,
+  body:has(.sign-in-page) .site-header .mobile-menu summary {
+    white-space: nowrap;
+  }
+}
