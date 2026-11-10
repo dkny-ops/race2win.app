@@ -40,7 +40,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
  }, [sessionId, running, refresh]);
  useEffect(() => { onPauseChange(Boolean(running && sessionId && check?.due && !check.verified)); return () => onPauseChange(false); }, [running, sessionId, check?.due, check?.verified, onPauseChange]);
  useEffect(() => {
-  if (!running || !check?.due || check.verified || !check.nonce || answerRecorded) return;
+  if (!running || !check?.due || check.verified || !check.nonce) return;
   const nonce = check.nonce;
   const tick = () => {
    const due = latest.current;
@@ -51,12 +51,12 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   setSecondsLeft(10);
   const timer = window.setInterval(tick, 100);
   const deadline = window.setTimeout(() => {
-   if (timedOutNonce.current === nonce || chosen.current !== null) return;
+   if (timedOutNonce.current === nonce || latest.current?.verified || latest.current?.nonce !== nonce) return;
    timedOutNonce.current = nonce;
    onTimeout();
   }, 10000);
   return () => { window.clearInterval(timer); window.clearTimeout(deadline); };
- }, [running, check?.due, check?.verified, check?.nonce, answerRecorded, onTimeout]);
+ }, [running, check?.due, check?.verified, check?.nonce, onTimeout]);
  const onToken = useCallback(async (token: string) => {
   const active = latest.current;
   const choice = chosen.current;
@@ -73,7 +73,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
    if (currentSession.current !== id) return;
    setMessage("Verification complete"); onVerified?.(); setCheck({ ...active, verified: true }); latest.current = { ...active, verified: true };
   } catch {
-   if (currentSession.current === id) { setMessage("Verification pending. Try again."); window.turnstile?.reset(widget.current ?? ""); }
+   if (currentSession.current === id) { chosen.current = null; setAnswerRecorded(false); setMessage("Verification pending. Try again."); if (widget.current) window.turnstile?.reset(widget.current); }
   } finally { if (currentSession.current === id) setBusy(false); }
  }, [onVerified, getResumeEvidence]);
  useEffect(() => {
@@ -81,8 +81,8 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   const id = window.turnstile.render(container.current, {
    sitekey: check.siteKey, action: "midrun_human_check",
    size: "invisible", execution: "execute", appearance: "interaction-only",
-   callback: onToken, "expired-callback": () => { setBusy(false); setMessage("Try verification again."); },
-   "error-callback": () => { setBusy(false); setMessage("Verification pending. Try again."); },
+   callback: onToken, "expired-callback": () => { chosen.current = null; setAnswerRecorded(false); setBusy(false); setMessage("Try verification again."); },
+   "error-callback": () => { chosen.current = null; setAnswerRecorded(false); setBusy(false); setMessage("Verification pending. Try again."); },
   });
   widget.current = id;
   return () => { if (widget.current === id) widget.current = null; window.turnstile?.remove(id); };
@@ -102,10 +102,10 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
        body: JSON.stringify({ sessionId, nonce: check.nonce, choice: index }),
       });
-      if (!response.ok) { setMessage("Too late. This challenge was not passed."); return; }
+      if (!response.ok) { setMessage("Could not record answer. Please retry before time expires."); return; }
       chosen.current = index; setAnswerRecorded(true); setMessage("Checking humanity...");
       if (widget.current) window.turnstile?.execute(widget.current);
-      else setMessage("Verification unavailable.");
+      else { chosen.current = null; setAnswerRecorded(false); setMessage("Verification unavailable. Please retry."); }
      } catch { setMessage("Could not record answer."); }
      finally { setBusy(false); }
     })();
