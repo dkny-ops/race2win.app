@@ -81,6 +81,8 @@ export class RaceToWinWorld {
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
   private sceneryTexture: THREE.Texture | null = null;
   private sceneryFailed = false;
+  private resolveSceneryReady!: () => void;
+  public readonly sceneryReady = new Promise<void>((resolve) => { this.resolveSceneryReady = resolve; });
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -143,9 +145,11 @@ export class RaceToWinWorld {
       texture.colorSpace = THREE.SRGBColorSpace;
       this.sceneryTexture = texture;
       this.coastalBackdrop.setTexture(texture);
+      this.resolveSceneryReady();
     }, undefined, () => {
       this.sceneryFailed = true;
       if (!this.disposed && this.coastalTexture) this.coastalBackdrop.setTexture(this.coastalTexture);
+      this.resolveSceneryReady();
     });
 
     this.camera.position.set(0, 7.25, 14.1);
