@@ -181,6 +181,15 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
           }
           failureStatus = response.status;
           failureRequestId = response.headers.get("X-Request-ID");
+          // Retry only the server's explicitly not-yet-finalizable replay.
+          // Other 409 anti-cheat conflicts must remain final rejections.
+          if (response.status === 409 && attempt === 0) {
+            const errorBody = await readJson(response);
+            if (errorBody && typeof errorBody === "object" && (errorBody as { message?: unknown }).message === "Run record is not yet finalizable.") {
+              await new Promise<void>((resolve) => window.setTimeout(resolve, 750));
+              continue;
+            }
+          }
           if (![502, 503, 504].includes(response.status)) break;
         } catch {
           failureStatus = null;
