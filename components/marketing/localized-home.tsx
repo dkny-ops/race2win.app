@@ -88,11 +88,11 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <div className="home-game-entry">
               <article className="home-game-tile home-game-tile--jumping" aria-labelledby="jumping-title" style={{position:"relative",background:"linear-gradient(145deg,#10113a 0%,#30216d 52%,#431c66 100%)",border:"1px solid rgba(170,85,255,.55)",overflow:"hidden"}}>
                 <div aria-hidden="true" style={{position:"absolute",right:"-2rem",top:"-2rem",width:"11rem",height:"11rem",border:"2px solid rgba(202,96,255,.4)",borderRadius:"50%",boxShadow:"0 0 80px rgba(185,64,255,.23)"}} />
-                <p className="eyebrow" style={{position:"relative"}}>{language==="es"?"PRÓXIMAMENTE · PRUEBAS PRIVADAS":"COMING SOON · PRIVATE TESTING"}</p>
+                <p className="eyebrow" style={{position:"relative"}}>{language==="es"?"JUEGO DISPONIBLE · VERSIÓN DE DESARROLLO":"PLAYABLE · DEVELOPMENT VERSION"}</p>
                 <h2 id="jumping-title" style={{position:"relative",margin:0}}><Image src="/games/jumping-race/22170F02-4064-4DF7-BF86-DB04AACC04E3.png" alt="Jumping Race" width={1536} height={512} unoptimized style={{width:"100%",height:"auto",display:"block",objectFit:"contain"}} /></h2>
-                <p style={{position:"relative",fontSize:".9rem",opacity:.85}}>{language==="es"?"Nuevo juego en desarrollo. Acceso exclusivo para cuentas de prueba autorizadas.":"New game in development. Authorized test accounts only."}</p>
+                <p style={{position:"relative",fontSize:".9rem",opacity:.85}}>{language==="es"?"Ya puedes jugar la versión de desarrollo. Sin premios ni puntuaciones oficiales.":"Play the development version now. No prizes or official scores."}</p>
                 <div className="home-game-actions" style={{position:"relative"}}>
-                  <Link href="/games/jumping-race" className="button button--primary">{language==="es"?"VER JUEGO 🔒":"VIEW GAME 🔒"}</Link>
+                  <Link href="/games/jumping-race" className="button button--primary">{language==="es"?"JUGAR":"PLAY"}</Link>
                 </div>
               </article>
             </div>
