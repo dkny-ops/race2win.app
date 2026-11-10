@@ -68,5 +68,5 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     }
   }, [onTokenChange, resetNonce]);
 
-  return <div className="turnstile-widget" aria-label={label}><div ref={containerRef} /></div>;
+  return <div className={adaptive ? "turnstile-widget turnstile-widget--adaptive" : "turnstile-widget"} aria-label={label}><div ref={containerRef} /></div>;
 }
