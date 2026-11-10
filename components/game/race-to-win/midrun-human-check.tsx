@@ -51,6 +51,14 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   };
   setSecondsLeft(10);
   const timer = window.setInterval(tick, 100);
+  const verificationWatchdog = window.setInterval(() => {
+   if (verificationStartedAt.current === null || latest.current?.nonce !== nonce || latest.current?.verified) return;
+   if (Date.now() - verificationStartedAt.current < 30000) return;
+   verificationStartedAt.current = null;
+   if (timedOutNonce.current === nonce) return;
+   timedOutNonce.current = nonce;
+   onTimeout();
+  }, 500);
   const deadline = window.setTimeout(() => {
    if (timedOutNonce.current === nonce || latest.current?.verified || latest.current?.nonce !== nonce) return;
    // A correct answer submitted before the deadline must be allowed to finish
@@ -60,7 +68,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
    timedOutNonce.current = nonce;
    onTimeout();
   }, 10000);
-  return () => { window.clearInterval(timer); window.clearTimeout(deadline); };
+  return () => { window.clearInterval(timer); window.clearInterval(verificationWatchdog); window.clearTimeout(deadline); };
  }, [running, check?.due, check?.verified, check?.nonce, onTimeout]);
  const onToken = useCallback(async (token: string) => {
   const active = latest.current;
