@@ -10,6 +10,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
  const [answerRecorded, setAnswerRecorded] = useState(false);
  const [secondsLeft, setSecondsLeft] = useState(10);
  const timedOutNonce = useRef<string | null>(null);
+ const verificationStartedAt = useRef<number | null>(null);
  const [message, setMessage] = useState("");
  const container = useRef<HTMLDivElement>(null);
  const widget = useRef<string | null>(null);
@@ -32,7 +33,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   finally { refreshInFlight.current = false; }
  }, [sessionId]);
  useEffect(() => {
-  setCheck(null); latest.current = null; chosen.current = null; timedOutNonce.current = null; setAnswerRecorded(false); setMessage(""); setBusy(false);
+  setCheck(null); latest.current = null; chosen.current = null; timedOutNonce.current = null; verificationStartedAt.current = null; setAnswerRecorded(false); setMessage(""); setBusy(false);
   if (!running || !sessionId) return;
   void refresh();
   const timer = window.setInterval(() => { void refresh(); }, 500);
@@ -52,6 +53,10 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   const timer = window.setInterval(tick, 100);
   const deadline = window.setTimeout(() => {
    if (timedOutNonce.current === nonce || latest.current?.verified || latest.current?.nonce !== nonce) return;
+   // A correct answer submitted before the deadline must be allowed to finish
+   // its server-side Turnstile verification. Never treat network latency as
+   // a failure to choose a symbol.
+   if (verificationStartedAt.current !== null) return;
    timedOutNonce.current = nonce;
    onTimeout();
   }, 10000);
@@ -71,9 +76,9 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
    });
    if (!response.ok) throw new Error("verification_failed");
    if (currentSession.current !== id) return;
-   setMessage("Verification complete"); onVerified?.(); setCheck({ ...active, verified: true }); latest.current = { ...active, verified: true };
+   verificationStartedAt.current = null; setMessage("Verification complete"); onVerified?.(); setCheck({ ...active, verified: true }); latest.current = { ...active, verified: true };
   } catch {
-   if (currentSession.current === id) { chosen.current = null; setAnswerRecorded(false); setMessage("Verification pending. Try again."); if (widget.current) window.turnstile?.reset(widget.current); }
+   if (currentSession.current === id) { verificationStartedAt.current = null; chosen.current = null; setAnswerRecorded(false); setMessage("Verification pending. Try again."); if (widget.current) window.turnstile?.reset(widget.current); }
   } finally { if (currentSession.current === id) setBusy(false); }
  }, [onVerified, getResumeEvidence]);
  useEffect(() => {
@@ -81,7 +86,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   const id = window.turnstile.render(container.current, {
    sitekey: check.siteKey, action: "midrun_human_check",
    size: "invisible", execution: "execute", appearance: "interaction-only",
-   callback: onToken, "expired-callback": () => { chosen.current = null; setAnswerRecorded(false); setBusy(false); setMessage("Try verification again."); },
+   callback: onToken, "expired-callback": () => { verificationStartedAt.current = null; chosen.current = null; setAnswerRecorded(false); setBusy(false); setMessage("Try verification again."); },
    "error-callback": () => { chosen.current = null; setAnswerRecorded(false); setBusy(false); setMessage("Verification pending. Try again."); },
   });
   widget.current = id;
@@ -90,23 +95,23 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
  if (!running || !sessionId || !check?.due || check.verified) return null;
  return <aside onPointerDown={(event) => event.stopPropagation()} onPointerUp={(event) => event.stopPropagation()} role="group" aria-label="Human verification" style={{ position:"absolute",top:85,left:"50%",transform:"translateX(-50%)",zIndex:30,background:"rgba(0,0,0,.88)",color:"white",padding:12,borderRadius:12,textAlign:"center",maxWidth:"90vw",pointerEvents:"auto" }}>
   <TurnstileScript onReady={() => setReady(true)} onError={() => setMessage("Verification service unavailable")} />
-  <p style={{margin:"0 0 8px"}}>Tap the matching symbol to verify your run · {Math.ceil(secondsLeft)}s</p>
+  <p style={{margin:"0 0 8px"}}>{verificationStartedAt.current !== null ? "Verifying your answer with Cloudflare…" : `Tap the matching symbol to verify your run · ${Math.ceil(secondsLeft)}s`}</p>
   <p style={{fontSize:22,margin:"0 0 8px"}} aria-label="Target symbol">{SYMBOLS[check.target ?? 0]}</p>
   <div style={{display:"flex",gap:12,justifyContent:"center"}}>
    {SYMBOLS.map((symbol,index)=><button key={index} type="button" disabled={busy || answerRecorded || !check.siteKey || !ready} onClick={() => {
     if (index !== check.target) { setMessage("Try the matching symbol."); return; }
-    setBusy(true); setMessage("Recording answer...");
+    setBusy(true); verificationStartedAt.current = Date.now(); setMessage("Recording answer...");
     void (async () => {
      try {
       const response = await fetch("/api/game-sessions/human-check", {
        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
        body: JSON.stringify({ sessionId, nonce: check.nonce, choice: index }),
       });
-      if (!response.ok) { setMessage("Could not record answer. Please retry before time expires."); return; }
+      if (!response.ok) { verificationStartedAt.current = null; setMessage("Could not record answer. Please retry before time expires."); return; }
       chosen.current = index; setAnswerRecorded(true); setMessage("Checking humanity...");
       if (widget.current) window.turnstile?.execute(widget.current);
-      else { chosen.current = null; setAnswerRecorded(false); setMessage("Verification unavailable. Please retry."); }
-     } catch { setMessage("Could not record answer."); }
+      else { verificationStartedAt.current = null; chosen.current = null; setAnswerRecorded(false); setMessage("Verification unavailable. Please retry."); }
+     } catch { verificationStartedAt.current = null; setMessage("Could not record answer."); }
      finally { setBusy(false); }
     })();
    }} style={{fontSize:22,padding:"8px 12px",borderRadius:8}} aria-label={"Select symbol "+symbol}>{symbol}</button>)}
