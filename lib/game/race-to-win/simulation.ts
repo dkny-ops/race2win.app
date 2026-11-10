@@ -175,7 +175,9 @@ export class RaceToWinSimulation {
 
     this.pendingInputs.push({
       sequence: this.nextInputSequence++,
-      atMs: Math.round(this.simulationTimeMs),
+      // The event arrived after the current tick. Replay must consume it
+      // on the next tick, even when the current tick lands on a whole ms.
+      atMs: Math.floor(this.simulationTimeMs) + 1,
       direction,
     });
     return true;

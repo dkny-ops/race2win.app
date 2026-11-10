@@ -46,3 +46,46 @@ test("a legitimately recorded lane change can still be replayed after a crash", 
   assert.ok(replay);
   assert.equal(replay.score, snapshot.metrics.score);
 });
+
+test("rapid lane changes replay on the same ticks after a verified human-check pause", () => {
+  const seed = 1;
+  const simulation = new RaceToWinSimulation({ seed, trafficVariantCount: 6 });
+  simulation.start();
+  const stepMs = simulation.config.fixedStepMs;
+  for (let tick = 0; tick < 40; tick++) {
+    if (tick >= 3) simulation.requestLaneChange(simulation.snapshot().player.laneIndex === 1 ? -1 : 1);
+    simulation.step(stepMs);
+  }
+
+  // The client suspends simulation frames while the challenge is open.
+  const paused = simulation.snapshot();
+  const prefix = simulation.runRecord();
+  const progress = replayAuthoritativeProgress(prefix.gameplayVersion, seed, prefix.inputs, paused.simulationTimeMs);
+  assert.equal(progress?.elapsedMs, paused.simulationTimeMs);
+  assert.equal(progress?.state, "running");
+  assert.equal(progress?.score, paused.metrics.score);
+
+  // Only successful server verification supplies this protection tick.
+  simulation.protectForFiveSeconds();
+  for (let tick = 0; tick < 1500 && simulation.snapshot().state === "running"; tick++) {
+    simulation.requestLaneChange(simulation.snapshot().player.laneIndex === 1 ? -1 : 1);
+    simulation.step(stepMs);
+  }
+
+  const finish = simulation.snapshot();
+  const record = simulation.runRecord();
+  assert.equal(finish.state, "crashed");
+  assert.ok(record.inputs.length > prefix.inputs.length);
+  assert.deepEqual(record.inputs.slice(0, prefix.inputs.length), prefix.inputs);
+  const wallClockCap = finish.simulationTimeMs + 10_000;
+  const protections = [paused.simulationTimeMs];
+  assert.deepEqual(replayAuthoritativeRace(record.gameplayVersion, seed, record.inputs, wallClockCap, protections), {
+    score: finish.metrics.score,
+    distanceMillimeters: Math.round(finish.metrics.distanceMeters * 1000),
+    elapsedMs: finish.simulationTimeMs,
+    collisionAtMs: finish.collision.atMs,
+  });
+  assert.equal(replayAuthoritativeRace(record.gameplayVersion, seed, record.inputs, wallClockCap), null);
+  const forged = [...record.inputs, { sequence: record.inputs.length, atMs: finish.simulationTimeMs + 1, direction: 1 }];
+  assert.equal(replayAuthoritativeRace(record.gameplayVersion, seed, forged, wallClockCap, protections), null);
+});
