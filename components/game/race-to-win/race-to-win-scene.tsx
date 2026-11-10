@@ -304,7 +304,14 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     const simulation = new RaceToWinSimulation({ seed: TRACK_SEED, trafficVariantCount: 6 });
     audioRef.current = new RaceToWinAudio(); worldRef.current = world; simulationRef.current = simulation;
     const initial = simulation.snapshot(); world.update(initial, 0);
-    const initializedFrame = window.requestAnimationFrame(() => { setMetrics(initial.metrics); setState("ready"); });
+    let initializationCancelled = false;
+    let initializedFrame: number | null = null;
+    void world.sceneryReady.then(() => {
+      if (initializationCancelled) return;
+      initializedFrame = window.requestAnimationFrame(() => {
+        if (!initializationCancelled) { setMetrics(initial.metrics); setState("ready"); }
+      });
+    });
     const resize = () => { const bounds = stage.getBoundingClientRect(); world.resize(bounds.width, bounds.height); };
     const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage); resize();
     const onKeyDown = (event: KeyboardEvent) => {
@@ -325,7 +332,8 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     };
     animationFrameRef.current = window.requestAnimationFrame(frame);
     return () => {
-      cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); window.cancelAnimationFrame(initializedFrame);
+      initializationCancelled = true;
+      cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); if (initializedFrame !== null) window.cancelAnimationFrame(initializedFrame);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       resizeObserver.disconnect(); window.removeEventListener("keydown", onKeyDown); world.dispose(); audioRef.current?.dispose(); audioRef.current = null; simulationRef.current = null; worldRef.current = null;
     };
