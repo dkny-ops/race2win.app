@@ -2450,3 +2450,12 @@ body:has(.flappy-game-page) .site-footer{
     top: 103px;
   }
 }
+
+/* Keep coastal scenery visible while Three.js loads its textures; never flash the blue placeholder. */
+.rtw-game-page .rtw-stage--loading .rtw-loading {
+  position:relative;
+  z-index:3;
+  background:linear-gradient(rgba(2,12,25,.16),rgba(2,12,25,.28)),url("/images/coastal-horizon.webp") center / cover no-repeat #0a4675;
+  color:#f0fbff;
+  text-shadow:0 2px 8px rgba(0,10,28,.9);
+}
