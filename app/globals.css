@@ -2352,3 +2352,11 @@ body:has(.flappy-game-page) .site-footer{
 .jumping-race-game-banner{width:100%;max-width:950px;margin:0 auto 12px;line-height:0}
 .jumping-race-game-banner img{display:block;width:100%;height:auto;object-fit:contain}
 @media(max-width:980px){.jumping-race-game-banner{width:min(92vw,660px);margin:0 auto 14px}}
+
+/* Compact sign-in: adaptive Turnstile is invisible unless Cloudflare requests interaction. */
+.sign-in-form .turnstile-widget--adaptive{min-height:0;height:0;overflow:visible;position:relative;z-index:2}
+.sign-in-form .turnstile-widget--adaptive>div{position:relative}
+
+/* Jumping Race: one prominent logo in the header, with dark artwork backdrop blended away. */
+.jumping-race-header-logo{width:clamp(230px,32vw,420px);max-height:125px;mix-blend-mode:screen}
+@media(max-width:600px){.jumping-race-header-logo{width:clamp(205px,55vw,290px);max-height:90px}}
