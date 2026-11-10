@@ -1776,8 +1776,7 @@ body:has(.page-section .rtw-play-count) .site-header .site-brand-flappy{
  .rtw-game-page .rtw-stage--running .rtw-hud > div{
   padding:0;border:0;background:none;box-shadow:none;text-align:center;
  }
- .rtw-game-page .rtw-stage--running .rtw-hud-score{display:none}
- .rtw-game-page .rtw-stage--running .rtw-hud .rtw-hud-distance{display:block}
+ .rtw-game-page .rtw-stage--running .rtw-hud-score{order:1}
 }
 
 /* Mobile only: show the Race To Win share artwork without the blue tile. */
