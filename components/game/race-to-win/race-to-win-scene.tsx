@@ -316,7 +316,7 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
       world.update(snapshot, deltaMs / 1_000);
       if (now - lastHudUpdateAt >= 90 || snapshot.state === "crashed") { setMetrics(snapshot.metrics); lastHudUpdateAt = now; }
       if (screenStateRef.current === "running" && !humanCheckPausedRef.current) submitReachedCheckpoints(snapshot.metrics.score);
-      if (snapshot.state === "crashed" && screenStateRef.current === "running") { audioRef.current?.play("collision", { volume: 0.7 }); if (guest) { setGuestBlocked(true); setState("crashed"); scheduleGameOverReturn(); } else void finalizeOfficialRun(); }
+      if (snapshot.state === "crashed" && screenStateRef.current === "running") { audioRef.current?.play("collision", { volume: 0.7 }); if (guest) { setState("crashed"); scheduleGameOverReturn(); } else void finalizeOfficialRun(); }
       animationFrameRef.current = window.requestAnimationFrame(frame);
     };
     animationFrameRef.current = window.requestAnimationFrame(frame);
