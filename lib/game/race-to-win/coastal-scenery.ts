@@ -106,38 +106,6 @@ export class CoastalScenery {
       toneMapped: false,
     });
     this.materials.push(sea);
-    // Buildings are actual roadside 3D objects, not repeated full-size photo
-    // panels. Their world positions use the same scroll as the road.
-    const buildingColors = ["#b4c5d0", "#d5c7b5", "#a9b8c8", "#d0d7dc"];
-    const buildingMaterials = buildingColors.map(color => new THREE.MeshLambertMaterial({ color }));
-    const glassMaterial = new THREE.MeshBasicMaterial({ color: "#4b819f" });
-    this.materials.push(...buildingMaterials, glassMaterial);
-    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const windowGeometry = new THREE.PlaneGeometry(1, 1);
-    this.geometry.push(buildingGeometry, windowGeometry);
-    for (let segment = 0; segment < segments; segment++) {
-      const z = -(segment - 1) * ROAD_SEGMENT_LENGTH;
-      for (let n = 0; n < 5; n++) {
-        const height = 12 + ((segment * 3 + n * 7) % 5) * 3;
-        const depth = 12 + ((segment + n) % 3) * 3;
-        const width = 11 + ((segment * 2 + n) % 3) * 3;
-        const centerZ = z - 8 - n * 19;
-        const building = new THREE.Mesh(buildingGeometry, buildingMaterials[(segment + n) % buildingMaterials.length]);
-        building.scale.set(depth, height, width);
-        building.position.set(-19 - depth / 2, height / 2 - 0.03, centerZ);
-        this.object.add(building);
-        // Street-facing windows: small repeated geometry, never stretched artwork.
-        for (let floor = 0; floor < Math.floor((height - 2) / 3.5); floor++) {
-          for (let column = -1; column <= 1; column++) {
-            const window = new THREE.Mesh(windowGeometry, glassMaterial);
-            window.rotation.y = Math.PI / 2;
-            window.scale.set(1.7, 1.8, 1);
-            window.position.set(-18.96, 2.7 + floor * 3.5, centerZ + column * width * 0.26);
-            this.object.add(window);
-          }
-        }
-      }
-    }
     const card = new THREE.PlaneGeometry(1, 1, 8, 12); card.translate(0, 0.5, 0); this.geometry.push(card);
     const palms = new THREE.InstancedMesh(card, this.spriteMaterial(palm), segments * 8);
     // Disable standalone palm sprites; palms baked into the panorama require
@@ -153,6 +121,7 @@ export class CoastalScenery {
     });
     this.materials.push(shadowMaterial);
     const shadows = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, segments * 8);
+    shadows.visible = false;
     const curbGeometry = new THREE.BoxGeometry(0.55, 0.7, 3.98); this.geometry.push(curbGeometry);
     const white = new THREE.MeshBasicMaterial({ color: "#f8f4e9", toneMapped: false });
     const red = new THREE.MeshBasicMaterial({ color: "#eb3636", toneMapped: false }); this.materials.push(white, red);
