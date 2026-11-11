@@ -85,7 +85,7 @@ export class CoastalScenery {
   private build(palm: THREE.Texture, vegetation: THREE.Texture, source: THREE.Texture): void {
     const segments = this.quality.roadSegments;
     const plane = new THREE.PlaneGeometry(1, ROAD_SEGMENT_LENGTH); this.geometry.push(plane);
-    const sand = this.texturePatch(source, 1320, 430, 130, 28, 12, 24);
+    // The former 28px strip was mirrored/tiled dozens of times, producing\n    // the dark checkerboard seen on mobile. Use a clean sand-colored surface.\n    // Keep terrain free of repetitive photographic checkerboard artifacts.
     const water = this.texturePatch(source, 1290, 347, 230, 62, 1, 1);
     const sandMat = new THREE.MeshBasicMaterial({ map: sand, toneMapped: false });
     const leftSand = sand.clone(); leftSand.repeat.x = 70; this.textures.push(leftSand);
@@ -137,9 +137,9 @@ export class CoastalScenery {
       }
       for (let n = 0; n < 4; n++) for (const side of [-1, 1]) {
         const height = 13 + n % 3 * 1.3;
-        transform.position.set(side * (15.5 + n % 2 * 3) - height * 0.1, -0.019, z - 36 + n * 24);
+        transform.position.set(side * (11.4 + n % 2 * 1.8) - height * 0.1, -0.019, z - 36 + n * 24);
         transform.scale.set(2.5, 1, 1.8); transform.updateMatrix(); shadows.setMatrixAt(palmIndex, transform.matrix);
-        put(palms, palmIndex++, side * (15.5 + n % 2 * 3), -height * 0.012, z - 36 + n * 24, height * 2 / 3, height);
+        put(palms, palmIndex++, side * (11.4 + n % 2 * 1.8), -height * 0.012, z - 36 + n * 24, height * 2 / 3, height);
       }
       for (let n = 0; n < 6; n++) put(bushes, bushIndex++, -12.6, -0.12, z - 44 + n * 16, 4, 1.0);
       for (let n = 0; n < 4; n++) put(bushes, bushIndex++, -20, -0.15, z - 36 + n * 24, 5, 1.5);
