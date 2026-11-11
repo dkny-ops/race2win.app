@@ -119,7 +119,7 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.scene.background = new THREE.Color("#42baff");
+    this.scene.background = new THREE.Color("#101820");
     // The pale fog created a visible white band over the distant asphalt.
     // The coastal image already provides atmospheric perspective.
     this.scene.fog = null;
@@ -158,9 +158,11 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    this.scene.add(this.coastalBackdrop.object);
+    // Road-only mode: do not render the photographic backdrop.
+    // this.scene.add(this.coastalBackdrop.object);
     this.coastalScenery = new CoastalScenery(this.quality);
-    this.scene.add(this.coastalScenery.object);
+    // Road-only mode: do not render the coastal sand, sea or decorations.
+    // this.scene.add(this.coastalScenery.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
