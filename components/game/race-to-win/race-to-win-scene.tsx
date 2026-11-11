@@ -300,16 +300,7 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     const simulation = new RaceToWinSimulation({ seed: TRACK_SEED, trafficVariantCount: 6 });
     audioRef.current = new RaceToWinAudio(); worldRef.current = world; simulationRef.current = simulation;
     const initial = simulation.snapshot(); world.update(initial, 0);
-    let cancelled = false;
-    let initializedFrame: number | null = null;
-    void world.assetsReady.then(() => {
-      if (cancelled) return;
-      initializedFrame = window.requestAnimationFrame(() => {
-        if (cancelled) return;
-        setMetrics(initial.metrics);
-        setState("ready");
-      });
-    });
+    const initializedFrame = window.requestAnimationFrame(() => { setMetrics(initial.metrics); setState("ready"); });
     const resize = () => { const bounds = stage.getBoundingClientRect(); world.resize(bounds.width, bounds.height); };
     const resizeObserver = new ResizeObserver(resize); resizeObserver.observe(stage); resize();
     const onKeyDown = (event: KeyboardEvent) => {
@@ -330,9 +321,7 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
     };
     animationFrameRef.current = window.requestAnimationFrame(frame);
     return () => {
-      cancelled = true;
-      cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn();
-      if (initializedFrame !== null) window.cancelAnimationFrame(initializedFrame);
+      cancelCountdown(); cancelCheckpointRetries(); cancelGameOverReturn(); window.cancelAnimationFrame(initializedFrame);
       if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
       resizeObserver.disconnect(); window.removeEventListener("keydown", onKeyDown); world.dispose(); audioRef.current?.dispose(); audioRef.current = null; simulationRef.current = null; worldRef.current = null;
     };
@@ -345,7 +334,7 @@ export function RaceToWinScene({ guest = false }: { guest?: boolean }) {
   return <div className={`rtw-stage rtw-stage--${screenState}`} ref={stageRef} onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => { touchStartRef.current = null; }}>
     <AudioPlayer channel="race" playing={["starting","countdown","running"].includes(screenState)} showControls={screenState === "ready"} />
     <canvas key={canvasGeneration} className="rtw-canvas" ref={canvasRef} aria-label="Race To Win driving scene" /><div className="rtw-vignette" aria-hidden="true" />
-    {(screenState === "ready" || screenState === "loading") ? <div className="rtw-ready-artwork" aria-hidden="true" /> : null}
+    {screenState === "ready" ? <div className="rtw-ready-artwork" aria-hidden="true" /> : null}
     {!guest ? <MidrunHumanCheck sessionId={officialSessionRef.current?.sessionId ?? null} running={screenState === "running"} onPauseChange={onHumanCheckPauseChange} onTimeout={handleHumanCheckTimeout} getResumeEvidence={getResumeEvidence} onVerified={onHumanCheckVerified} /> : null}
     {screenState === "running" ? <div className="rtw-hud" aria-label="Local display metrics; official result is validated by the server"><div className="rtw-hud-score"><span>SCORE</span><strong>{metrics.score.toLocaleString()}</strong></div><div><span>TIME</span><strong>{formatTime(metrics.elapsedSeconds)}</strong></div><div className="rtw-hud-distance"><span>DISTANCE</span><strong>{formatDistance(metrics.distanceMeters)}</strong></div></div> : null}
     {screenState === "ready" ? <div className="rtw-overlay rtw-overlay--ready"><div className="rtw-menu-actions"><div className="rtw-play-wrap"><button type="button" className="rtw-action rtw-action--primary rtw-action--play-glass" disabled={!guest && Boolean(opportunitiesError || !opportunities || (opportunities.remaining === 0 && !opportunities.exempt))} onClick={() => void beginOfficialRun()}>{language === "es" ? "JUGAR" : "PLAY"}</button>{!guest ? <span className="rtw-play-count" aria-live="polite" aria-label={opportunities?.exempt ? "Test account with unlimited races" : opportunities ? `${opportunities.remaining} of 5 races remaining` : "Checking races remaining"}><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{opportunitiesError ? "—/5" : opportunities ? (opportunities.exempt ? "∞" : `${opportunities.remaining}/5`) : "…/5"}</span> : null}</div><span className="rtw-game-local-share"><ShareGameButton game="race-to-win" /></span><Link className="rtw-action rtw-action--placeholder rtw-scores-icon-button" href={ROUTES.scores} aria-label={language === "es" ? "Puntuaciones" : "Scores"} title={language === "es" ? "Puntuaciones" : "Scores"}><img src="/images/scores-trophy-gold-star.svg" alt="" aria-hidden="true" width="64" height="52" /></Link></div>{runNotice ? <p className="rtw-run-notice" role="status">{runNotice}</p> : null}{!guest && opportunitiesError ? <Link className="rtw-action rtw-action--placeholder" href="/support/access">{language === "es" ? "CONTACTAR SOPORTE · ERROR DE ACCESO" : "CONTACT SUPPORT · ACCESS ERROR"}</Link> : null}<div className="rtw-control-hints" aria-label="Game controls"><span><b>DESKTOP</b> A / D OR ARROW KEYS</span><span><b>MOBILE</b> SWIPE TO CHANGE LANES</span></div></div> : null}
