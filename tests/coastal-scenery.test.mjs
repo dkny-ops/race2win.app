@@ -4,11 +4,25 @@ import test from "node:test";
 import ts from "typescript";
 import * as THREE from "three";
 
-const source = readFileSync(new URL("../lib/game/race-to-win/coastal-backdrop.ts", import.meta.url), "utf8");
-const compiledModule = { exports: {} };
-new Function("require", "module", "exports", ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText)(() => THREE, compiledModule, compiledModule.exports);
+function loadTypeScriptModule(relativePath, resolveDependency) {
+  const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
+  const compiledModule = { exports: {} };
+  new Function("require", "module", "exports", ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText)(resolveDependency, compiledModule, compiledModule.exports);
+  return compiledModule.exports;
+}
+
+const coastalMotion = loadTypeScriptModule("../lib/game/race-to-win/coastal-motion.ts", () => {
+  throw new Error("CoastalMotion has no runtime dependencies");
+});
+const compiledModule = {
+  exports: loadTypeScriptModule("../lib/game/race-to-win/coastal-backdrop.ts", (name) => {
+    if (name === "three") return THREE;
+    if (name === "./coastal-motion") return coastalMotion;
+    throw new Error(`Unexpected dependency: ${name}`);
+  }),
+};
 
 for (const mobile of [false, true]) {
   test(`image scenery cannot occlude traffic, change the camera or dispose its borrowed image (${mobile ? "mobile" : "desktop"})`, () => {
