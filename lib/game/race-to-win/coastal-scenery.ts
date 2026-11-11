@@ -108,6 +108,9 @@ export class CoastalScenery {
     this.materials.push(sea);
     const card = new THREE.PlaneGeometry(1, 1, 8, 12); card.translate(0, 0.5, 0); this.geometry.push(card);
     const palms = new THREE.InstancedMesh(card, this.spriteMaterial(palm), segments * 8);
+    // Disable standalone palm sprites; palms baked into the panorama require
+    // a separately retouched source image to remove without visual artifacts.
+    palms.visible = false;
     const bushes = new THREE.InstancedMesh(card, this.spriteMaterial(vegetation), segments * 10);
     palms.name = "coastal-palm-layer"; bushes.name = "coastal-low-vegetation-layer";
     const shadowGeometry = new THREE.PlaneGeometry(1, 1); shadowGeometry.rotateX(-Math.PI / 2); this.geometry.push(shadowGeometry);
