@@ -22,17 +22,35 @@ export class CoastalScenery {
   }
 
   private async load(): Promise<void> {
+    // Race123.PNG is the canonical, repository-owned coastal artwork.
+    // Optional extracted sprite images must never prevent the terrain from
+    // loading: otherwise the road floats over the scene's blue clear color.
     const loader = new THREE.TextureLoader();
-    const paths = ["coastal-palm.webp", "coastal-vegetation.webp", "coastal-horizon.webp"];
-    const results = await Promise.allSettled(paths.map(async path => {
-      const texture = await loader.loadAsync(`/images/${path}`);
-      texture.colorSpace = THREE.SRGBColorSpace;
-      if (this.disposed) texture.dispose(); else this.textures.push(texture);
-      return texture;
-    }));
-    if (this.disposed || results.some(result => result.status !== "fulfilled")) return;
-    const [palm, vegetation, source] = results.map(result => (result as PromiseFulfilledResult<THREE.Texture>).value);
-    this.build(palm!, vegetation!, source!);
+    const load = async (path: string): Promise<THREE.Texture | null> => {
+      try {
+        const texture = await loader.loadAsync(path);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        if (this.disposed) texture.dispose();
+        else this.textures.push(texture);
+        return this.disposed ? null : texture;
+      } catch {
+        return null;
+      }
+    };
+    const source = await load("/images/Race123.PNG");
+    if (!source || this.disposed) return;
+    const [palm, vegetation] = await Promise.all([
+      load("/images/coastal-palm.webp"),
+      load("/images/coastal-vegetation.webp"),
+    ]);
+    if (this.disposed) return;
+    // A transparent texture keeps the original 3D sand/sea geometry alive
+    // without introducing opaque, rectangular photographs as fake palms.
+    const blank = document.createElement("canvas");
+    blank.width = blank.height = 2;
+    const blankTexture = new THREE.CanvasTexture(blank);
+    this.textures.push(blankTexture);
+    this.build(palm ?? blankTexture, vegetation ?? blankTexture, source);
     this.object.visible = true;
   }
 
