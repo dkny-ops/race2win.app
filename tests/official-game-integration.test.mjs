@@ -47,7 +47,9 @@ test("anonymous runs stay separate from official sessions and post-OTP redirect 
   assert.match(game, /canStartOfficial/);
   assert.match(game, /canStartOfficial \? <RaceToWinScene \/> : <RaceToWinScene guest \/>/);
   const scene = await read("components/game/race-to-win/race-to-win-scene.tsx");
-  assert.match(scene, /SIGN IN TO CONTINUE/);
+  assert.doesNotMatch(scene, /SIGN IN TO CONTINUE|claimGuestTrial|guestTrialUsed|guestBlocked/);
+  assert.match(scene, /disabled=\{!guest && Boolean\(/);
+  assert.match(scene, /PLAY AGAIN/);
   assert.match(scene, /if \(guest\) \{[\s\S]*?officialSessionRef\.current = null/);
   assert.match(scene, /!guest \? <MidrunHumanCheck/);
   assert.match(nextPath, /value === ROUTES\.raceToWinGame/);
