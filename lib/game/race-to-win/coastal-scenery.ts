@@ -106,6 +106,50 @@ export class CoastalScenery {
       toneMapped: false,
     });
     this.materials.push(sea);
+    // The photograph is used as fixed-aspect roadside scenery rather than
+    // projected across the road. Each panel lives in world space and scrolls
+    // by exactly the same distance as the existing road segments.
+    // Source crops are drawn at their native aspect ratio (no stretching).
+    const sourceImage = source.image as HTMLImageElement;
+    const sourceWidth = sourceImage.naturalWidth || sourceImage.width;
+    const sourceHeight = sourceImage.naturalHeight || sourceImage.height;
+    if (sourceWidth > 0 && sourceHeight > 0) {
+      const cropX = Math.floor(sourceWidth * 0.025);
+      const cropY = Math.floor(sourceHeight * 0.23);
+      const cropWidth = Math.floor(sourceWidth * 0.28);
+      const cropHeight = Math.floor(sourceHeight * 0.49);
+      const cropCanvas = document.createElement("canvas");
+      cropCanvas.width = cropWidth;
+      cropCanvas.height = cropHeight;
+      const cropContext = cropCanvas.getContext("2d");
+      if (cropContext) {
+        cropContext.drawImage(sourceImage, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+        const facadeTexture = new THREE.CanvasTexture(cropCanvas);
+        facadeTexture.colorSpace = THREE.SRGBColorSpace;
+        facadeTexture.anisotropy = this.quality.mobile ? 2 : 4;
+        this.textures.push(facadeTexture);
+        const facadeMaterial = new THREE.MeshBasicMaterial({
+          map: facadeTexture, side: THREE.DoubleSide, toneMapped: false,
+          depthWrite: true,
+        });
+        this.materials.push(facadeMaterial);
+        // The plane's physical dimensions match the source crop's aspect.
+        const facadeHeight = 15;
+        const facadeWidth = facadeHeight * cropWidth / cropHeight;
+        const facadeGeometry = new THREE.PlaneGeometry(facadeWidth, facadeHeight);
+        this.geometry.push(facadeGeometry);
+        for (let segment = 0; segment < segments; segment++) {
+          const z = -(segment - 1) * ROAD_SEGMENT_LENGTH;
+          for (let n = 0; n < 5; n++) {
+            const panel = new THREE.Mesh(facadeGeometry, facadeMaterial);
+            panel.position.set(-14.5, facadeHeight / 2 - 0.03, z - 7 - n * 19);
+            panel.rotation.y = Math.PI / 2;
+            panel.frustumCulled = false;
+            this.object.add(panel);
+          }
+        }
+      }
+    }
     const card = new THREE.PlaneGeometry(1, 1, 8, 12); card.translate(0, 0.5, 0); this.geometry.push(card);
     const palms = new THREE.InstancedMesh(card, this.spriteMaterial(palm), segments * 8);
     // Disable standalone palm sprites; palms baked into the panorama require
