@@ -73,6 +73,7 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
+  public readonly assetsReady: Promise<void>;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
 
@@ -114,7 +115,8 @@ export class RaceToWinWorld {
 
     this.scene.background = new THREE.Color("#42baff");
     this.scene.fog = new THREE.Fog("#bfe8ef", 140, 410);
-    new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
+    const backdropReady = new Promise<void>((resolve) => {
+      new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
       this.coastalTexture = texture;
@@ -129,6 +131,8 @@ export class RaceToWinWorld {
       this.scene.environmentIntensity = 0.65;
       environmentSource.dispose();
       generator.dispose();
+      resolve();
+    }, undefined, () => resolve());
     });
 
     this.camera.position.set(0, 7.25, 14.1);
@@ -156,7 +160,9 @@ export class RaceToWinWorld {
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
-    void this.loadOwnedVehicleAssets();
+    this.assetsReady = Promise.all([backdropReady, this.loadOwnedVehicleAssets().catch((error) => {
+      console.warn("[Race To Win] Vehicle models unavailable; using fallback:", error);
+    })]).then(() => undefined);
   }
 
   public resize(width: number, height: number): void {
