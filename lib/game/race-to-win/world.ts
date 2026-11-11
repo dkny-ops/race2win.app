@@ -76,6 +76,7 @@ export class RaceToWinWorld {
   private wasRunning = false;
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
+  private readonly essentialAssetsReady: Promise<void>;
   private disposed = false;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
@@ -177,7 +178,17 @@ export class RaceToWinWorld {
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
-    void this.loadOwnedVehicleAssets();
+    // Do not expose PLAY until the owned GLBs have either loaded or failed
+    // into the coherent procedural fallback. This avoids an invisible player
+    // or a mid-run model swap on slower mobile connections.
+    this.essentialAssetsReady = this.loadOwnedVehicleAssets().catch(() => {
+      if (!this.disposed) this.player.root.visible = true;
+    });
+  }
+
+  /** Resolves only once essential vehicle visuals are usable or safely fall back. */
+  public waitForEssentialAssets(): Promise<void> {
+    return this.essentialAssetsReady;
   }
 
   public resize(width: number, height: number): void {
