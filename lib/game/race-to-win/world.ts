@@ -158,11 +158,11 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    // Road-only mode: do not render the photographic backdrop.
-    // this.scene.add(this.coastalBackdrop.object);
+    // Sky is image-backed; roadside art and terrain are rendered in world space.
+    this.scene.add(this.coastalBackdrop.object);
     this.coastalScenery = new CoastalScenery(this.quality);
-    // Road-only mode: do not render the coastal sand, sea or decorations.
-    // this.scene.add(this.coastalScenery.object);
+    // Fixed-aspect roadside panels share the exact road-distance scroll.
+    this.scene.add(this.coastalScenery.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
