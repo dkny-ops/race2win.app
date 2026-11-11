@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CoastalMotion, type CoastalMotionFrame } from "./coastal-motion";
 
 /** Source artwork registration, measured in the unchanged 1672×941 PNG. */
 export const COASTAL_REGISTRATION = Object.freeze({
@@ -15,6 +16,8 @@ export const COASTAL_REGISTRATION = Object.freeze({
  * This is a 2.5D composition: no image synthesis and no gameplay/camera writes.
  */
 export class CoastalBackdrop {
+  private readonly motion = new CoastalMotion();
+  private readonly reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   private readonly material = new THREE.ShaderMaterial({
     uniforms: {
       artwork: { value: null },
@@ -26,6 +29,8 @@ export class CoastalBackdrop {
       lateralScale: { value: 0.08 },
       sourceHorizon: { value: COASTAL_REGISTRATION.horizon },
       sourceCenter: { value: COASTAL_REGISTRATION.center },
+      cloudPhase: { value: 0 },
+      motionAmount: { value: 0 },
     },
     vertexShader: `
       varying vec2 screenUv;
@@ -39,7 +44,17 @@ export class CoastalBackdrop {
       uniform vec3 eye;
       uniform float horizon, vanishingX, skyWidth, sourceHorizon, sourceCenter;
       uniform float sideScale, lateralScale;
+      uniform float cloudPhase, motionAmount;
       varying vec2 screenUv;
+
+      float ellipse(vec2 point, vec2 center, vec2 radius) {
+        float d = length((point - center) / radius);
+        return 1.0 - smoothstep(0.7, 1.0, d);
+      }
+
+      vec4 sampleArtwork(vec2 p) {
+        return texture2D(artwork, vec2(clamp(p.x, 0.0, 1.0), 1.0 - clamp(p.y, 0.0, 1.0)));
+      }
 
       void main() {
         float row = 1.0 - screenUv.y;
@@ -52,7 +67,22 @@ export class CoastalBackdrop {
           ? row / max(horizon, 0.001) * sourceHorizon
           : sourceHorizon + groundRow * sideScale;
         vec2 sampleUv = vec2(sourceX, sourceY);
-        gl_FragColor = texture2D(artwork, vec2(clamp(sampleUv.x, 0.0, 1.0), 1.0 - sampleUv.y));
+        vec4 original = sampleArtwork(sampleUv);
+        if (motionAmount < 0.001) {
+          gl_FragColor = original;
+        } else {
+        vec3 rgb = original.rgb;
+        float edgeFade = smoothstep(0.0, 0.008, sampleUv.x) * (1.0 - smoothstep(0.992, 1.0, sampleUv.x));
+        // Masks are measured on the existing photograph. No new clouds/leaves.
+        float skyBand = smoothstep(0.11, 0.15, sampleUv.y) * (1.0 - smoothstep(0.29, 0.33, sampleUv.y));
+        float notGreen = 1.0 - smoothstep(0.0, 0.09, rgb.g - rgb.b);
+        float notWarm = 1.0 - smoothstep(0.0, 0.12, rgb.r - rgb.b);
+        float sunProtection = 1.0 - ellipse(sampleUv, vec2(0.646, 0.064), vec2(0.11, 0.15));
+        float sky = skyBand * notGreen * notWarm * sunProtection;
+        vec2 displacement = vec2(sin(cloudPhase) * 0.0045 * sky, 0.0);
+        vec4 animated = sampleArtwork(sampleUv + displacement * edgeFade * motionAmount);
+        gl_FragColor = animated;
+        }
         #include <colorspace_fragment>
       }
     `,
@@ -76,7 +106,7 @@ export class CoastalBackdrop {
     this.object.visible = true;
   }
 
-  public update(camera: THREE.PerspectiveCamera): void {
+  public update(camera: THREE.PerspectiveCamera, frame?: CoastalMotionFrame): void {
     camera.updateMatrixWorld();
     this.material.uniforms.eye.value.copy(camera.position);
     this.horizonPoint.set(camera.position.x, camera.position.y, camera.position.z - 10000).project(camera);
@@ -87,6 +117,12 @@ export class CoastalBackdrop {
     const lateralScale = skyWidth / (camera.position.y * camera.aspect);
     this.material.uniforms.lateralScale.value = lateralScale;
     this.material.uniforms.sideScale.value = lateralScale * COASTAL_REGISTRATION.roadHalfWidth / COASTAL_REGISTRATION.sourceRoadSlope;
+    if (frame) {
+      this.motion.advance(frame);
+      const uniforms = this.material.uniforms;
+      uniforms.cloudPhase.value = this.motion.cloudPhase;
+      uniforms.motionAmount.value = this.reducedMotion ? 0 : 1;
+    }
   }
 
   public dispose(): void {
