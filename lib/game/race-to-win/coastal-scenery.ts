@@ -85,8 +85,8 @@ export class CoastalScenery {
   private build(palm: THREE.Texture, vegetation: THREE.Texture, source: THREE.Texture): void {
     const segments = this.quality.roadSegments;
     const plane = new THREE.PlaneGeometry(1, ROAD_SEGMENT_LENGTH); this.geometry.push(plane);
-    // Use clean sand surfaces instead of the former repeated 28px photo strip.
-    const water = this.texturePatch(source, 1290, 347, 230, 62, 1, 1);
+    // Sample open water to the right of the palm, outside the umbrella and boat.
+    const water = this.texturePatch(source, 1632, 350, 36, 85, 1, 1);
     const sandMat = new THREE.MeshBasicMaterial({ color: "#ead0a2", toneMapped: false });
     const leftSandMat = new THREE.MeshBasicMaterial({ color: "#ead0a2", toneMapped: false });
     this.materials.push(sandMat, leftSandMat);
