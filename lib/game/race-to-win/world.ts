@@ -158,8 +158,8 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    // Sky is image-backed; roadside art and terrain are rendered in world space.
-    this.scene.add(this.coastalBackdrop.object);
+    // Do not display the photographic backdrop; only the road and clean coastal terrain.
+    // this.scene.add(this.coastalBackdrop.object);
     this.coastalScenery = new CoastalScenery(this.quality);
     // Fixed-aspect roadside panels share the exact road-distance scroll.
     this.scene.add(this.coastalScenery.object);
