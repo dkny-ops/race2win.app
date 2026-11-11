@@ -1110,10 +1110,7 @@ body:has(.home-games-hero) .home-game-tile .home-game-actions{margin-top:auto}
 /* The READY screen draws a real artwork layer above the 3D track and below menu controls. */
 .rtw-game-page .rtw-stage .rtw-ready-artwork{
  position:absolute;inset:0;z-index:2;pointer-events:none;
- background-image:url("/images/Race123.PNG");
- background-size:cover;
- background-position:center;
- background-repeat:no-repeat;
+ background:none;
 }
 .rtw-game-page .rtw-stage .rtw-vignette{background:radial-gradient(ellipse at 50% 55%,transparent 55%,rgba(20,57,65,.1) 100%)}
 @media(max-width:720px){
