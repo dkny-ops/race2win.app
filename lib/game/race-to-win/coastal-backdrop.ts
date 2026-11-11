@@ -26,7 +26,7 @@ export class CoastalBackdrop {
       vanishingX: { value: 0.5 },
       skyWidth: { value: 1 },
       sideScale: { value: 0.54 },
-      lateralScale: { value: 0.0 },
+      lateralScale: { value: 0.08 },
       sourceHorizon: { value: COASTAL_REGISTRATION.horizon },
       sourceCenter: { value: COASTAL_REGISTRATION.center },
       cloudPhase: { value: 0 },
@@ -61,14 +61,13 @@ export class CoastalBackdrop {
         float groundRow = max(0.0, row - horizon);
         // Affine registration below the horizon keeps straight photo features
         // straight. No per-side nonlinear stretching of buildings or trunks.
-        float sourceX = sourceCenter + (screenUv.x - vanishingX) * skyWidth;
-        // Keep the original coastal artwork as a distant horizon/sky only.
-        // Ground, curbs, palms and water are rendered in world space and scroll
-        // with the road; the photo must not paint a second, stationary road.
-        float sourceY = min(row / max(horizon, 0.001), 1.0) * sourceHorizon;
+        float sourceX = sourceCenter + (screenUv.x - vanishingX) * skyWidth
+          + eye.x * groundRow * lateralScale;
+        float sourceY = row <= horizon
+          ? row / max(horizon, 0.001) * sourceHorizon
+          : sourceHorizon + groundRow * sideScale;
         vec2 sampleUv = vec2(sourceX, sourceY);
         vec4 original = sampleArtwork(sampleUv);
-        if (row > horizon) discard;
         if (motionAmount < 0.001) {
           gl_FragColor = original;
         } else {
@@ -115,7 +114,9 @@ export class CoastalBackdrop {
     this.material.uniforms.vanishingX.value = (this.horizonPoint.x + 1) / 2;
     const skyWidth = Math.min(1, camera.aspect / (1672 / 941));
     this.material.uniforms.skyWidth.value = skyWidth;
-    // No screen-space ground warping: the coastal ground is a real 3D layer.
+    const lateralScale = skyWidth / (camera.position.y * camera.aspect);
+    this.material.uniforms.lateralScale.value = lateralScale;
+    this.material.uniforms.sideScale.value = lateralScale * COASTAL_REGISTRATION.roadHalfWidth / COASTAL_REGISTRATION.sourceRoadSlope;
     if (frame) {
       this.motion.advance(frame);
       const uniforms = this.material.uniforms;
