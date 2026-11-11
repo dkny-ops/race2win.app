@@ -106,46 +106,34 @@ export class CoastalScenery {
       toneMapped: false,
     });
     this.materials.push(sea);
-    // The photograph is used as fixed-aspect roadside scenery rather than
-    // projected across the road. Each panel lives in world space and scrolls
-    // by exactly the same distance as the existing road segments.
-    // Source crops are drawn at their native aspect ratio (no stretching).
-    const sourceImage = source.image as HTMLImageElement;
-    const sourceWidth = sourceImage.naturalWidth || sourceImage.width;
-    const sourceHeight = sourceImage.naturalHeight || sourceImage.height;
-    if (sourceWidth > 0 && sourceHeight > 0) {
-      const cropX = Math.floor(sourceWidth * 0.025);
-      const cropY = Math.floor(sourceHeight * 0.23);
-      const cropWidth = Math.floor(sourceWidth * 0.28);
-      const cropHeight = Math.floor(sourceHeight * 0.49);
-      const cropCanvas = document.createElement("canvas");
-      cropCanvas.width = cropWidth;
-      cropCanvas.height = cropHeight;
-      const cropContext = cropCanvas.getContext("2d");
-      if (cropContext) {
-        cropContext.drawImage(sourceImage, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-        const facadeTexture = new THREE.CanvasTexture(cropCanvas);
-        facadeTexture.colorSpace = THREE.SRGBColorSpace;
-        facadeTexture.anisotropy = this.quality.mobile ? 2 : 4;
-        this.textures.push(facadeTexture);
-        const facadeMaterial = new THREE.MeshBasicMaterial({
-          map: facadeTexture, side: THREE.DoubleSide, toneMapped: false,
-          depthWrite: true,
-        });
-        this.materials.push(facadeMaterial);
-        // The plane's physical dimensions match the source crop's aspect.
-        const facadeHeight = 15;
-        const facadeWidth = facadeHeight * cropWidth / cropHeight;
-        const facadeGeometry = new THREE.PlaneGeometry(facadeWidth, facadeHeight);
-        this.geometry.push(facadeGeometry);
-        for (let segment = 0; segment < segments; segment++) {
-          const z = -(segment - 1) * ROAD_SEGMENT_LENGTH;
-          for (let n = 0; n < 5; n++) {
-            const panel = new THREE.Mesh(facadeGeometry, facadeMaterial);
-            panel.position.set(-14.5, facadeHeight / 2 - 0.03, z - 7 - n * 19);
-            panel.rotation.y = Math.PI / 2;
-            panel.frustumCulled = false;
-            this.object.add(panel);
+    // Buildings are actual roadside 3D objects, not repeated full-size photo
+    // panels. Their world positions use the same scroll as the road.
+    const buildingColors = ["#b4c5d0", "#d5c7b5", "#a9b8c8", "#d0d7dc"];
+    const buildingMaterials = buildingColors.map(color => new THREE.MeshLambertMaterial({ color }));
+    const glassMaterial = new THREE.MeshBasicMaterial({ color: "#4b819f" });
+    this.materials.push(...buildingMaterials, glassMaterial);
+    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const windowGeometry = new THREE.PlaneGeometry(1, 1);
+    this.geometry.push(buildingGeometry, windowGeometry);
+    for (let segment = 0; segment < segments; segment++) {
+      const z = -(segment - 1) * ROAD_SEGMENT_LENGTH;
+      for (let n = 0; n < 5; n++) {
+        const height = 12 + ((segment * 3 + n * 7) % 5) * 3;
+        const depth = 12 + ((segment + n) % 3) * 3;
+        const width = 11 + ((segment * 2 + n) % 3) * 3;
+        const centerZ = z - 8 - n * 19;
+        const building = new THREE.Mesh(buildingGeometry, buildingMaterials[(segment + n) % buildingMaterials.length]);
+        building.scale.set(depth, height, width);
+        building.position.set(-19 - depth / 2, height / 2 - 0.03, centerZ);
+        this.object.add(building);
+        // Street-facing windows: small repeated geometry, never stretched artwork.
+        for (let floor = 0; floor < Math.floor((height - 2) / 3.5); floor++) {
+          for (let column = -1; column <= 1; column++) {
+            const window = new THREE.Mesh(windowGeometry, glassMaterial);
+            window.rotation.y = Math.PI / 2;
+            window.scale.set(1.7, 1.8, 1);
+            window.position.set(-18.96, 2.7 + floor * 3.5, centerZ + column * width * 0.26);
+            this.object.add(window);
           }
         }
       }
