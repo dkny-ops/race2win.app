@@ -67,7 +67,21 @@ export class CoastalBackdrop {
           ? row / max(horizon, 0.001) * sourceHorizon
           : sourceHorizon + groundRow * sideScale;
         vec2 sampleUv = vec2(sourceX, sourceY);
+        // The original photograph contains a second painted road, palms and
+        // umbrellas below the horizon. Never project those flat objects onto
+        // the moving 3D road: use the real sand/sea meshes for the ground.
+        // Keep the original sky only, with a narrow horizon transition.
         vec4 original = sampleArtwork(sampleUv);
+        if (row > horizon) {
+          vec3 sand = vec3(0.823, 0.630, 0.417);
+          vec3 sea = vec3(0.0, 0.50, 0.69);
+          float shoreline = smoothstep(0.58, 0.65, sourceX);
+          vec3 ground = mix(sand, sea, shoreline);
+          float fade = smoothstep(0.0, 0.022, row - horizon);
+          gl_FragColor = vec4(mix(original.rgb, ground, fade), 1.0);
+          #include <colorspace_fragment>
+          return;
+        }
         if (motionAmount < 0.001) {
           gl_FragColor = original;
         } else {
