@@ -77,7 +77,6 @@ export class RaceToWinWorld {
   private wasChangingLanes = false;
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private disposed = false;
-  public readonly assetsReady: Promise<void>;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
   private sceneryTexture: THREE.Texture | null = null;
@@ -178,10 +177,7 @@ export class RaceToWinWorld {
     this.collisionSparks = new CollisionSparks(this.quality.mobile ? 28 : 52);
     this.scene.add(this.collisionSparks.object);
 
-    this.assetsReady = this.loadOwnedVehicleAssets().catch((error) => {
-      console.warn("[Race To Win] Vehicle model load failed:", error);
-      if (!this.disposed) this.player.root.visible = true;
-    });
+    void this.loadOwnedVehicleAssets();
   }
 
   public resize(width: number, height: number): void {
