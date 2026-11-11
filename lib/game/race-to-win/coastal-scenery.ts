@@ -85,11 +85,10 @@ export class CoastalScenery {
   private build(palm: THREE.Texture, vegetation: THREE.Texture, source: THREE.Texture): void {
     const segments = this.quality.roadSegments;
     const plane = new THREE.PlaneGeometry(1, ROAD_SEGMENT_LENGTH); this.geometry.push(plane);
-    // The former 28px strip was mirrored/tiled dozens of times, producing\n    // the dark checkerboard seen on mobile. Use a clean sand-colored surface.\n    // Keep terrain free of repetitive photographic checkerboard artifacts.
+    // Use clean sand surfaces instead of the former repeated 28px photo strip.
     const water = this.texturePatch(source, 1290, 347, 230, 62, 1, 1);
-    const sandMat = new THREE.MeshBasicMaterial({ map: sand, toneMapped: false });
-    const leftSand = sand.clone(); leftSand.repeat.x = 70; this.textures.push(leftSand);
-    const leftSandMat = new THREE.MeshBasicMaterial({ map: leftSand, toneMapped: false });
+    const sandMat = new THREE.MeshBasicMaterial({ color: "#ead0a2", toneMapped: false });
+    const leftSandMat = new THREE.MeshBasicMaterial({ color: "#ead0a2", toneMapped: false });
     this.materials.push(sandMat, leftSandMat);
     const sea = new THREE.ShaderMaterial({
       uniforms: { time: this.waterTime, waterMap: { value: water }, deep: { value: new THREE.Color("#008ec4") } },
