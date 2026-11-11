@@ -78,6 +78,7 @@ export class RaceToWinWorld {
   private vehicleTemplates: RaceToWinVehicleTemplates | null = null;
   private readonly essentialAssetsReady: Promise<void>;
   private disposed = false;
+  private skyTexture: THREE.Texture | null = null;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
   private sceneryTexture: THREE.Texture | null = null;
@@ -119,7 +120,42 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.scene.background = new THREE.Color("#101820");
+    // Procedural sky: no stretched photographic panorama or moving billboards.
+    // The real 3D road, sand and animated right-side water stay untouched.
+    const skyCanvas = document.createElement("canvas");
+    skyCanvas.width = 1024;
+    skyCanvas.height = 512;
+    const sky = skyCanvas.getContext("2d");
+    if (sky) {
+      const gradient = sky.createLinearGradient(0, 0, 0, 512);
+      gradient.addColorStop(0, "#168de0");
+      gradient.addColorStop(0.62, "#70c9fa");
+      gradient.addColorStop(1, "#c0eaff");
+      sky.fillStyle = gradient;
+      sky.fillRect(0, 0, 1024, 512);
+      // Soft sun with a subtle glow, high enough to remain above the road.
+      const glow = sky.createRadialGradient(775, 90, 12, 775, 90, 110);
+      glow.addColorStop(0, "rgba(255,250,209,0.75)");
+      glow.addColorStop(1, "rgba(255,250,209,0)");
+      sky.fillStyle = glow;
+      sky.fillRect(660, 0, 230, 205);
+      sky.beginPath();
+      sky.arc(775, 90, 30, 0, Math.PI * 2);
+      sky.fillStyle = "#fff6c5";
+      sky.fill();
+      // A handful of rounded clouds, all in the sky (not on the track).
+      for (const [x, y, scale] of [[150, 115, 1], [410, 72, 0.8], [605, 170, 0.7], [930, 145, 0.85]] as const) {
+        sky.fillStyle = "rgba(255,255,255,0.90)";
+        for (const [dx, dy, rx, ry] of [[0, 0, 52, 19], [-30, 5, 35, 15], [26, 4, 37, 16], [-9, -13, 28, 22]] as const) {
+          sky.beginPath();
+          sky.ellipse(x + dx * scale, y + dy * scale, rx * scale, ry * scale, 0, 0, Math.PI * 2);
+          sky.fill();
+        }
+      }
+    }
+    this.skyTexture = new THREE.CanvasTexture(skyCanvas);
+    this.skyTexture.colorSpace = THREE.SRGBColorSpace;
+    this.scene.background = this.skyTexture;
     // The pale fog created a visible white band over the distant asphalt.
     // The coastal image already provides atmospheric perspective.
     this.scene.fog = null;
@@ -241,6 +277,7 @@ export class RaceToWinWorld {
     this.collisionSparks.dispose();
     this.coastalBackdrop.dispose();
     this.coastalScenery.dispose();
+    this.skyTexture?.dispose();
     this.coastalTexture?.dispose();
     this.sceneryTexture?.dispose();
     this.coastalEnvironment?.dispose();
