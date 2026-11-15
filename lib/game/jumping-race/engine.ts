@@ -15,6 +15,7 @@ type Platform = {
   y: number;
   w: number;
   color: string;
+  scored: boolean;
 };
 
 export type JumpingRaceState = {
@@ -30,10 +31,11 @@ export type JumpingRaceState = {
   cameraTarget: number;
   furthestLanding: number;
   nextRemovalAt: number | null;
+  telemetry: { jumps: number; doubleJumps: number; directionChanges: number; previousDirection: -1 | 0 | 1; platformsRemoved: number };
 };
 
 function platform(x: number, y: number, w: number, color: string): Platform {
-  return { x, y, w, color };
+  return { x, y, w, color, scored: false };
 }
 
 export function platformWidth(time: number) {
@@ -70,6 +72,7 @@ export function freshJumpingRace(): JumpingRaceState {
     cameraTarget: 0,
     furthestLanding: 0,
     nextRemovalAt: null,
+    telemetry: { jumps: 0, doubleJumps: 0, directionChanges: 0, previousDirection: 0, platformsRemoved: 0 },
   };
   fillCourse(state);
   return state;
@@ -79,6 +82,7 @@ function advancePlatformQueue(state: JumpingRaceState) {
   if (state.nextRemovalAt === null || state.time + 1e-9 < state.nextRemovalAt) return;
 
   state.platforms.splice(1, 1);
+  state.telemetry.platformsRemoved++;
   state.furthestLanding--;
   state.nextRemovalAt = state.furthestLanding > 0 ? state.time + PLATFORM_LIFETIME : null;
 
@@ -89,6 +93,10 @@ function advancePlatformQueue(state: JumpingRaceState) {
 
 export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, jump: boolean) {
   if (!state.started || state.over) return;
+  if (direction !== state.telemetry.previousDirection) {
+    if (direction !== 0) state.telemetry.directionChanges++;
+    state.telemetry.previousDirection = direction;
+  }
   const previousWidth = platformWidth(state.time);
   state.time += STEP;
   const currentWidth = platformWidth(state.time);
@@ -109,6 +117,8 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
   if (jump && player.jumps < 2) {
     player.vy = player.jumps === 0 ? -530 : -690;
     player.jumps++;
+    state.telemetry.jumps++;
+    if (player.jumps === 2) state.telemetry.doubleJumps++;
   }
 
   const oldBottom = player.y + PLAYER_HEIGHT;
@@ -131,7 +141,12 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
       if (landingIndex === -1 || ledge.y < state.platforms[landingIndex].y) landingIndex = index;
     }
     if (landingIndex !== -1) {
-      player.y = state.platforms[landingIndex].y - PLAYER_HEIGHT;
+      const landing = state.platforms[landingIndex];
+      player.y = landing.y - PLAYER_HEIGHT;
+      if (!landing.scored) {
+        landing.scored = true;
+        state.score++;
+      }
       player.vy = 0;
       player.jumps = 0;
       state.furthestLanding = Math.max(state.furthestLanding, landingIndex);
@@ -139,7 +154,6 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
     }
   }
 
-  state.score = Math.max(state.score, Math.floor((player.x - 110) / 12));
   state.over = player.y > HEIGHT + 130;
   fillCourse(state);
 }

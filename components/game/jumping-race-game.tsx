@@ -40,6 +40,7 @@ export function JumpingRaceGame() {
   const canvas = useRef<HTMLCanvasElement>(null);
   const game = useRef<JumpingRaceState | null>(null);
   const jumpQueued = useRef(false);
+  const runStartedAt = useRef(0);
   const keys = useRef(new Set<string>());
   const pointers = useRef(new Map<number, { origin: number; direction: -1 | 0 | 1 }>());
   const [status, setStatus] = useState<"ready" | "playing" | "over">("ready");
@@ -58,6 +59,7 @@ export function JumpingRaceGame() {
   const start = useCallback(() => {
     game.current = freshJumpingRace();
     game.current.started = true;
+    runStartedAt.current = performance.now();
     releaseControls();
     setScore(0);
     setStatus("playing");
@@ -114,6 +116,13 @@ export function JumpingRaceGame() {
         if (state.over) {
           releaseControls();
           setScore(state.score);
+          const { jumps, doubleJumps, directionChanges, platformsRemoved } = state.telemetry;
+          const measure = "jumping-race:last-run";
+          performance.clearMeasures(measure);
+          performance.measure(measure, {
+            start: runStartedAt.current,
+            detail: { durationSeconds: state.time, score: state.score, jumps, doubleJumps, directionChanges, platformsRemoved },
+          });
           setStatus("over");
         }
       } else {
