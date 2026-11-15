@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 
-export function GameCardShareButton({ game }: { game: "race-to-win" | "flappy-race" }) {
+const gameTitles = {
+  "race-to-win": "Race To Win",
+  "flappy-race": "Flappy Race",
+  "jumping-race": "Jumping Race",
+} as const;
+
+export function GameCardShareButton({ game }: { game: keyof typeof gameTitles }) {
   const [notice, setNotice] = useState("");
-  const isFlappy = game === "flappy-race";
-  const title = isFlappy ? "Flappy Race" : "Race To Win";
+  const title = gameTitles[game];
 
   async function share() {
-    const url = new URL(isFlappy ? "/games/flappy-race" : "/games/race-to-win", window.location.origin).toString();
+    const url = new URL(`/games/${game}`, window.location.origin).toString();
     try {
       if (navigator.share) {
         await navigator.share({ title, text: "Play " + title + "!", url });
