@@ -7,6 +7,7 @@ import {
   WIDTH as W,
   HEIGHT as H,
   STEP,
+  TILE_SIZE,
   type JumpingRaceState,
 } from "@/lib/game/jumping-race/engine";
 
@@ -18,7 +19,7 @@ function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
  for(const p of s.platforms){const x=p.x-s.camera;if(x>W+50||x+p.w< -50)continue;
   ctx.shadowBlur=17;ctx.shadowColor=p.color;ctx.fillStyle=p.color;ctx.fillRect(x,p.y,p.w,23);ctx.shadowBlur=0;
   ctx.fillStyle="#172254";ctx.fillRect(x+3,p.y+8,p.w-6,27);
-  ctx.fillStyle=p.color;ctx.globalAlpha=.5;for(let k=36;k<p.w;k+=36)ctx.fillRect(x+k,p.y+8,3,24);ctx.globalAlpha=1;
+  ctx.fillStyle=p.color;ctx.globalAlpha=.5;for(let k=TILE_SIZE;k<p.w;k+=TILE_SIZE)ctx.fillRect(x+k,p.y+8,3,24);ctx.globalAlpha=1;
  }
  const px=s.player.x-s.camera,py=s.player.y;ctx.save();ctx.translate(px+18,py+22);
  // Simple original placeholder runner, replaced when approved sprites are uploaded.
@@ -40,7 +41,7 @@ export function JumpingRaceGame() {
   const game = useRef<JumpingRaceState | null>(null);
   const jumpQueued = useRef(false);
   const keys = useRef(new Set<string>());
-  const pointers = useRef(new Map<number, -1 | 1>());
+  const pointers = useRef(new Map<number, { origin: number; direction: -1 | 0 | 1 }>());
   const [status, setStatus] = useState<"ready" | "playing" | "over">("ready");
   const [score, setScore] = useState(0);
 
@@ -101,7 +102,7 @@ export function JumpingRaceGame() {
       previous = now;
       if (state.started && !state.over) {
         accumulated += elapsed;
-        const held = [...pointers.current.values()];
+        const held = [...pointers.current.values()].map(pointer => pointer.direction);
         const left = held.includes(-1) || keys.current.has("ArrowLeft") || keys.current.has("KeyA");
         const right = held.includes(1) || keys.current.has("ArrowRight") || keys.current.has("KeyD");
         const direction = left === right ? 0 : left ? -1 : 1;
@@ -125,34 +126,37 @@ export function JumpingRaceGame() {
     return () => cancelAnimationFrame(id);
   }, [releaseControls]);
 
-  function holdDirection(event: PointerEvent<HTMLButtonElement>, direction: -1 | 1) {
-    if (event.button !== 0) return;
+  function startGesture(event: PointerEvent<HTMLElement>) {
+    if (status !== "playing" || event.button !== 0) return;
     event.preventDefault();
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (event.pointerType === "mouse" || event.clientX >= bounds.left + bounds.width / 2) {
+      jump();
+      return;
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
-    pointers.current.set(event.pointerId, direction);
+    pointers.current.set(event.pointerId, { origin: event.clientX, direction: 0 });
   }
 
-  function releaseDirection(event: PointerEvent<HTMLButtonElement>) {
+  function moveGesture(event: PointerEvent<HTMLElement>) {
+    const pointer = pointers.current.get(event.pointerId);
+    if (!pointer) return;
+    const delta = event.clientX - pointer.origin;
+    pointer.direction = delta < -8 ? -1 : delta > 8 ? 1 : 0;
+  }
+
+  function endGesture(event: PointerEvent<HTMLElement>) {
     pointers.current.delete(event.pointerId);
   }
 
   const playing = status === "playing";
   return (
-    <section style={playing ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
+    <section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={playing ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: usa izquierda, derecha y salto" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
-      {playing ? (
-        <div role="group" aria-label="Controles de Jumping Race" style={{ display: "flex", width: "min(100%, 960px)", justifyContent: "space-between", gap: 8, padding: "6px max(12px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left))", userSelect: "none" }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            {([-1, 1] as const).map(direction => (
-              <button key={direction} type="button" className="button button--secondary" aria-label={direction === -1 ? "Retroceder" : "Avanzar"} onPointerDown={event => holdDirection(event, direction)} onPointerUp={releaseDirection} onPointerCancel={releaseDirection} onLostPointerCapture={releaseDirection}>{direction === -1 ? "←" : "→"}</button>
-            ))}
-          </div>
-          <button type="button" className="button button--primary" onPointerDown={event => { if (event.button === 0) { event.preventDefault(); jump(); } }} onClick={event => { if (event.detail === 0) jump(); }}>SALTAR</button>
-        </div>
-      ) : (
+      {playing ? null : (
         <>
           <div style={{ margin: "1rem 0" }}><button type="button" className="button button--primary" onClick={start}>{status === "over" ? "REINICIAR" : "JUGAR"}</button></div>
-          <p>Score: {score} · PC: ← / → para moverte y ESPACIO para saltar · Celular: mantén ← / → y pulsa SALTAR dos veces para el doble salto.</p>
+          <p>Score: {score} · PC: ← / → para moverte y ESPACIO para saltar · Celular: arrastra en la mitad izquierda para moverte y toca la derecha para saltar. Toca otra vez en el aire para el doble salto.</p>
           <p style={{ opacity: .75, fontSize: ".85rem" }}>Versión de desarrollo. Sin puntuaciones oficiales, anuncios ni premios.</p>
         </>
       )}

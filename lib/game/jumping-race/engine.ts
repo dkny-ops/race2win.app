@@ -2,7 +2,9 @@ export const WIDTH = 960;
 export const HEIGHT = 540;
 export const PLAYER_HEIGHT = 44;
 export const STEP = 1 / 120;
-export const PLATFORM_LIFETIME = 2;
+export const PLATFORM_LIFETIME = 3.5;
+export const TILE_SIZE = 36;
+const FULL_PLATFORM_WIDTH = 4 * TILE_SIZE;
 const FLOOR = 460;
 const GRAVITY = 1650;
 const MOVE_SPEED = 380;
@@ -34,34 +36,39 @@ function platform(x: number, y: number, w: number, color: string): Platform {
   return { x, y, w, color };
 }
 
+export function platformWidth(time: number) {
+  return TILE_SIZE * (time >= 120 ? 2 : time >= 60 ? 3 : 4);
+}
+
 function fillCourse(state: JumpingRaceState) {
   while (state.courseEnd < state.camera + WIDTH * 2) {
     const firstLedge = state.courseEnd + 190;
-    const summit = firstLedge + 130;
-    const nextFloor = summit + 145 + 480;
+    const summit = firstLedge + FULL_PLATFORM_WIDTH + 5;
+    const nextFloor = summit + FULL_PLATFORM_WIDTH + 450;
+    const width = platformWidth(state.time);
     state.platforms.push(
-      platform(firstLedge, 380, 125, colors[1]),
-      platform(firstLedge - 115, 225, 100, colors[2]),
-      platform(summit, 150, 145, colors[3]),
-      platform(nextFloor, FLOOR, 340, colors[0]),
+      platform(firstLedge, 380, width, colors[1]),
+      platform(firstLedge - FULL_PLATFORM_WIDTH - 18, 225, width, colors[2]),
+      platform(summit, 150, width, colors[3]),
+      platform(nextFloor, FLOOR, width, colors[0]),
     );
-    state.courseEnd = nextFloor + 340;
+    state.courseEnd = nextFloor + FULL_PLATFORM_WIDTH;
   }
 }
 
 export function freshJumpingRace(): JumpingRaceState {
   const state: JumpingRaceState = {
     player: { x: 110, y: FLOOR - PLAYER_HEIGHT, vy: 0, jumps: 0 },
-    platforms: [platform(0, FLOOR, 340, colors[0])],
+    platforms: [platform(0, FLOOR, FULL_PLATFORM_WIDTH, colors[0])],
     camera: 0,
     speed: 0,
     score: 0,
     time: 0,
     over: false,
     started: false,
-    courseEnd: 340,
+    courseEnd: FULL_PLATFORM_WIDTH,
     cameraTarget: 0,
-    furthestLanding: -1,
+    furthestLanding: 0,
     nextRemovalAt: null,
   };
   fillCourse(state);
@@ -71,19 +78,30 @@ export function freshJumpingRace(): JumpingRaceState {
 function advancePlatformQueue(state: JumpingRaceState) {
   if (state.nextRemovalAt === null || state.time + 1e-9 < state.nextRemovalAt) return;
 
-  state.platforms.shift();
+  state.platforms.splice(1, 1);
   state.furthestLanding--;
-  state.nextRemovalAt = state.furthestLanding >= 0 ? state.time + PLATFORM_LIFETIME : null;
+  state.nextRemovalAt = state.furthestLanding > 0 ? state.time + PLATFORM_LIFETIME : null;
 
   // Keep the next two ledges reachable, including the one behind a forward ledge.
-  const nextLeft = Math.min(...state.platforms.slice(0, 2).map(ledge => ledge.x));
+  const nextLeft = Math.min(...state.platforms.slice(1, 3).map(ledge => ledge.x));
   if (Number.isFinite(nextLeft)) state.cameraTarget = Math.max(state.cameraTarget, nextLeft - 42);
 }
 
 export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, jump: boolean) {
   if (!state.started || state.over) return;
+  const previousWidth = platformWidth(state.time);
   state.time += STEP;
+  const currentWidth = platformWidth(state.time);
+  if (currentWidth !== previousWidth) {
+    for (const ledge of state.platforms.slice(1)) ledge.w = currentWidth;
+  }
   advancePlatformQueue(state);
+
+  if (direction === 1) {
+    const forward = state.player.x + MOVE_SPEED * STEP;
+    const startScroll = Math.min(90, Math.max(0, (forward - 110) * 0.24));
+    state.cameraTarget = Math.max(state.cameraTarget, startScroll, forward - 350);
+  }
   const cameraTravel = Math.min(260 * STEP, state.cameraTarget - state.camera);
   state.speed = cameraTravel / STEP;
   state.camera += cameraTravel;
@@ -117,7 +135,7 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
       player.vy = 0;
       player.jumps = 0;
       state.furthestLanding = Math.max(state.furthestLanding, landingIndex);
-      state.nextRemovalAt ??= state.time + PLATFORM_LIFETIME;
+      if (state.furthestLanding > 0) state.nextRemovalAt ??= state.time + PLATFORM_LIFETIME;
     }
   }
 
