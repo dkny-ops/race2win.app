@@ -63,7 +63,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <article className="home-game-tile home-game-tile--race">
               <div className="home-game-art home-game-art--race" aria-hidden="true" />
               <p className="eyebrow">RACING GAME</p>
-              <h1>RACE <em>TO WIN</em></h1>
+              <h1 style={{ minHeight: "1.1em" }}><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized style={{ position: "absolute", insetInlineStart: 0, top: "50%", transform: "translateY(-50%)", width: "min(82%, 320px)", height: "auto" }} /></h1>
               
               <div className="home-game-actions">
                 <Link className="button button--primary" href={playHref}>{t.play}</Link>
@@ -76,7 +76,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <article className="home-game-tile home-game-tile--flappy" aria-labelledby="flappy-title">
               <div className="home-game-art home-game-art--flappy" aria-hidden="true" />
               <p className="eyebrow">{language === "es" ? "JUEGO ARCADE" : "ARCADE GAME"}</p>
-              <h2 id="flappy-title">FLAPPY <em>RACE</em></h2>
+              <h2 id="flappy-title" style={{ minHeight: "1.1em" }}><Image src="/images/flappy-race-wordmark-v4.webp" alt="Flappy Race" width={960} height={178} unoptimized style={{ position: "absolute", insetInlineStart: 0, top: "50%", transform: "translateY(-50%)", width: "min(82%, 320px)", height: "auto" }} /></h2>
               
               <div className="home-game-actions">
                 <Link href="/games/flappy-race" className="button button--primary">{language === "es" ? "JUGAR" : "PLAY"}</Link>
