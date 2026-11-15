@@ -8,9 +8,10 @@ import { ROUTES } from "@/lib/routes";
 export function FlappyAwareBrand() {
   const pathname = usePathname();
   const isFlappyAdmin = pathname.startsWith("/admin/prize-review/flappy-race");
+  const isFlappyGame = pathname === "/games/flappy-race" || pathname === "/games/flappy-race/";
   const isJumping = pathname.startsWith("/games/jumping-race");
-  return <Link className="brand" href={ROUTES.home} aria-label={isJumping ? "Jumping Race, home" : isFlappyAdmin ? "Flappy Race, home" : `${SITE_NAME}, home`}>
-    {isJumping ? <Image className="jumping-race-header-logo" src="/images/Jump.PNG" alt="Jumping Race" width={1536} height={512} unoptimized priority /> : isFlappyAdmin ? <span className="flappy-admin-brand flappy-admin-brand--logo">FLAPPY RACE</span> : <>
+  return <Link className="brand" href={ROUTES.home} aria-label={isJumping ? "Jumping Race, home" : isFlappyGame ? "Flappy Bird, home" : isFlappyAdmin ? "Flappy Race, home" : `${SITE_NAME}, home`}>
+    {isJumping ? <Image className="jumping-race-header-logo" src="/images/Jump.PNG" alt="Jumping Race" width={1536} height={512} unoptimized priority /> : isFlappyGame ? <span className="flappy-admin-brand">FLAPPY BIRD</span> : isFlappyAdmin ? <span className="flappy-admin-brand flappy-admin-brand--logo">FLAPPY RACE</span> : <>
       <Image className="site-brand-banner" src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority />
       <span className="site-brand-flappy">FLAPPY RACE</span>
     </>}
