@@ -11,7 +11,7 @@ export function FlappyAwareBrand() {
   const isFlappyGame = pathname === "/games/flappy-race" || pathname === "/games/flappy-race/";
   const isJumping = pathname.startsWith("/games/jumping-race");
   return <Link className={isFlappyGame ? "brand brand--flappy-race" : "brand"} href={ROUTES.home} aria-label={isJumping ? "Jumping Race, home" : isFlappyGame ? "Flappy Race, home" : isFlappyAdmin ? "Flappy Race, home" : `${SITE_NAME}, home`}>
-    {isJumping ? <Image className="jumping-race-header-logo" src="/images/Jump.PNG" alt="Jumping Race" width={1536} height={512} unoptimized priority /> : isFlappyGame ? <Image className="flappy-race-wordmark" src="/images/flappy-race-wordmark-v1.webp" alt="Flappy Race" width={960} height={171} unoptimized priority /> : isFlappyAdmin ? <span className="flappy-admin-brand flappy-admin-brand--logo">FLAPPY RACE</span> : <>
+    {isJumping ? <Image className="jumping-race-header-logo" src="/images/Jump.PNG" alt="Jumping Race" width={1536} height={512} unoptimized priority /> : isFlappyGame ? <Image className="flappy-race-wordmark" src="/images/flappy-race-wordmark-v2.webp" alt="Flappy Race" width={1030} height={179} unoptimized priority /> : isFlappyAdmin ? <span className="flappy-admin-brand flappy-admin-brand--logo">FLAPPY RACE</span> : <>
       <Image className="site-brand-banner" src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority />
       <span className="site-brand-flappy">FLAPPY RACE</span>
     </>}
