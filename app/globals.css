@@ -2432,3 +2432,35 @@ body:not(:has(.home-games-hero, .rtw-game-page)) .site-header .brand > img{
   body:has(.flappy-game-page) .site-header .brand > img{max-height:56px}
   body:has(.flappy-game-page) .flappy-game-page.page-section{padding-top:.75rem}
 }
+
+/* Match the Race To Win ready banner widths while leaving room for its action row. */
+body:has(.jumping-race-page, .flappy-game-page) .site-header{
+  position:relative;
+}
+body:has(.jumping-race-page, .flappy-game-page) .site-header .header-inner{
+  --game-banner-width:min(92vw,660px);
+  grid-template-rows:auto minmax(48px,auto);
+}
+body:has(.jumping-race-page, .flappy-game-page) .site-header .header-inner > .brand{
+  width:var(--game-banner-width);
+  overflow:visible;
+  justify-content:center;
+}
+body:has(.jumping-race-page, .flappy-game-page) .site-header .brand > :is(.jumping-race-header-logo, .flappy-race-wordmark){
+  width:100%;
+  height:auto;
+  max-height:none;
+}
+.jumping-race-page.page-section{padding-top:calc(7rem + 8px)}
+.flappy-game-page.page-section{padding-top:.75rem}
+@media(max-width:720px){
+  body:has(.jumping-race-page, .flappy-game-page) .site-header .header-inner{
+    --game-banner-width:min(76vw,420px);
+  }
+}
+@media(min-width:981px){
+  body:has(.jumping-race-page, .flappy-game-page) .site-header .header-inner{
+    --game-banner-width:min(950px,calc(100vw - 3rem));
+  }
+  .jumping-race-page.page-section{padding-top:calc(7rem - 20px)}
+}
