@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Flappy Race | Race To Win", descript
 export const dynamic = "force-dynamic";
 export default async function Page() {
  const context = await getVerifiedUserContext().catch(() => null);
- return <main className="flappy-game-page page-section shell narrow" style={{ textAlign: "center", paddingTop: "calc(82px + .75rem)" }}>
+ return <main className="flappy-game-page page-section shell narrow" style={{ textAlign: "center" }}>
   <FlappyRacePage authenticated={Boolean(context)} />
  </main>;
 }
