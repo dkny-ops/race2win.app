@@ -12,7 +12,6 @@ type Platform = {
   x: number;
   y: number;
   w: number;
-  touchedAt: number | null;
   color: string;
 };
 
@@ -26,10 +25,13 @@ export type JumpingRaceState = {
   over: boolean;
   started: boolean;
   courseEnd: number;
+  cameraTarget: number;
+  furthestLanding: number;
+  nextRemovalAt: number | null;
 };
 
 function platform(x: number, y: number, w: number, color: string): Platform {
-  return { x, y, w, touchedAt: null, color };
+  return { x, y, w, color };
 }
 
 function fillCourse(state: JumpingRaceState) {
@@ -52,26 +54,39 @@ export function freshJumpingRace(): JumpingRaceState {
     player: { x: 110, y: FLOOR - PLAYER_HEIGHT, vy: 0, jumps: 0 },
     platforms: [platform(0, FLOOR, 340, colors[0])],
     camera: 0,
-    speed: 120,
+    speed: 0,
     score: 0,
     time: 0,
     over: false,
     started: false,
     courseEnd: 340,
+    cameraTarget: 0,
+    furthestLanding: -1,
+    nextRemovalAt: null,
   };
   fillCourse(state);
   return state;
 }
 
-export function isPlatformActive(platform: Platform, time: number) {
-  return platform.touchedAt === null || time < platform.touchedAt + PLATFORM_LIFETIME;
+function advancePlatformQueue(state: JumpingRaceState) {
+  if (state.nextRemovalAt === null || state.time + 1e-9 < state.nextRemovalAt) return;
+
+  state.platforms.shift();
+  state.furthestLanding--;
+  state.nextRemovalAt = state.furthestLanding >= 0 ? state.time + PLATFORM_LIFETIME : null;
+
+  // Keep the next two ledges reachable, including the one behind a forward ledge.
+  const nextLeft = Math.min(...state.platforms.slice(0, 2).map(ledge => ledge.x));
+  if (Number.isFinite(nextLeft)) state.cameraTarget = Math.max(state.cameraTarget, nextLeft - 42);
 }
 
 export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, jump: boolean) {
   if (!state.started || state.over) return;
   state.time += STEP;
-  state.speed = Math.min(155, 120 + state.time * 0.55);
-  state.camera += state.speed * STEP;
+  advancePlatformQueue(state);
+  const cameraTravel = Math.min(260 * STEP, state.cameraTarget - state.camera);
+  state.speed = cameraTravel / STEP;
+  state.camera += cameraTravel;
   const player = state.player;
   if (jump && player.jumps < 2) {
     player.vy = player.jumps === 0 ? -530 : -690;
@@ -80,31 +95,34 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
 
   const oldBottom = player.y + PLAYER_HEIGHT;
   const oldX = player.x;
-  // Keep the runner within the visible right edge, without moving them with it.
-  player.x = Math.min(player.x + direction * MOVE_SPEED * STEP, state.camera + WIDTH - 40);
+  // The left edge carries the runner forward instead of ending the run.
+  player.x = Math.max(state.camera + 12, Math.min(
+    player.x + direction * MOVE_SPEED * STEP,
+    state.camera + WIDTH - 40,
+  ));
   player.vy += GRAVITY * STEP;
   player.y += player.vy * STEP;
   const newBottom = player.y + PLAYER_HEIGHT;
   if (player.vy > 0 && newBottom > oldBottom) {
-    let landing: Platform | undefined;
-    for (const ledge of state.platforms) {
-      if (!isPlatformActive(ledge, state.time) || oldBottom > ledge.y + 1e-6 || newBottom < ledge.y) continue;
+    let landingIndex = -1;
+    for (const [index, ledge] of state.platforms.entries()) {
+      if (oldBottom > ledge.y + 1e-6 || newBottom < ledge.y) continue;
       const fraction = Math.max(0, (ledge.y - oldBottom) / (newBottom - oldBottom));
       const crossingX = oldX + (player.x - oldX) * fraction;
       if (crossingX + 29 <= ledge.x || crossingX + 5 >= ledge.x + ledge.w) continue;
-      if (!landing || ledge.y < landing.y) landing = ledge;
+      if (landingIndex === -1 || ledge.y < state.platforms[landingIndex].y) landingIndex = index;
     }
-    if (landing) {
-      player.y = landing.y - PLAYER_HEIGHT;
+    if (landingIndex !== -1) {
+      player.y = state.platforms[landingIndex].y - PLAYER_HEIGHT;
       player.vy = 0;
       player.jumps = 0;
-      landing.touchedAt ??= state.time;
+      state.furthestLanding = Math.max(state.furthestLanding, landingIndex);
+      state.nextRemovalAt ??= state.time + PLATFORM_LIFETIME;
     }
   }
 
   state.score = Math.max(state.score, Math.floor((player.x - 110) / 12));
-  state.over = player.x + 29 <= state.camera || player.y > HEIGHT + 130;
-  state.platforms = state.platforms.filter(ledge => ledge.x + ledge.w > state.camera - 50);
+  state.over = player.y > HEIGHT + 130;
   fillCourse(state);
 }
 

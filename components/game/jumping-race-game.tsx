@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   freshJumpingRace,
-  isPlatformActive,
   stepJumpingRace,
   WIDTH as W,
   HEIGHT as H,
@@ -16,7 +15,7 @@ function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,"#0c1346");sky.addColorStop(.65,"#39318b");sky.addColorStop(1,"#9157b3");ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
  for(let i=0;i<65;i++){const x=((i*173.1-s.camera*.11)%(W+80)+W+80)%(W+80);const y=18+(i*89)%360;ctx.fillStyle=i%3?"#b8a8ff":"#ffffff";ctx.globalAlpha=.35+(i%4)*.15;ctx.fillRect(x,y,2,2)}ctx.globalAlpha=1;
  for(let i=0;i<9;i++){const x=((i*247-s.camera*.23)%(W+320)+W+320)%(W+320)-120;const y=300+(i%3)*44;ctx.fillStyle="#413c8a";ctx.beginPath();ctx.ellipse(x,y,180,80,0,0,Math.PI*2);ctx.fill()}
- for(const p of s.platforms){if(!isPlatformActive(p,s.time))continue;const x=p.x-s.camera;if(x>W+50||x+p.w< -50)continue;
+ for(const p of s.platforms){const x=p.x-s.camera;if(x>W+50||x+p.w< -50)continue;
   ctx.shadowBlur=17;ctx.shadowColor=p.color;ctx.fillStyle=p.color;ctx.fillRect(x,p.y,p.w,23);ctx.shadowBlur=0;
   ctx.fillStyle="#172254";ctx.fillRect(x+3,p.y+8,p.w-6,27);
   ctx.fillStyle=p.color;ctx.globalAlpha=.5;for(let k=36;k<p.w;k+=36)ctx.fillRect(x+k,p.y+8,3,24);ctx.globalAlpha=1;
