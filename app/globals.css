@@ -2464,3 +2464,31 @@ body:has(.jumping-race-page, .flappy-game-page) .site-header .brand > :is(.jumpi
   }
   .jumping-race-page.page-section{padding-top:calc(7rem - 20px)}
 }
+
+/* Mobile game headers show only the centered banner. */
+@media(max-width:980px){
+  body:has(.jumping-race-page, .flappy-game-page) .site-header > .shell.header-inner{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto;
+    min-height:0;
+    padding:0;
+  }
+  body:has(.jumping-race-page, .flappy-game-page) .site-header > .shell.header-inner > .brand{
+    grid-area:1 / 1;
+    position:static;
+    display:flex;
+    justify-self:center;
+    align-items:center;
+    justify-content:center;
+    height:auto;
+    aspect-ratio:3 / 1;
+    margin:0;
+    padding:0;
+    transform:none;
+  }
+  body:has(.jumping-race-page, .flappy-game-page) .site-header > .shell.header-inner
+    > :is(.mobile-header-actions, .header-actions, .desktop-nav, .home-header-share){
+    display:none;
+  }
+}
