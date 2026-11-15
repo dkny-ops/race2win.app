@@ -66,7 +66,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <h1 style={{ minHeight: "1.1em" }}><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized style={{ position: "absolute", insetInlineStart: 0, top: "50%", transform: "translateY(-50%)", width: "min(82%, 320px)", height: "auto" }} /></h1>
               
               <div className="home-game-actions">
-                <Link className="button button--primary" href={playHref}>{t.play}</Link>
+                <Link className="button button--primary home-game-play-link" href={playHref}>{t.play}</Link>
                 {owner ? <ButtonLink href="/admin/prize-review" variant="secondary">ADMIN</ButtonLink> : null}
               </div>
               <GameCardShareButton game="race-to-win" />
@@ -79,7 +79,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               <h2 id="flappy-title" style={{ minHeight: "1.1em" }}><Image src="/images/flappy-race-wordmark-v4.webp" alt="Flappy Race" width={960} height={178} unoptimized style={{ position: "absolute", insetInlineStart: 0, top: "50%", transform: "translateY(-50%)", width: "min(82%, 320px)", height: "auto" }} /></h2>
               
               <div className="home-game-actions">
-                <Link href="/games/flappy-race" className="button button--primary">{language === "es" ? "JUGAR" : "PLAY"}</Link>
+                <Link href="/games/flappy-race" className="button button--primary home-game-play-link">{language === "es" ? "JUGAR" : "PLAY"}</Link>
                 {owner ? <ButtonLink href="/admin/prize-review/flappy-race" variant="secondary">ADMIN</ButtonLink> : null}
               </div>
               <GameCardShareButton game="flappy-race" />
@@ -91,8 +91,8 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
                 <p className="eyebrow" style={{position:"relative"}}>{language==="es"?"JUEGO DISPONIBLE · VERSIÓN DE DESARROLLO":"PLAYABLE · DEVELOPMENT VERSION"}</p>
                 <h2 id="jumping-title" style={{position:"relative",margin:0}}><Image src="/images/Jump.PNG" alt="Jumping Race" width={1536} height={512} unoptimized style={{width:"100%",height:"auto",display:"block",objectFit:"contain"}} /></h2>
                 <p style={{position:"relative",fontSize:".9rem",opacity:.85}}>{language==="es"?"Ya puedes jugar la versión de desarrollo. Sin premios ni puntuaciones oficiales.":"Play the development version now. No prizes or official scores."}</p>
-                <div className="home-game-actions" style={{position:"relative"}}>
-                  <Link href="/games/jumping-race" className="button button--primary">{language==="es"?"JUGAR":"PLAY"}</Link>
+                <div className="home-game-actions">
+                  <Link href="/games/jumping-race" className="button button--primary home-game-play-link">{language==="es"?"JUGAR":"PLAY"}</Link>
                 </div>
               </article>
             </div>

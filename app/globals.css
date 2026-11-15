@@ -2492,3 +2492,26 @@ body:has(.jumping-race-page, .flappy-game-page) .site-header .brand > :is(.jumpi
     display:none;
   }
 }
+
+/* Extend each Play link across its card. Share and admin remain separate controls. */
+.home-game-tile .home-game-actions:has(> .home-game-play-link){
+  position:static;
+}
+.home-game-tile .home-game-play-link:hover{
+  transform:none;
+}
+.home-game-tile .home-game-play-link::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:2;
+}
+.home-game-tile .home-game-play-link:focus-visible::after{
+  outline:2px solid var(--ice);
+  outline-offset:-4px;
+  border-radius:inherit;
+}
+.home-game-tile .home-game-actions > :not(.home-game-play-link){
+  position:relative;
+  z-index:3;
+}
