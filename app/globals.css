@@ -2515,3 +2515,19 @@ body:has(.jumping-race-page, .flappy-game-page) .site-header .brand > :is(.jumpi
   position:relative;
   z-index:3;
 }
+
+/* Keep long presses and drags from selecting the game screen in Safari and desktop browsers. */
+body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page)){
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+}
+body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page)) img{
+  -webkit-user-drag:none;
+}
+body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
+  :is(input, textarea, [contenteditable]:not([contenteditable="false"])){
+  -webkit-user-select:text;
+  user-select:text;
+  -webkit-touch-callout:default;
+}
