@@ -13,6 +13,9 @@ test("Jumping Race score migration is isolated, disabled, and service-only", asy
   assert.match(sql, /unique \(player_id, start_request_id\)/i);
   assert.match(sql, /primary key \(session_id, checkpoint_index\)/i);
   assert.match(sql, /session_id uuid primary key/i);
+  assert.match(sql, /jr_personal_weekly_score/i);
+  assert.match(sql, /America\/New_York/i);
+  assert.match(sql, /daily_rank <= 7/i);
   assert.match(sql, /revoke all on function public\.jr_read_allowance[\s\S]*from public, anon, authenticated/i);
   assert.match(sql, /grant execute on function public\.jr_read_allowance[\s\S]* to service_role/i);
   assert.doesNotMatch(sql, /(?:create|alter|insert into|update|delete from)\s+(?:private\.)?(?:prize_|payout|wallet|provisional_winner)/i);

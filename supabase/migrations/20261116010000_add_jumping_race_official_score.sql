@@ -189,9 +189,40 @@ language sql stable security definer set search_path = '' as $$
   order by o.position offset p_offset limit p_limit
 $$;
 
+-- Personal weekly score mirrors the approved Race To Win presentation rule:
+-- the seven highest verified runs for each New York calendar day are summed.
+-- This is a private server read; it never creates a tournament, prize or credit.
+create or replace function public.jr_personal_weekly_score(p_player_id uuid, p_week_start date default date_trunc('week', now() at time zone 'America/New_York')::date)
+returns table(score_day date, daily_top_scores integer[], daily_total integer, weekly_total integer)
+language sql stable security definer set search_path = '' as $$
+  with bounds as (
+    select p_week_start as week_start, (p_week_start + 6) as week_end
+  ), runs as (
+    select (r.finalized_at at time zone 'America/New_York')::date as score_day, r.score, r.finalized_at
+    from private.jumping_race_results r, bounds b
+    where r.player_id = p_player_id
+      and r.result_status = 'verified'
+      and (r.finalized_at at time zone 'America/New_York')::date between b.week_start and b.week_end
+  ), ranked as (
+    select *, row_number() over (partition by score_day order by score desc, finalized_at asc) as daily_rank
+    from runs
+  ), daily as (
+    select score_day, array_agg(score order by score desc, finalized_at asc) filter (where daily_rank <= 7) as daily_top_scores,
+      coalesce(sum(score) filter (where daily_rank <= 7), 0)::integer as daily_total
+    from ranked group by score_day
+  ), days as (
+    select generate_series(b.week_start, b.week_end, interval '1 day')::date as score_day from bounds b
+  ), materialized as (
+    select days.score_day, coalesce(daily.daily_top_scores, '{}'::integer[]) as daily_top_scores, coalesce(daily.daily_total, 0)::integer as daily_total
+    from days left join daily using (score_day)
+  )
+  select score_day, daily_top_scores, daily_total, sum(daily_total) over ()::integer as weekly_total
+  from materialized order by score_day
+$$;
+
 revoke all on function private.jumping_race_hour_start(timestamptz) from public, anon, authenticated;
-revoke all on function public.jr_read_allowance(uuid), public.jr_start_session(uuid,uuid), public.jr_store_checkpoint(uuid,uuid,integer,jsonb,text), public.jr_finalize_session(uuid,uuid,integer,integer,text,text,text,jsonb) from public, anon, authenticated;
-grant execute on function public.jr_read_allowance(uuid), public.jr_start_session(uuid,uuid), public.jr_store_checkpoint(uuid,uuid,integer,jsonb,text), public.jr_finalize_session(uuid,uuid,integer,integer,text,text,text,jsonb) to service_role;
+revoke all on function public.jr_read_allowance(uuid), public.jr_start_session(uuid,uuid), public.jr_store_checkpoint(uuid,uuid,integer,jsonb,text), public.jr_finalize_session(uuid,uuid,integer,integer,text,text,text,jsonb), public.jr_personal_weekly_score(uuid,date) from public, anon, authenticated;
+grant execute on function public.jr_read_allowance(uuid), public.jr_start_session(uuid,uuid), public.jr_store_checkpoint(uuid,uuid,integer,jsonb,text), public.jr_finalize_session(uuid,uuid,integer,integer,text,text,text,jsonb), public.jr_personal_weekly_score(uuid,date) to service_role;
 revoke all on function public.jr_hourly_leaderboard(timestamptz,integer,integer) from public;
 grant execute on function public.jr_hourly_leaderboard(timestamptz,integer,integer) to anon, authenticated, service_role;
 
