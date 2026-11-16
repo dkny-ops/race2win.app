@@ -228,7 +228,7 @@ export function JumpingRaceGame() {
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: usa izquierda, derecha y salto" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {playing ? null : (
         <>
-          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONECTANDO..." : status === "over" ? "REINICIAR" : "JUGAR"}</button><Link className="button button--secondary" href="/games/jumping-race/scores">SCORE</Link></div>
+          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONECTANDO..." : status === "over" ? "REINICIAR" : "JUGAR"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
           <p>Score: {score} · PC: ← / → para moverte y ESPACIO para saltar · Celular: arrastra en la mitad izquierda para moverte y toca la derecha para saltar. Toca otra vez en el aire para el doble salto.</p>
           <p style={{ opacity: .85, fontSize: ".85rem" }} role="status">{officialNotice} · Sin premios ni pagos.</p>
         </>
