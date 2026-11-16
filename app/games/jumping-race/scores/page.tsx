@@ -36,7 +36,7 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
     <Link href="/games/jumping-race" className="button button--secondary" style={{ marginBottom: "1.25rem" }}>← BACK TO JUMPING RACE</Link>
     <p className="eyebrow">JUMPING RACE · SCORE</p><h1>WEEKLY LEADERBOARD</h1>
     <p className="page-lede">Weekly verified results · America/New_York · Best seven runs each day</p>
-    <section className="scores-panel scores-ranking-panel" aria-labelledby="jumping-score-title">
+    <section id="leaderboard" className="scores-panel scores-ranking-panel" aria-labelledby="jumping-score-title">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">CURRENT WEEK · NEW YORK</p><h2 id="jumping-score-title">WORLD SCORE</h2></div></div>
       <p className="scores-ranking-subtitle">TOP 7 VERIFIED RUNS EACH DAY · WEEKLY TOTAL</p>
       {unavailable ? <p role="status">Score service temporarily unavailable.</p> : !enabled ? <p role="status">Official Jumping Race scoring is not active yet.</p> : rankings.length === 0 ? <p role="status">No verified scores for this week yet.</p> : null}
