@@ -7,9 +7,10 @@ export async function POST(request: Request) {
   if (!b || !uuid(b.sessionId)) return json({ message: "Invalid finalization" }, 400);
   const userId = await player(); if (!userId) return json({ message: "Sign in required" }, 401);
   const db = admin(); if (!db) return json({ message: "Unavailable" }, 503);
-  const { data: session, error: se } = await db.schema("private").from("jumping_race_sessions").select("started_at,status,next_checkpoint").eq("id", b.sessionId).eq("player_id", userId).maybeSingle();
+  const { data: sessionRows, error: se } = await db.rpc("jr_session_info", { p_session_id: b.sessionId, p_player_id: userId });
+  const session = sessionRows?.[0];
   if (se || !session) return json({ message: "Session unavailable" }, 404);
-  const { data: batches, error: be } = await db.schema("private").from("jumping_race_action_batches").select("checkpoint_index,actions").eq("session_id", b.sessionId).order("checkpoint_index", { ascending: true }).limit(200);
+  const { data: batches, error: be } = await db.rpc("jr_session_batches", { p_session_id: b.sessionId, p_player_id: userId });
   if (be || !batches) return json({ message: "Unable to verify" }, 503);
   if (batches.length !== session.next_checkpoint - 1 || batches.some((x,i) => x.checkpoint_index !== i + 1)) return json({ message: "Missing checkpoints" }, 409);
   const actions = parseJumpingRaceActions(batches.flatMap(x => x.actions as unknown[]));
