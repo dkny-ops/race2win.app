@@ -46,6 +46,41 @@ export function JumpingRaceGame() {
   const pointers = useRef(new Map<number, { origin: number; direction: -1 | 0 | 1 }>());
   const [status, setStatus] = useState<"ready" | "playing" | "over">("ready");
   const [score, setScore] = useState(0);
+  const [officialNotice, setOfficialNotice] = useState("Checking official play...");
+  const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  const flush = useCallback((run: NonNullable<typeof official.current>) => {
+    if (!run.pending.length || run.failed) return;
+    const actions = run.pending.splice(0);
+    const index = run.index++;
+    run.queue = run.queue.then(async () => {
+      const bytes = new TextEncoder().encode(JSON.stringify(actions));
+      const hash = await crypto.subtle.digest("SHA-256", bytes);
+      const digest = [...new Uint8Array(hash)].map(b => b.toString(16).padStart(2, "0")).join("");
+      const response = await fetch("/api/jumping-race/checkpoint", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: run.id, index, actions, digest }),
+      });
+      if (!response.ok) throw new Error("Checkpoint rejected");
+    }).catch(() => { run.failed = true; setOfficialNotice("Official run could not be verified."); });
+  }, []);
+
+  const finishOfficial = useCallback(async (run: NonNullable<typeof official.current>) => {
+    flush(run);
+    await run.queue;
+    if (run.failed) return;
+    try {
+      const response = await fetch("/api/jumping-race/finalize", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: run.id }),
+      });
+      const result = await response.json();
+      setOfficialNotice(response.ok && result.result?.result_status === "verified"
+        ? "Official score verified: " + result.result.score
+        : "Score not verified: " + (result.message ?? "Review required"));
+    } catch { setOfficialNotice("Unable to finalize official run."); }
+  }, [flush]);
 
   const releaseControls = useCallback(() => {
     keys.current.clear();
@@ -57,14 +92,31 @@ export function JumpingRaceGame() {
     if (game.current?.started && !game.current.over) jumpQueued.current = true;
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
+    if (starting) return;
+    setStarting(true);
+    official.current = null;
+    try {
+      const response = await fetch("/api/jumping-race/start", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: crypto.randomUUID() }),
+      });
+      const result = await response.json();
+      if (response.ok && result.session?.id) {
+        official.current = { id: result.session.id, index: 1, step: 0, lastDirection: 0, pending: [], queue: Promise.resolve(), failed: false };
+        setOfficialNotice("Official run · " + result.session.plays_remaining + " attempts remaining");
+      } else {
+        setOfficialNotice(result.message ? "Practice mode · " + result.message : "Practice mode");
+      }
+    } catch { setOfficialNotice("Practice mode · Official server unavailable"); }
+    setStarting(false);
     game.current = freshJumpingRace();
     game.current.started = true;
     runStartedAt.current = performance.now();
     releaseControls();
     setScore(0);
     setStatus("playing");
-  }, [releaseControls]);
+  }, [releaseControls, starting]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -110,6 +162,16 @@ export function JumpingRaceGame() {
         const right = held.includes(1) || keys.current.has("ArrowRight") || keys.current.has("KeyD");
         const direction = left === right ? 0 : left ? -1 : 1;
         while (accumulated >= STEP && !state.over) {
+          const run = official.current;
+          if (run && !run.failed) {
+            const jumpNow = jumpQueued.current;
+            if (direction !== run.lastDirection || jumpNow) {
+              run.pending.push({ step: run.step, direction, jump: jumpNow });
+              run.lastDirection = direction;
+            }
+            run.step++;
+            if (run.step % 120 === 0) flush(run);
+          }
           stepJumpingRace(state, direction, jumpQueued.current);
           jumpQueued.current = false;
           accumulated -= STEP;
@@ -125,6 +187,7 @@ export function JumpingRaceGame() {
             detail: { durationSeconds: state.time, score: state.score, jumps, doubleJumps, directionChanges, platformsRemoved },
           });
           setStatus("over");
+          if (official.current) void finishOfficial(official.current);
         }
       } else {
         accumulated = 0;
@@ -134,7 +197,7 @@ export function JumpingRaceGame() {
     };
     id = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(id);
-  }, [releaseControls]);
+  }, [releaseControls, flush, finishOfficial]);
 
   function startGesture(event: PointerEvent<HTMLElement>) {
     if (status !== "playing" || event.button !== 0) return;
@@ -165,9 +228,9 @@ export function JumpingRaceGame() {
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: usa izquierda, derecha y salto" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {playing ? null : (
         <>
-          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={start}>{status === "over" ? "REINICIAR" : "JUGAR"}</button><Link className="button button--secondary" href="/games/jumping-race/scores">SCORE</Link></div>
+          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONECTANDO..." : status === "over" ? "REINICIAR" : "JUGAR"}</button><Link className="button button--secondary" href="/games/jumping-race/scores">SCORE</Link></div>
           <p>Score: {score} · PC: ← / → para moverte y ESPACIO para saltar · Celular: arrastra en la mitad izquierda para moverte y toca la derecha para saltar. Toca otra vez en el aire para el doble salto.</p>
-          <p style={{ opacity: .75, fontSize: ".85rem" }}>Versión de desarrollo. Sin puntuaciones oficiales, anuncios ni premios.</p>
+          <p style={{ opacity: .85, fontSize: ".85rem" }} role="status">{officialNotice} · Sin premios ni pagos.</p>
         </>
       )}
     </section>
