@@ -9,8 +9,8 @@ export async function POST(request: Request) {
   if (!userId) return json({ message: "Sign in to compete", practice: true }, 401);
   const db = admin();
   if (!db) return json({ message: "Official play unavailable", practice: true }, 503);
-  const { data: control, error: controlError } = await db.schema("private").from("jumping_race_control").select("enabled").eq("singleton", true).single();
-  if (controlError || !control?.enabled) return json({ message: "Official scoring not active", practice: true }, 503);
+  const { data: control, error: controlError } = await db.rpc("jr_competition_enabled");
+  if (controlError || !control) return json({ message: "Official scoring not active", practice: true }, 503);
   const requestId = typeof b.requestId === "string" && /^[a-f0-9-]{36}$/i.test(b.requestId) ? b.requestId : randomUUID();
   const { data, error } = await db.rpc("jr_start_session", { p_player_id: userId, p_request_id: requestId });
   if (error) return json({ message: error.message.includes("exhausted") ? "Five official attempts used this hour" : "Unable to start official run", practice: true }, error.message.includes("exhausted") ? 429 : 503);
