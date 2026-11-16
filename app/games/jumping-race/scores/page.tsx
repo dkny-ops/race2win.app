@@ -61,6 +61,6 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
         {weekly.map(d => <div className="scores-table__row" role="row" key={d.score_day}><span role="cell">{d.score_day}</span><span role="cell">{d.daily_top_scores.join(", ") || "—"}</span><span role="cell">{d.daily_total}</span></div>)}
       </div>
     </section>}
-    <aside className="jumping-scores-session" aria-live="polite">{signedIn ? "SIGNED IN" + (typeof remaining === "number" ? " · " + remaining + " attempts remaining this UTC hour" : "") : "GUEST MODE · Sign in to participate"}</aside>
+    <aside className="jumping-scores-session" aria-live="polite">{signedIn ? "SIGNED IN" + (typeof remaining === "number" ? " · " + remaining + " attempts available · recover individually after 60 minutes" : "") : "GUEST MODE · Sign in to participate"}</aside>
   </div></section>;
 }
