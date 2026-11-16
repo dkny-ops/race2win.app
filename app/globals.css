@@ -179,6 +179,9 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .scores-page .scores-ranking-table>.scores-table__row>strong:last-child{color:#f2d17a;font-size:1rem;text-shadow:0 0 12px #ffc24760}
 .scores-page .scores-ranking-table .scores-rank-position{display:flex;align-items:center;gap:.25rem;white-space:nowrap}
 .scores-page .scores-ranking-table .ranking-medal{font-size:1.2rem;line-height:1}
+.jumping-scores-page .jumping-scores-table>.scores-table__header{grid-template-columns:.7fr minmax(5rem,1.55fr) repeat(4,minmax(3.25rem,1fr));gap:.45rem}
+.jumping-scores-session{margin:1rem 0 0;padding:.8rem 1rem;border:1px solid #2b8ac8;border-radius:14px;background:#061a34;color:#b9e7ff;font-size:.8rem;font-weight:800;letter-spacing:.05em}
+@media(max-width:600px){.jumping-scores-page .jumping-scores-table{overflow-x:auto}.jumping-scores-page .jumping-scores-table>.scores-table__header{min-width:38rem;font-size:.52rem}.jumping-scores-session{font-size:.68rem}}
 .scores-page .scores-ranking-total{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.2rem;padding:1rem 1.2rem;border:1px solid #ffd66a8c;border-radius:16px;background:linear-gradient(110deg,#80602345,#16345b88);box-shadow:0 0 18px #ffc13c24}
 .scores-page .scores-ranking-total span{color:#d9eaff;font-size:.72rem;font-weight:900;letter-spacing:.1em}
 .scores-page .scores-ranking-total strong{color:#ffdc7a;font-size:clamp(1.3rem,2.3vw,1.8rem);text-shadow:0 0 15px #ffc24775;font-variant-numeric:tabular-nums}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import Link from "next/link";
 import {
   freshJumpingRace,
   stepJumpingRace,
@@ -164,7 +165,7 @@ export function JumpingRaceGame() {
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: usa izquierda, derecha y salto" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {playing ? null : (
         <>
-          <div style={{ margin: "1rem 0" }}><button type="button" className="button button--primary" onClick={start}>{status === "over" ? "REINICIAR" : "JUGAR"}</button></div>
+          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={start}>{status === "over" ? "REINICIAR" : "JUGAR"}</button><Link className="button button--secondary" href="/games/jumping-race/scores">SCORE</Link></div>
           <p>Score: {score} · PC: ← / → para moverte y ESPACIO para saltar · Celular: arrastra en la mitad izquierda para moverte y toca la derecha para saltar. Toca otra vez en el aire para el doble salto.</p>
           <p style={{ opacity: .75, fontSize: ".85rem" }}>Versión de desarrollo. Sin puntuaciones oficiales, anuncios ni premios.</p>
         </>
