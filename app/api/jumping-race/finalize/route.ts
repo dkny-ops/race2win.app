@@ -12,8 +12,8 @@ export async function POST(request: Request) {
   if (se || !session) return json({ message: "Session unavailable" }, 404);
   const { data: batches, error: be } = await db.rpc("jr_session_batches", { p_session_id: b.sessionId, p_player_id: userId });
   if (be || !batches) return json({ message: "Unable to verify" }, 503);
-  if (batches.length !== session.next_checkpoint - 1 || batches.some((x,i) => x.checkpoint_index !== i + 1)) return json({ message: "Missing checkpoints" }, 409);
-  const actions = parseJumpingRaceActions(batches.flatMap(x => x.actions as unknown[]));
+  if (batches.length !== session.next_checkpoint - 1 || batches.some((x: { checkpoint_index: number }, i: number) => x.checkpoint_index !== i + 1)) return json({ message: "Missing checkpoints" }, 409);
+  const actions = parseJumpingRaceActions(batches.flatMap((x: { actions: unknown[] }) => x.actions as unknown[]));
   if (!actions) return json({ message: "Invalid replay" }, 409);
   const elapsed = Math.max(0, Math.floor(Date.now() - Date.parse(session.started_at)));
   const replay = replayJumpingRace(actions, elapsed);
