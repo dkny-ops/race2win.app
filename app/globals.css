@@ -2534,3 +2534,48 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
   user-select:text;
   -webkit-touch-callout:default;
 }
+
+
+/* Jumping Race weekly leaderboard: three columns always fit the mobile viewport.
+   Scoped to Jumping Race only; other game score tables remain unchanged. */
+.jumping-scores-page .jumping-scores-table {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+.jumping-scores-page .jumping-scores-table > .scores-table__header,
+.jumping-scores-page .jumping-scores-table > .scores-table__row {
+  display: grid;
+  grid-template-columns: minmax(2.5rem, .65fr) minmax(0, 2fr) minmax(3.5rem, .85fr);
+  gap: clamp(.25rem, 1.5vw, .75rem);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.jumping-scores-page .jumping-scores-table > .scores-table__header > *,
+.jumping-scores-page .jumping-scores-table > .scores-table__row > * {
+  min-width: 0;
+}
+.jumping-scores-page .jumping-scores-table > .scores-table__header > :last-child,
+.jumping-scores-page .jumping-scores-table > .scores-table__row > :last-child {
+  text-align: right;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  font-variant-numeric: tabular-nums;
+}
+.jumping-scores-page .jumping-scores-table > .scores-table__row > :nth-child(2) {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .jumping-scores-page .jumping-scores-table > .scores-table__header,
+  .jumping-scores-page .jumping-scores-table > .scores-table__row {
+    padding-inline: .55rem;
+    font-size: .76rem;
+  }
+  .jumping-scores-page .jumping-scores-table > .scores-table__header {
+    letter-spacing: .04em;
+    font-size: .62rem;
+  }
+}
