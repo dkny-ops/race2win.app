@@ -41,8 +41,8 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
       <p className="scores-ranking-subtitle">TOP 7 VERIFIED RUNS EACH DAY · WEEKLY TOTAL</p>
       {unavailable ? <p role="status">Score service temporarily unavailable.</p> : !enabled ? <p role="status">Official Jumping Race scoring is not active yet.</p> : rankings.length === 0 ? <p role="status">No verified scores for this week yet.</p> : null}
       <div className="scores-table scores-ranking-table jumping-scores-table" role="table" aria-label="Jumping Race world score">
-        <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">PLAYER</span><span role="columnheader">WEEKLY SCORE</span></div>
-        {rankings.map((r) => <div className="scores-table__row" role="row" key={r.username}>
+        <div className="scores-table__header" role="row" style={{ display: "grid", gridTemplateColumns: "5rem minmax(0,1fr) 7rem", gap: 8 }}><span role="columnheader">RANK</span><span role="columnheader">PLAYER</span><span role="columnheader">WEEKLY SCORE</span></div>
+        {rankings.map((r) => <div className="scores-table__row" role="row" key={r.username} style={{ display: "grid", gridTemplateColumns: "5rem minmax(0,1fr) 7rem", gap: 8 }}>
           <span role="cell">{r.reviewRequired ? "Review" : "#" + r.rank}</span><span role="cell">{r.username}</span><span role="cell">{r.weeklyTotal}</span>
         </div>)}
       </div>
