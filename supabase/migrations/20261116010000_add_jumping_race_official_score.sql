@@ -171,7 +171,7 @@ end;
 $$;
 
 create or replace function public.jr_hourly_leaderboard(p_hour_started_at timestamptz default date_trunc('hour',now()), p_offset integer default 0, p_limit integer default 50)
-returns table(position bigint, player text, top_1 integer, top_2 integer, top_3 integer, total integer, tied_for_review boolean)
+returns table(rank_position bigint, player text, top_1 integer, top_2 integer, top_3 integer, total integer, tied_for_review boolean)
 language sql stable security definer set search_path = '' as $$
   with per_player as (
     select r.player_id, array_agg(r.score order by r.score desc, r.finalized_at asc) filter (where r.result_status='verified') as scores
@@ -180,13 +180,13 @@ language sql stable security definer set search_path = '' as $$
     select p.player_id, coalesce(p.scores[1],0) top_1, coalesce(p.scores[2],0) top_2, coalesce(p.scores[3],0) top_3
     from per_player p
   ), ordered as (
-    select row_number() over(order by top_1+top_2+top_3 desc, top_1 desc, top_2 desc, top_3 desc, player_id asc) position, ranked.*,
+    select row_number() over(order by top_1+top_2+top_3 desc, top_1 desc, top_2 desc, top_3 desc, player_id asc) rank_position, ranked.*,
       count(*) over(partition by top_1+top_2+top_3,top_1,top_2,top_3) > 1 tied_for_review from ranked
   )
-  select o.position, coalesce(pr.username,'Player')::text, o.top_1,o.top_2,o.top_3,(o.top_1+o.top_2+o.top_3)::integer,o.tied_for_review
+  select o.rank_position, coalesce(pr.username,'Player')::text, o.top_1,o.top_2,o.top_3,(o.top_1+o.top_2+o.top_3)::integer,o.tied_for_review
   from ordered o left join public.profiles pr on pr.user_id=o.player_id
   where p_offset between 0 and 10000 and p_limit between 1 and 50
-  order by o.position offset p_offset limit p_limit
+  order by o.rank_position offset p_offset limit p_limit
 $$;
 
 -- Personal weekly score mirrors the approved Race To Win presentation rule:
