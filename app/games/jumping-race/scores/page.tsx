@@ -20,17 +20,15 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
   const offset = (day.getUTCDay() + 6) % 7;
   day.setUTCDate(day.getUTCDate() - offset);
   const week = day.toISOString().slice(0, 10);
-  const [enabledResponse, rankingResponse, weeklyResponse, allowanceResponse] = db ? await Promise.all([
+  const [enabledResponse, rankingResponse, weeklyResponse] = db ? await Promise.all([
     db.rpc("jr_competition_enabled"),
     db.rpc("jr_weekly_leaderboard", { p_week: week, p_page: page }),
     context ? db.rpc("jr_personal_weekly_score", { p_player_id: context.userId }) : Promise.resolve({ data: null, error: null }),
-    context ? db.rpc("jr_read_allowance", { p_player_id: context.userId }) : Promise.resolve({ data: null, error: null }),
-  ]) : [{ data: false, error: null }, { data: null, error: true }, { data: null, error: true }, { data: null, error: true }];
+  ]) : [{ data: false, error: null }, { data: null, error: true }, { data: null, error: true }];
   const enabled = enabledResponse.data === true;
   const rankings = (rankingResponse.data?.entries ?? []) as Ranking[];
   const hasNextPage = rankingResponse.data?.hasNextPage === true;
   const weekly = (weeklyResponse.data ?? []) as Weekly[];
-  const remaining = allowanceResponse.data?.[0]?.plays_remaining;
   const unavailable = Boolean(rankingResponse.error || enabledResponse.error);
   return <section className="page-section scores-page jumping-scores-page"><div className="shell">
     <Link href="/games/jumping-race" className="button button--secondary" style={{ marginBottom: "1.25rem" }}>← BACK TO JUMPING RACE</Link>
