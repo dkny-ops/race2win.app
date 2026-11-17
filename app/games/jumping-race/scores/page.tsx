@@ -34,8 +34,7 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
   const unavailable = Boolean(rankingResponse.error || enabledResponse.error);
   return <section className="page-section scores-page jumping-scores-page"><div className="shell">
     <Link href="/games/jumping-race" className="button button--secondary" style={{ marginBottom: "1.25rem" }}>← BACK TO JUMPING RACE</Link>
-    <p className="eyebrow">JUMPING RACE · SCORE</p><h1>WEEKLY LEADERBOARD</h1>
-    <p className="page-lede">Weekly verified results · America/New_York · Best seven runs each day</p>
+    <p className="eyebrow">JUMPING RACE · SCORE</p><h1>LEADERBOARD</h1>
     <section id="leaderboard" className="scores-panel scores-ranking-panel" aria-labelledby="jumping-score-title">
       <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">★</span><div><p className="eyebrow">CURRENT WEEK · NEW YORK</p><h2 id="jumping-score-title">WORLD SCORE</h2></div></div>
       <p className="scores-ranking-subtitle">TOP 7 VERIFIED RUNS EACH DAY · WEEKLY TOTAL</p>
@@ -61,6 +60,5 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
         {weekly.map(d => <div className="scores-table__row" role="row" key={d.score_day}><span role="cell">{d.score_day}</span><span role="cell">{d.daily_top_scores.join(", ") || "—"}</span><span role="cell">{d.daily_total}</span></div>)}
       </div>
     </section>}
-    <aside className="jumping-scores-session" aria-live="polite">{signedIn ? "SIGNED IN" + (typeof remaining === "number" ? " · " + remaining + " attempts available · recover individually after 60 minutes" : "") : "GUEST MODE · Sign in to participate"}</aside>
   </div></section>;
 }
