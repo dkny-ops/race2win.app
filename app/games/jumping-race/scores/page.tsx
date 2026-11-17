@@ -51,7 +51,7 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
       </div>
     </section>
     {signedIn && <section id="weekly" className="scores-panel" style={{ marginTop: 24 }}>
-      <h2>PERSONAL WEEKLY SCORE</h2><p>America/New_York · Best seven verified runs each day</p>
+      <h2>PERSONAL SCORE</h2>
       <p>Weekly total: <strong>{weekly[0]?.weekly_total ?? 0}</strong></p>
       <div className="scores-table" role="table" aria-label="Personal weekly score">
         <div className="scores-table__header" role="row"><span role="columnheader">DAY</span><span role="columnheader">TOP 7</span><span role="columnheader">TOTAL</span></div>
