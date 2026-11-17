@@ -7,6 +7,6 @@ export const metadata = { title: "Jumping Race", robots: { index: false, follow:
 export default function JumpingRacePage() {
   return <main className="jumping-race-page page-section shell" style={{ minHeight: "70vh", textAlign: "center" }}>
     <JumpingRaceGame />
-    <div style={{ marginTop: 20 }}><Link className="button button--secondary" href="/">← VOLVER A HOME</Link></div>
+    <div style={{ marginTop: 20 }}><Link className="button button--secondary" href="/">← BACK TO HOME</Link></div>
   </main>;
 }
