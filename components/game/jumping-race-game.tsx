@@ -52,8 +52,8 @@ function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
  ctx.restore();
  ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("JUMPING RACE",24,40);
  ctx.font="bold 20px system-ui";ctx.fillText("SCORE "+s.score,24,73);ctx.fillText("SPEED "+Math.round(s.speed),W-170,40);
- ctx.font="16px system-ui";ctx.fillText("DOBLE SALTO: "+(2-s.player.jumps),W-188,72);
- if(!s.started||s.over){ctx.fillStyle="rgba(7,10,35,.75)";ctx.fillRect(0,0,W,H);ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="bold 52px system-ui";ctx.fillText(s.over?"GAME OVER":"JUMPING RACE",W/2,210);ctx.font="23px system-ui";ctx.fillText(s.over?"SCORE: "+s.score:"AVANZA, RETROCEDE Y HAZ DOBLE SALTO",W/2,265);ctx.fillText(s.over?"Pulsa REINICIAR":"Pulsa JUGAR para comenzar",W/2,308);ctx.textAlign="start"}
+ ctx.font="16px system-ui";ctx.fillText("DOUBLE JUMP: "+(2-s.player.jumps),W-188,72);
+ if(!s.started||s.over){ctx.fillStyle="rgba(7,10,35,.75)";ctx.fillRect(0,0,W,H);ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="bold 52px system-ui";ctx.fillText(s.over?"GAME OVER":"JUMPING RACE",W/2,210);ctx.font="23px system-ui";ctx.fillText(s.over?"SCORE: "+s.score:"MOVE FORWARD, BACKWARD AND DOUBLE JUMP",W/2,265);ctx.fillText(s.over?"Press PLAY AGAIN":"Press PLAY to start",W/2,308);ctx.textAlign="start"}
 }
 export function JumpingRaceGame() {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -243,12 +243,12 @@ export function JumpingRaceGame() {
   const playing = status === "playing";
   return (
     <section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={playing ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
-      <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: usa izquierda, derecha y salto" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
+      <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {playing ? null : (
         <>
-          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONECTANDO..." : status === "over" ? "REINICIAR" : "JUGAR"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
-          <p>Score: {score} · PC: ← / → para moverte y ESPACIO para saltar · Celular: arrastra en la mitad izquierda para moverte y toca la derecha para saltar. Toca otra vez en el aire para el doble salto.</p>
-          <p style={{ opacity: .85, fontSize: ".85rem" }} role="status">{officialNotice} · Sin premios ni pagos.</p>
+          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
+          <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
+          <p style={{ opacity: .85, fontSize: ".85rem" }} role="status">{officialNotice} · No prizes or payouts.</p>
         </>
       )}
     </section>
