@@ -23,9 +23,27 @@ function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
   ctx.fillStyle=p.color;ctx.globalAlpha=.5;for(let k=TILE_SIZE;k<p.w;k+=TILE_SIZE)ctx.fillRect(x+k,p.y+8,3,24);ctx.globalAlpha=1;
  }
  const px=s.player.x-s.camera,py=s.player.y;ctx.save();ctx.translate(px+18,py+22);
- // Simple original placeholder runner, replaced when approved sprites are uploaded.
- ctx.fillStyle="#2a194a";ctx.fillRect(-9,5,10,21);ctx.fillRect(7,5,10,21);
- ctx.fillStyle="#3ad8ff";ctx.fillRect(-13,20,15,9);ctx.fillRect(5,20,17,9);
+ // Visual-only leg animation: grounded running alternates strides; jumps tuck both feet.
+ // This never changes the physics, replay, score or server-verified actions.
+ const airborne = s.player.jumps > 0 || Math.abs(s.player.vy) > 1;
+ const running = s.started && !s.over && !airborne && s.telemetry.previousDirection !== 0;
+ const stride = running ? Math.sin(s.time * 21) * 0.62 : 0;
+ const drawLeg = (hipX: number, angle: number, kneeBend: number) => {
+  ctx.save();
+  ctx.translate(hipX, 5);
+  ctx.rotate(angle);
+  ctx.fillStyle="#2a194a";
+  ctx.fillRect(-5, 0, 10, 16);
+  ctx.translate(0, 15);
+  ctx.rotate(kneeBend);
+  ctx.fillRect(-5, 0, 10, 8);
+  ctx.fillStyle="#3ad8ff";
+  ctx.fillRect(-8, 7, 17, 8);
+  ctx.restore();
+ };
+ // Render legs behind the torso; opposite phases make the feet visibly alternate.
+ drawLeg(-8, airborne ? -0.55 : stride, airborne ? 0.9 : Math.max(0, -stride) * 0.4);
+ drawLeg(8, airborne ? 0.45 : -stride, airborne ? -0.7 : Math.max(0, stride) * 0.4);
  ctx.fillStyle="#6738e8";ctx.fillRect(-15,-16,32,28);
  ctx.fillStyle="#ffe04e";ctx.beginPath();ctx.moveTo(4,-13);ctx.lineTo(-4,1);ctx.lineTo(3,1);ctx.lineTo(-1,11);ctx.lineTo(11,-4);ctx.lineTo(4,-4);ctx.fill();
  ctx.fillStyle="#ffd0a4";ctx.beginPath();ctx.arc(0,-28,17,0,Math.PI*2);ctx.fill();
