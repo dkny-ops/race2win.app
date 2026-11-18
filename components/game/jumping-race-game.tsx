@@ -32,10 +32,32 @@ const RUNNER_FRAME_PATHS = [
   "/images/jumping-race/runner/land_03.png",
 ] as const;
 
-const RUNNER_SPRITE_SIZE = 64;
-const runnerSprites = new Map<string, HTMLImageElement>();
+const RUNNER_SPRITE_SIZE = 76;
+const RUNNER_HALO_ALPHA_CUTOFF = 72;
+const runnerSprites = new Map<string, CanvasImageSource>();
 const runnerAnimation = new WeakMap<JumpingRaceState, { lastJumps: number; landingUntil: number }>();
 let runnerSpritePreload: Promise<void> | null = null;
+
+function removeLowAlphaFrameHalo(image: HTMLImageElement): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth;
+  canvas.height = image.naturalHeight;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Runner sprite cleanup canvas is unavailable");
+
+  context.drawImage(image, 0, 0);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+  for (let offset = 3; offset < pixels.data.length; offset += 4) {
+    const alpha = pixels.data[offset];
+    // The supplied frames contain a low-opacity pale studio backdrop. Remove only that
+    // faint halo, then softly remap the remaining alpha so white hair and cyan details stay.
+    pixels.data[offset] = alpha <= RUNNER_HALO_ALPHA_CUTOFF
+      ? 0
+      : Math.round(((alpha - RUNNER_HALO_ALPHA_CUTOFF) * 255) / (255 - RUNNER_HALO_ALPHA_CUTOFF));
+  }
+  context.putImageData(pixels, 0, 0);
+  return canvas;
+}
 
 function preloadRunnerSprites(): Promise<void> {
   if (runnerSpritePreload) return runnerSpritePreload;
@@ -44,7 +66,7 @@ function preloadRunnerSprites(): Promise<void> {
     const image = new Image();
     image.decoding = "async";
     image.onload = () => {
-      runnerSprites.set(path, image);
+      runnerSprites.set(path, removeLowAlphaFrameHalo(image));
       resolve();
     };
     image.onerror = () => reject(new Error(`Unable to load approved runner frame: ${path}`));
