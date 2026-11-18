@@ -12,6 +12,143 @@ import {
   type JumpingRaceState,
 } from "@/lib/game/jumping-race/engine";
 
+
+const RUNNER_FRAME_PATHS = [
+  "/images/jumping-race/runner/run_01.png",
+  "/images/jumping-race/runner/run_02.png",
+  "/images/jumping-race/runner/run_03.png",
+  "/images/jumping-race/runner/run_04.png",
+  "/images/jumping-race/runner/jump_takeoff_01.png",
+  "/images/jumping-race/runner/jump_takeoff_02.png",
+  "/images/jumping-race/runner/jump_air_01.png",
+  "/images/jumping-race/runner/jump_air_02.png",
+  "/images/jumping-race/runner/jump_air_03.png",
+  "/images/jumping-race/runner/jump_air_04.png",
+  "/images/jumping-race/runner/double_jump_01.png",
+  "/images/jumping-race/runner/double_jump_02.png",
+  "/images/jumping-race/runner/double_jump_03.png",
+  "/images/jumping-race/runner/land_01.png",
+  "/images/jumping-race/runner/land_02.png",
+  "/images/jumping-race/runner/land_03.png",
+] as const;
+
+const RUNNER_SPRITE_SIZE = 64;
+const runnerSprites = new Map<string, HTMLImageElement>();
+const runnerAnimation = new WeakMap<JumpingRaceState, { lastJumps: number; landingUntil: number }>();
+let runnerSpritePreload: Promise<void> | null = null;
+
+function preloadRunnerSprites(): Promise<void> {
+  if (runnerSpritePreload) return runnerSpritePreload;
+
+  runnerSpritePreload = Promise.all(RUNNER_FRAME_PATHS.map((path) => new Promise<void>((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => {
+      runnerSprites.set(path, image);
+      resolve();
+    };
+    image.onerror = () => reject(new Error(`Unable to load approved runner frame: ${path}`));
+    image.src = path;
+  }))).then(() => undefined);
+
+  return runnerSpritePreload;
+}
+
+function frameAt(frames: readonly string[], step: number): string {
+  return frames[step % frames.length];
+}
+
+function runnerFrame(state: JumpingRaceState): string {
+  const current = runnerAnimation.get(state) ?? { lastJumps: 0, landingUntil: 0 };
+  const grounded = state.player.jumps === 0 && Math.abs(state.player.vy) < 1;
+
+  if (current.lastJumps > 0 && grounded) current.landingUntil = state.time + 0.22;
+  current.lastJumps = state.player.jumps;
+  runnerAnimation.set(state, current);
+
+  const tick = Math.floor(state.time * 12);
+  if (state.time < current.landingUntil) {
+    return frameAt([
+      "/images/jumping-race/runner/land_01.png",
+      "/images/jumping-race/runner/land_02.png",
+      "/images/jumping-race/runner/land_03.png",
+    ], tick);
+  }
+  if (state.player.jumps >= 2) {
+    return frameAt([
+      "/images/jumping-race/runner/double_jump_01.png",
+      "/images/jumping-race/runner/double_jump_02.png",
+      "/images/jumping-race/runner/double_jump_03.png",
+    ], tick);
+  }
+  if (!grounded) {
+    if (state.player.vy < -360) {
+      return frameAt([
+        "/images/jumping-race/runner/jump_takeoff_01.png",
+        "/images/jumping-race/runner/jump_takeoff_02.png",
+      ], tick);
+    }
+    return frameAt([
+      "/images/jumping-race/runner/jump_air_01.png",
+      "/images/jumping-race/runner/jump_air_02.png",
+      "/images/jumping-race/runner/jump_air_03.png",
+      "/images/jumping-race/runner/jump_air_04.png",
+    ], tick);
+  }
+  if (!state.started || state.telemetry.previousDirection === 0) {
+    return "/images/jumping-race/runner/run_01.png";
+  }
+  return frameAt([
+    "/images/jumping-race/runner/run_01.png",
+    "/images/jumping-race/runner/run_02.png",
+    "/images/jumping-race/runner/run_03.png",
+    "/images/jumping-race/runner/run_04.png",
+  ], tick);
+}
+
+function drawRunnerSprite(ctx: CanvasRenderingContext2D, state: JumpingRaceState, x: number, y: number): boolean {
+  const image = runnerSprites.get(runnerFrame(state));
+  if (!image) return false;
+
+  // Every approved PNG shares the same transparent feet baseline. Align it to the existing
+  // 44px player collision box; this is visual-only and never changes physics or replay data.
+  ctx.drawImage(image, x + 17 - RUNNER_SPRITE_SIZE / 2, y + 44 - RUNNER_SPRITE_SIZE, RUNNER_SPRITE_SIZE, RUNNER_SPRITE_SIZE);
+  return true;
+}
+
+function drawRunnerFallback(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.save();
+  ctx.translate(x + 18, y + 22);
+  ctx.fillStyle = "#2a194a";
+  ctx.fillRect(-9, 5, 10, 21);
+  ctx.fillRect(7, 5, 10, 21);
+  ctx.fillStyle = "#3ad8ff";
+  ctx.fillRect(-13, 20, 15, 9);
+  ctx.fillRect(5, 20, 17, 9);
+  ctx.fillStyle = "#6738e8";
+  ctx.fillRect(-15, -16, 32, 28);
+  ctx.fillStyle = "#ffe04e";
+  ctx.beginPath();
+  ctx.moveTo(4, -13);
+  ctx.lineTo(-4, 1);
+  ctx.lineTo(3, 1);
+  ctx.lineTo(-1, 11);
+  ctx.lineTo(11, -4);
+  ctx.lineTo(4, -4);
+  ctx.fill();
+  ctx.fillStyle = "#ffd0a4";
+  ctx.beginPath();
+  ctx.arc(0, -28, 17, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f7faff";
+  ctx.fillRect(-17, -44, 33, 11);
+  ctx.fillStyle = "#256cf9";
+  ctx.fillRect(-18, -34, 35, 5);
+  ctx.fillStyle = "#202c56";
+  ctx.fillRect(8, -31, 5, 6);
+  ctx.restore();
+}
+
 function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
  const {width:w,height:h}=ctx.canvas;ctx.clearRect(0,0,w,h);
  const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,"#0c1346");sky.addColorStop(.65,"#39318b");sky.addColorStop(1,"#9157b3");ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
@@ -22,34 +159,8 @@ function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
   ctx.fillStyle="#172254";ctx.fillRect(x+3,p.y+8,p.w-6,27);
   ctx.fillStyle=p.color;ctx.globalAlpha=.5;for(let k=TILE_SIZE;k<p.w;k+=TILE_SIZE)ctx.fillRect(x+k,p.y+8,3,24);ctx.globalAlpha=1;
  }
- const px=s.player.x-s.camera,py=s.player.y;ctx.save();ctx.translate(px+18,py+22);
- // Visual-only leg animation: grounded running alternates strides; jumps tuck both feet.
- // This never changes the physics, replay, score or server-verified actions.
- const airborne = s.player.jumps > 0 || Math.abs(s.player.vy) > 1;
- const running = s.started && !s.over && !airborne && s.telemetry.previousDirection !== 0;
- const stride = running ? Math.sin(s.time * 21) * 0.62 : 0;
- const drawLeg = (hipX: number, angle: number, kneeBend: number) => {
-  ctx.save();
-  ctx.translate(hipX, 5);
-  ctx.rotate(angle);
-  ctx.fillStyle="#2a194a";
-  ctx.fillRect(-5, 0, 10, 16);
-  ctx.translate(0, 15);
-  ctx.rotate(kneeBend);
-  ctx.fillRect(-5, 0, 10, 8);
-  ctx.fillStyle="#3ad8ff";
-  ctx.fillRect(-8, 7, 17, 8);
-  ctx.restore();
- };
- // Render legs behind the torso; opposite phases make the feet visibly alternate.
- drawLeg(-8, airborne ? -0.55 : stride, airborne ? 0.9 : Math.max(0, -stride) * 0.4);
- drawLeg(8, airborne ? 0.45 : -stride, airborne ? -0.7 : Math.max(0, stride) * 0.4);
- ctx.fillStyle="#6738e8";ctx.fillRect(-15,-16,32,28);
- ctx.fillStyle="#ffe04e";ctx.beginPath();ctx.moveTo(4,-13);ctx.lineTo(-4,1);ctx.lineTo(3,1);ctx.lineTo(-1,11);ctx.lineTo(11,-4);ctx.lineTo(4,-4);ctx.fill();
- ctx.fillStyle="#ffd0a4";ctx.beginPath();ctx.arc(0,-28,17,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#f7faff";ctx.fillRect(-17,-44,33,11);ctx.fillStyle="#256cf9";ctx.fillRect(-18,-34,35,5);
- ctx.fillStyle="#202c56";ctx.fillRect(8,-31,5,6);
- ctx.restore();
+ const px=s.player.x-s.camera,py=s.player.y;
+ if(!drawRunnerSprite(ctx,s,px,py)) drawRunnerFallback(ctx,px,py);
  ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("JUMPING RACE",24,40);
  ctx.font="bold 20px system-ui";ctx.fillText("SCORE "+s.score,24,73);ctx.fillText("SPEED "+Math.round(s.speed),W-170,40);
  ctx.font="16px system-ui";ctx.fillText("DOUBLE JUMP: "+(2-s.player.jumps),W-188,72);
@@ -67,6 +178,16 @@ export function JumpingRaceGame() {
   const [, setOfficialNotice] = useState("");
   const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
   const [starting, setStarting] = useState(false);
+  const [runnerAssetState, setRunnerAssetState] = useState<"loading" | "ready" | "fallback">("loading");
+
+  useEffect(() => {
+    let active = true;
+    void preloadRunnerSprites().then(
+      () => { if (active) setRunnerAssetState("ready"); },
+      () => { if (active) setRunnerAssetState("fallback"); },
+    );
+    return () => { active = false; };
+  }, []);
 
   const flush = useCallback((run: NonNullable<typeof official.current>) => {
     if (!run.pending.length || run.failed) return;
@@ -246,7 +367,8 @@ export function JumpingRaceGame() {
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {playing ? null : (
         <>
-          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
+          <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
+          {runnerAssetState === "fallback" ? <p role="alert" data-testid="jumping-race-runner-fallback">Developer diagnostic: approved runner sprites did not load; using the visual fallback.</p> : null}
           <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
         </>
       )}
