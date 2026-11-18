@@ -248,7 +248,7 @@ export function JumpingRaceGame() {
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
           <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
-          <p style={{ opacity: .85, fontSize: ".85rem" }} role="status">{officialNotice} · No prizes or payouts.</p>
+          <p className="sr-only" role="status" aria-live="polite">{officialNotice}</p>
         </>
       )}
     </section>
