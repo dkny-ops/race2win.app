@@ -40,3 +40,19 @@ test("Jumping Race never accepts actions after a server-proven fall", () => {
   assert.equal(invalid, null);
 });
 
+
+test("Jumping Race removes queued platforms every two seconds without changing the queue rules", () => {
+  const state = engine.freshJumpingRace();
+  state.started = true;
+  state.furthestLanding = 2;
+  state.nextRemovalAt = 0;
+  const before = state.platforms.length;
+
+  engine.stepJumpingRace(state, 0, false);
+
+  assert.equal(engine.PLATFORM_LIFETIME, 2);
+  assert.equal(state.platforms.length, before - 1);
+  assert.equal(state.telemetry.platformsRemoved, 1);
+  assert.ok(state.nextRemovalAt !== null);
+  assert.ok(Math.abs((state.nextRemovalAt - state.time) - 2) < 1e-9);
+});
