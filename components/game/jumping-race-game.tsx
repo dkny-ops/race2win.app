@@ -32,7 +32,7 @@ const RUNNER_FRAME_PATHS = [
   "/images/jumping-race/runner/land_03.png",
 ] as const;
 
-const RUNNER_SPRITE_SIZE = 88;
+const RUNNER_SPRITE_SIZE = 178;
 const RUNNER_HALO_ALPHA_CUTOFF = 72;
 const runnerSprites = new Map<string, CanvasImageSource>();
 const runnerAnimation = new WeakMap<JumpingRaceState, { lastJumps: number; landingUntil: number }>();

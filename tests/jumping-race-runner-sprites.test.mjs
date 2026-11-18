@@ -28,7 +28,7 @@ test("Jumping Race preloads and feet-aligns runner sprites without changing the 
   const source = fs.readFileSync(component, "utf8");
   assert.match(source, /function preloadRunnerSprites\(\)/);
   assert.match(source, /ctx\.drawImage\(image, x \+ 17 - RUNNER_SPRITE_SIZE \/ 2, y \+ 44 - RUNNER_SPRITE_SIZE/);
-  assert.match(source, /const RUNNER_SPRITE_SIZE = 88/);
+  assert.match(source, /const RUNNER_SPRITE_SIZE = 178/);
   assert.match(source, /function removeLowAlphaFrameHalo/);
   assert.match(source, /RUNNER_HALO_ALPHA_CUTOFF = 72/);
   assert.match(source, /function drawRunnerFallback/);
