@@ -64,7 +64,7 @@ export function JumpingRaceGame() {
   const pointers = useRef(new Map<number, { origin: number; direction: -1 | 0 | 1 }>());
   const [status, setStatus] = useState<"ready" | "playing" | "over">("ready");
   const [score, setScore] = useState(0);
-  const [officialNotice, setOfficialNotice] = useState("Checking official play...");
+  const [, setOfficialNotice] = useState("");
   const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
   const [starting, setStarting] = useState(false);
 
@@ -248,7 +248,6 @@ export function JumpingRaceGame() {
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting}>{starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link><Link className="button button--secondary" href="/games/jumping-race/scores#weekly">WEEKLY SCORE</Link></div>
           <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
-          <p className="sr-only" role="status" aria-live="polite">{officialNotice}</p>
         </>
       )}
     </section>
