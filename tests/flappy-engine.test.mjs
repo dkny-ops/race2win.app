@@ -23,6 +23,11 @@ test("seeded obstacle layouts are reproducible and different seeds diverge",()=>
   assert.deepEqual(simulate(9),simulate(9));
   assert.notDeepEqual(simulate(9).pipes,simulate(10).pipes);
 });
+test("official Flappy sessions receive a fresh server-generated course seed",()=>{
+  const server=readFileSync(new URL("../lib/game/flappy/server.ts",import.meta.url),"utf8");
+  assert.match(server,/randomInt\(0x1_0000_0000\)/);
+  assert.doesNotMatch(server,/FLAPPY_COURSE_SEED/);
+});
 test("oversize, reordered, fractional, impossible and post-collision inputs are rejected",()=>{
   for(const [inputs,tick] of [[[2,1],10],[[0,1],10],[[0,4.2],10],[[-1],10],[[10],10],[[],0],[[],36001],[Array(6001).fill(1),100]])assert.equal(e.parseFlaps(inputs,tick),null);
   assert.equal(e.replayFlappy(1,[99],100),null);

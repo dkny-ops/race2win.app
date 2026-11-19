@@ -33,11 +33,17 @@ export type JumpingRaceState = {
   cameraTarget: number;
   furthestLanding: number;
   nextRemovalAt: number | null;
+  courseRng: number;
   telemetry: { jumps: number; doubleJumps: number; directionChanges: number; previousDirection: -1 | 0 | 1; platformsRemoved: number };
 };
 
 function platform(x: number, y: number, w: number, color: string): Platform {
   return { x, y, w, color, scored: false };
+}
+
+function courseRandom(state: JumpingRaceState): number {
+  state.courseRng = (Math.imul(state.courseRng, 1664525) + 1013904223) >>> 0;
+  return state.courseRng;
 }
 
 export function platformWidth(time: number) {
@@ -49,21 +55,26 @@ export function platformWidth(time: number) {
 
 function fillCourse(state: JumpingRaceState) {
   while (state.courseEnd < state.camera + WIDTH * 2) {
-    const firstLedge = state.courseEnd + 190;
+    // Small, deterministic variations stop a public fixed route from being
+    // precomputed while retaining the proven reachable course envelope.
+    const lateral = ((courseRandom(state) % 5) - 2) * 10;
+    const vertical = (((courseRandom(state) >>> 8) % 3) - 1) * 10;
+    const firstLedge = state.courseEnd + 190 + lateral;
     const summit = firstLedge + FULL_PLATFORM_WIDTH + 5;
     const nextFloor = summit + FULL_PLATFORM_WIDTH + 450;
     const width = platformWidth(state.time);
     state.platforms.push(
-      platform(firstLedge, 380, width, colors[1]),
-      platform(firstLedge - FULL_PLATFORM_WIDTH - 18, 225, width, colors[2]),
-      platform(summit, 150, width, colors[3]),
+      platform(firstLedge, 380 + vertical, width, colors[1]),
+      platform(firstLedge - FULL_PLATFORM_WIDTH - 18, 225 + vertical, width, colors[2]),
+      platform(summit, 150 + vertical, width, colors[3]),
       platform(nextFloor, FLOOR, width, colors[0]),
     );
     state.courseEnd = nextFloor + FULL_PLATFORM_WIDTH;
   }
 }
 
-export function freshJumpingRace(): JumpingRaceState {
+export function freshJumpingRace(seed = 0): JumpingRaceState {
+  if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error("Invalid course seed");
   const state: JumpingRaceState = {
     player: { x: 110, y: FLOOR - PLAYER_HEIGHT, vy: 0, jumps: 0 },
     platforms: [platform(0, FLOOR, FULL_PLATFORM_WIDTH, colors[0])],
@@ -77,6 +88,7 @@ export function freshJumpingRace(): JumpingRaceState {
     cameraTarget: 0,
     furthestLanding: 0,
     nextRemovalAt: null,
+    courseRng: seed >>> 0,
     telemetry: { jumps: 0, doubleJumps: 0, directionChanges: 0, previousDirection: 0, platformsRemoved: 0 },
   };
   fillCourse(state);

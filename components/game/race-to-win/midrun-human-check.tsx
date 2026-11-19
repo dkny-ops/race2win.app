@@ -80,6 +80,9 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   if (!running || !ready || !check?.due || check.verified || !check.siteKey || !container.current || widget.current || !window.turnstile) return;
   const id = window.turnstile.render(container.current, {
    sitekey: check.siteKey, action: "midrun_human_check",
+   // Bind the Cloudflare proof to this server-generated check. The nonce is
+   // never accepted as a browser decision; it is compared again by Siteverify.
+   cData: check.nonce ?? undefined,
    size: "invisible", execution: "execute", appearance: "interaction-only",
    callback: onToken, "expired-callback": () => { setBusy(false); setMessage("Try verification again."); },
    "error-callback": () => { setBusy(false); setMessage("Verification pending. Try again."); },

@@ -33,6 +33,24 @@ test("Jumping Race replay is deterministic and rejects future input", () => {
   assert.equal(replay.replayJumpingRace([{ step: 2_000, direction: 1, jump: false }], 1_000), null);
 });
 
+test("Jumping Race course seeds are deterministic per session and vary between sessions", () => {
+  const first = engine.freshJumpingRace(101);
+  const same = engine.freshJumpingRace(101);
+  const different = engine.freshJumpingRace(202);
+  assert.deepEqual(first.platforms, same.platforms);
+  assert.notDeepEqual(first.platforms, different.platforms);
+  assert.throws(() => engine.freshJumpingRace(-1));
+});
+
+test("Jumping Race flags only corroborated bot-like evidence for review", () => {
+  const ordinary = Array.from({ length: 8 }, (_, step) => ({ step: step * 40, direction: 1, jump: false }));
+  const replayResult = { score: 1, elapsedMs: 10_000, ended: true, reason: "fall", actionDigest: "test", telemetry: { jumps: 0, doubleJumps: 0, directionChanges: 0, platformsRemoved: 0 } };
+  assert.deepEqual(replay.jumpingRaceReviewSignals(ordinary, replayResult), []);
+  const dense = Array.from({ length: 180 }, (_, step) => ({ step, direction: step % 2 ? 1 : -1, jump: false }));
+  const synthetic = { ...replayResult, elapsedMs: 5_000 };
+  assert.deepEqual(replay.jumpingRaceReviewSignals(dense, synthetic), ["high_input_density", "uniform_action_cadence"]);
+});
+
 test("Jumping Race never accepts actions after a server-proven fall", () => {
   const valid = replay.replayJumpingRace([{ step: 0, direction: 1, jump: false }], 10_000);
   assert.ok(valid?.ended, "forward run should naturally fall within the authoritative window");

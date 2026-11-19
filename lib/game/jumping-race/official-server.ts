@@ -7,7 +7,7 @@ export const noStore = { "Cache-Control": "no-store" };
 export function json(data: unknown, status = 200) { return NextResponse.json(data, { status, headers: noStore }); }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return (!origin || origin === new URL(request.url).origin) && request.headers.get("sec-fetch-site") !== "cross-site";
+  return origin === new URL(request.url).origin && request.headers.get("sec-fetch-site") !== "cross-site";
 }
 export async function player() {
   const context = await getVerifiedUserContext();

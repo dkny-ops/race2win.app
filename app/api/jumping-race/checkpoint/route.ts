@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const db = admin(); if (!db) return json({ message: "Unavailable" }, 503);
   const actions = parseJumpingRaceActions(b.actions);
   if (!actions || actions.length > 1000 || digestJumpingRaceActions(actions) !== b.digest) return json({ message: "Invalid actions" }, 400);
-  const { data: sessionRows, error: sessionError } = await db.rpc("jr_session_info", { p_session_id: b.sessionId, p_player_id: userId });
+  const { data: sessionRows, error: sessionError } = await db.rpc("jr_session_security_info", { p_session_id: b.sessionId, p_player_id: userId });
   const session = sessionRows?.[0];
   if (sessionError || !session || session.status !== "active") return json({ message: "Session unavailable" }, 409);
   const elapsed = Date.now() - Date.parse(session.started_at);

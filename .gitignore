@@ -6,5 +6,6 @@ node_modules/
 .rtw-online-bot-profile/
 .tmp-race2win-simulation/
 .tmp-racetowinwebsite-assets/
+supabase/.temp/
 *.tsbuildinfo
 .env*.local

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   const protections = (prior ?? []).map((x:{resume_simulation_ms:number})=>x.resume_simulation_ms);
   const progress = replayAuthoritativeProgress(session.gameplay_version,Number(session.seed),inputs,b.resumeMs as number,protections);
   if (!progress || progress.state !== "running" || Math.abs(progress.elapsedMs - (b.resumeMs as number)) > 20) return NextResponse.json({ message: "Invalid replay" }, { status: 409, headers: HEADERS });
-  const verified = await verifyTurnstileToken(b.turnstileToken, "midrun_human_check");
+  const verified = await verifyTurnstileToken(b.turnstileToken, "midrun_human_check", { expectedCdata: b.nonce });
   if (verified.status !== "verified") {
    // Only log a bounded reason category; never log challenge answers, tokens, or player identifiers.
    console.warn("midrun_turnstile_verification", { status: verified.status, reason: verified.reason });

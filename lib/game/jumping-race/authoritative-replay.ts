@@ -42,15 +42,30 @@ export function digestJumpingRaceActions(actions: readonly JumpingRaceAction[]):
 }
 
 /**
+ * These are review signals, never an automatic ban. A deterministic replay is
+ * evidence of physical validity, not proof that a person supplied the inputs.
+ */
+export function jumpingRaceReviewSignals(actions: readonly JumpingRaceAction[], replay: JumpingRaceReplay): string[] {
+  const signals: string[] = [];
+  if (actions.length >= 180 && replay.elapsedMs > 0 && actions.length / (replay.elapsedMs / 1_000) > 24) signals.push("high_input_density");
+  if (actions.length >= 40) {
+    const gaps = actions.slice(1).map((action, index) => action.step - actions[index]!.step);
+    const first = gaps[0];
+    if (first !== undefined && gaps.every((gap) => gap === first)) signals.push("uniform_action_cadence");
+  }
+  return signals;
+}
+
+/**
  * Replays only server-bounded ticks. The client supplies actions, never elapsed
  * time, score, position, platform layout or a random seed: the course is fixed
  * by the approved v1 validator.
  */
-export function replayJumpingRace(actions: readonly JumpingRaceAction[], serverElapsedMs: number): JumpingRaceReplay | null {
+export function replayJumpingRace(actions: readonly JumpingRaceAction[], serverElapsedMs: number, courseSeed = 0): JumpingRaceReplay | null {
   if (!Number.isSafeInteger(serverElapsedMs) || serverElapsedMs < 0) return null;
   if (actions.length > MAX_JUMPING_RACE_ACTIONS) return null;
   const maxSteps = Math.min(MAX_JUMPING_RACE_STEPS, Math.floor(serverElapsedMs / (STEP * 1000)));
-  const state = freshJumpingRace();
+  const state = freshJumpingRace(courseSeed);
   state.started = true;
   let nextAction = 0;
   let direction: -1 | 0 | 1 = 0;

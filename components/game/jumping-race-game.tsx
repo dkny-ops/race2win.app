@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import Link from "next/link";
 import { claimGameAudio, releaseGameAudio } from "@/components/layout/site-audio";
+import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 import {
   freshJumpingRace,
   stepJumpingRace,
@@ -289,6 +290,10 @@ export function JumpingRaceGame() {
   const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
   const [starting, setStarting] = useState(false);
   const [runnerAssetState, setRunnerAssetState] = useState<"loading" | "ready" | "fallback">("loading");
+  const humanCheckContainer = useRef<HTMLDivElement>(null);
+  const humanCheckResolver = useRef<((verified: boolean) => void) | null>(null);
+  const [humanCheckReady, setHumanCheckReady] = useState(false);
+  const [humanCheck, setHumanCheck] = useState<{ sessionId: string; nonce: string; siteKey: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -304,6 +309,60 @@ export function JumpingRaceGame() {
     for (const timer of countdownTimers.current) window.clearTimeout(timer);
     countdownTimers.current = [];
   }, []);
+
+  const verifyOfficialHuman = useCallback(async (sessionId: string, configuration: unknown): Promise<boolean> => {
+    if (!configuration || typeof configuration !== "object") return false;
+    const check = configuration as Record<string, unknown>;
+    if (typeof check.siteKey !== "string" || typeof check.nonce !== "string") return false;
+    return new Promise<boolean>((resolve) => {
+      humanCheckResolver.current?.(false);
+      humanCheckResolver.current = resolve;
+      setHumanCheck({ sessionId, siteKey: check.siteKey as string, nonce: check.nonce as string });
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!humanCheck || !humanCheckReady || !humanCheckContainer.current || !window.turnstile) return;
+    const api = window.turnstile;
+    let active = true;
+    let widget: string | null = null;
+    const settle = (verified: boolean) => {
+      if (!active) return;
+      active = false;
+      humanCheckResolver.current?.(verified);
+      humanCheckResolver.current = null;
+      setHumanCheck(null);
+    };
+    try {
+      widget = api.render(humanCheckContainer.current, {
+        sitekey: humanCheck.siteKey,
+        action: "jumping_race_session_verification",
+        cData: humanCheck.nonce,
+        size: "invisible",
+        execution: "execute",
+        appearance: "interaction-only",
+        callback: async (token) => {
+          try {
+            const response = await fetch("/api/jumping-race/human-check", {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sessionId: humanCheck.sessionId, nonce: humanCheck.nonce, token }),
+            });
+            settle(response.ok && (await response.json() as { verified?: unknown }).verified === true);
+          } catch { settle(false); }
+        },
+        "expired-callback": () => settle(false),
+        "error-callback": () => settle(false),
+      });
+      api.execute(widget);
+    } catch { queueMicrotask(() => settle(false)); }
+    return () => {
+      active = false;
+      if (widget) api.remove(widget);
+    };
+  }, [humanCheck, humanCheckReady]);
+
+  useEffect(() => () => { humanCheckResolver.current?.(false); humanCheckResolver.current = null; }, []);
 
   const prepareMusic = useCallback(() => {
     if (!music.current) {
@@ -401,20 +460,27 @@ export function JumpingRaceGame() {
     // it becomes audible only when the 3-2-1 countdown completes.
     if (musicIsAllowed()) void soundtrack.play().catch(() => undefined);
     official.current = null;
+    let courseSeed = 0;
     try {
       const response = await fetch("/api/jumping-race/start", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ requestId: crypto.randomUUID() }),
       });
       const result = await response.json();
-      if (response.ok && result.session?.id) {
-        official.current = { id: result.session.id, index: 1, step: 0, lastDirection: 0, pending: [], queue: Promise.resolve(), failed: false };
-        setOfficialNotice("Official run · " + result.session.plays_remaining + " attempts remaining");
+      if (response.ok && result.session?.id && Number.isInteger(result.session.courseSeed)) {
+        const verified = await verifyOfficialHuman(result.session.id, result.humanVerification);
+        if (verified) {
+          courseSeed = result.session.courseSeed;
+          official.current = { id: result.session.id, index: 1, step: 0, lastDirection: 0, pending: [], queue: Promise.resolve(), failed: false };
+          setOfficialNotice("Official run · " + result.session.plays_remaining + " attempts remaining");
+        } else {
+          setOfficialNotice("Practice mode · Human verification was not completed");
+        }
       } else {
         setOfficialNotice(result.message ? "Practice mode · " + result.message : "Practice mode");
       }
     } catch { setOfficialNotice("Practice mode · Official server unavailable"); }
-    game.current = freshJumpingRace();
+    game.current = freshJumpingRace(courseSeed);
     releaseControls();
     setScore(0);
     setStarting(false);
@@ -434,7 +500,7 @@ export function JumpingRaceGame() {
         countdownTimers.current = [];
       }, 3000),
     ];
-  }, [clearCountdownTimers, musicIsAllowed, prepareMusic, releaseControls, starting]);
+  }, [clearCountdownTimers, musicIsAllowed, prepareMusic, releaseControls, starting, verifyOfficialHuman]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -554,6 +620,7 @@ export function JumpingRaceGame() {
     <section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={active ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={active ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {countdown !== null ? <div aria-live="assertive" aria-label={`Race starts in ${countdown}`} style={{ position: "fixed", inset: 0, zIndex: 1, display: "grid", placeItems: "center", pointerEvents: "none", color: "#fff", fontSize: "clamp(7rem, 28vw, 18rem)", fontWeight: 900, fontStyle: "italic", textShadow: "0 0 18px #30dfff, 0 0 54px #5260ff" }}>{countdown}</div> : null}
+      {humanCheck ? <div role="status" aria-live="polite" style={{ position: "fixed", inset: 0, zIndex: 2, display: "grid", placeItems: "center", background: "rgba(4, 7, 26, .78)", color: "white", textAlign: "center", padding: 24 }}><div><p>VERIFYING OFFICIAL SESSION…</p><div ref={humanCheckContainer} /><TurnstileScript onReady={() => setHumanCheckReady(true)} onError={() => { humanCheckResolver.current?.(false); humanCheckResolver.current = null; setHumanCheck(null); }} /></div></div> : null}
       {active ? null : (
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link></div>

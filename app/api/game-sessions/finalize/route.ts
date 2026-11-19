@@ -10,6 +10,7 @@ import { OFFICIAL_SESSION_UUID, parseOfficialInputs, readOfficialSessionJson } f
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { createSecurityRequestId, logSecurityEvent } from "@/lib/observability/security-event";
+import { needsRaceToWinReview, raceToWinReviewSignals } from "@/lib/game/race-to-win/antifraud";
 
 export const runtime = "nodejs";
 const CACHE = { "Cache-Control": "no-store" };
@@ -144,6 +145,8 @@ export async function POST(request: Request) {
     // backfills only replay-proven missing milestones, then changes status in
     // one transaction. This closes the read/check/update race with concurrent
     // checkpoint requests.
+    const antiFraudSignals = raceToWinReviewSignals(body.inputs, replay.elapsedMs);
+    const antiFraudStatus = needsRaceToWinReview(antiFraudSignals) ? "under_review" : "verified";
     const { data: finalizedRows, error: finalizeError } = await admin.rpc("rtw_finalize_game_session_with_checkpoints", {
       p_session_id: session.id,
       p_player_id: userId,
@@ -156,8 +159,8 @@ export async function POST(request: Request) {
       // Keep referral credit disabled until its independent eligibility checks
       // are wired in. The RPC requires explicit server-owned fraud metadata.
       p_referral_eligible: false,
-      p_antifraud_status: "verified",
-      p_antifraud_signals: [],
+      p_antifraud_status: antiFraudStatus,
+      p_antifraud_signals: antiFraudSignals,
       p_checkpoint_proofs: checkpointProofs,
     });
     if (finalizeError) {
