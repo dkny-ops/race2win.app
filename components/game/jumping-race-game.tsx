@@ -14,6 +14,7 @@ import {
 
 
 const RUNNER_FRAME_PATHS = [
+  "/images/jumping-race/runner/idle_01.png",
   "/images/jumping-race/runner/run_01.png",
   "/images/jumping-race/runner/run_02.png",
   "/images/jumping-race/runner/run_03.png",
@@ -34,9 +35,38 @@ const RUNNER_FRAME_PATHS = [
 
 const RUNNER_SPRITE_SIZE = 120;
 const RUNNER_HALO_ALPHA_CUTOFF = 72;
-const runnerSprites = new Map<string, CanvasImageSource>();
-const runnerAnimation = new WeakMap<JumpingRaceState, { lastJumps: number; landingUntil: number }>();
+const runnerSprites = new Map<string, HTMLCanvasElement>();
+const runnerFeetBaselines = new Map<string, number>();
+const scenerySprites: {
+  background: HTMLImageElement | null;
+  platform1: HTMLImageElement | null;
+  platform2: HTMLImageElement | null;
+  platform3: HTMLImageElement | null;
+  platform4: HTMLImageElement | null;
+} = { background: null, platform1: null, platform2: null, platform3: null, platform4: null };
+const runnerAnimation = new WeakMap<JumpingRaceState, { lastJumps: number; landingUntil: number; facing: -1 | 1 }>();
 let runnerSpritePreload: Promise<void> | null = null;
+let scenerySpritePreload: Promise<void> | null = null;
+
+function preloadScenerySprites(): Promise<void> {
+  if (scenerySpritePreload) return scenerySpritePreload;
+
+  const load = (key: keyof typeof scenerySprites, path: string) => new Promise<void>((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => { scenerySprites[key] = image; resolve(); };
+    image.onerror = () => reject(new Error(`Unable to load Jumping Race scenery: ${path}`));
+    image.src = path;
+  });
+  scenerySpritePreload = Promise.all([
+    load("background", "/images/jumping-race/background.png"),
+    load("platform1", "/images/jumping-race/platform-1.png"),
+    load("platform2", "/images/jumping-race/platform-2.png"),
+    load("platform3", "/images/jumping-race/platform-3.png"),
+    load("platform4", "/images/jumping-race/platform-4.png"),
+  ]).then(() => undefined);
+  return scenerySpritePreload;
+}
 
 function removeLowAlphaFrameHalo(image: HTMLImageElement): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
@@ -59,6 +89,18 @@ function removeLowAlphaFrameHalo(image: HTMLImageElement): HTMLCanvasElement {
   return canvas;
 }
 
+function runnerFeetBaseline(image: HTMLCanvasElement): number {
+  const context = image.getContext("2d");
+  if (!context) return image.height;
+  const pixels = context.getImageData(0, 0, image.width, image.height).data;
+  for (let y = image.height - 1; y >= 0; y--) {
+    for (let x = 0; x < image.width; x++) {
+      if (pixels[(y * image.width + x) * 4 + 3] > 0) return y + 1;
+    }
+  }
+  return image.height;
+}
+
 function preloadRunnerSprites(): Promise<void> {
   if (runnerSpritePreload) return runnerSpritePreload;
 
@@ -66,7 +108,9 @@ function preloadRunnerSprites(): Promise<void> {
     const image = new Image();
     image.decoding = "async";
     image.onload = () => {
-      runnerSprites.set(path, removeLowAlphaFrameHalo(image));
+      const cleaned = removeLowAlphaFrameHalo(image);
+      runnerSprites.set(path, cleaned);
+      runnerFeetBaselines.set(path, runnerFeetBaseline(cleaned));
       resolve();
     };
     image.onerror = () => reject(new Error(`Unable to load approved runner frame: ${path}`));
@@ -81,9 +125,10 @@ function frameAt(frames: readonly string[], step: number): string {
 }
 
 function runnerFrame(state: JumpingRaceState): string {
-  const current = runnerAnimation.get(state) ?? { lastJumps: 0, landingUntil: 0 };
+  const current = runnerAnimation.get(state) ?? { lastJumps: 0, landingUntil: 0, facing: 1 as const };
   const grounded = state.player.jumps === 0 && Math.abs(state.player.vy) < 1;
 
+  if (state.telemetry.previousDirection !== 0) current.facing = state.telemetry.previousDirection;
   if (current.lastJumps > 0 && grounded) current.landingUntil = state.time + 0.22;
   current.lastJumps = state.player.jumps;
   runnerAnimation.set(state, current);
@@ -118,7 +163,7 @@ function runnerFrame(state: JumpingRaceState): string {
     ], tick);
   }
   if (!state.started || state.telemetry.previousDirection === 0) {
-    return "/images/jumping-race/runner/run_01.png";
+    return "/images/jumping-race/runner/idle_01.png";
   }
   return frameAt([
     "/images/jumping-race/runner/run_01.png",
@@ -129,12 +174,25 @@ function runnerFrame(state: JumpingRaceState): string {
 }
 
 function drawRunnerSprite(ctx: CanvasRenderingContext2D, state: JumpingRaceState, x: number, y: number): boolean {
-  const image = runnerSprites.get(runnerFrame(state));
+  const frame = runnerFrame(state);
+  const image = runnerSprites.get(frame);
   if (!image) return false;
 
-  // Every approved PNG shares the same transparent feet baseline. Align it to the existing
-  // 44px player collision box; this is visual-only and never changes physics or replay data.
-  ctx.drawImage(image, x + 17 - RUNNER_SPRITE_SIZE / 2, y + 44 - RUNNER_SPRITE_SIZE, RUNNER_SPRITE_SIZE, RUNNER_SPRITE_SIZE);
+  // The supplied PNGs include transparent padding below their visible shoes. Read each
+  // frame's real feet baseline after halo cleanup so it lands on the existing 44px
+  // collision box, without changing physics or replay data.
+  const feet = runnerFeetBaselines.get(frame) ?? image.height;
+  const renderedFeet = RUNNER_SPRITE_SIZE * (feet / image.height);
+  const left = x + 17 - RUNNER_SPRITE_SIZE / 2;
+  const top = y + 44 - renderedFeet;
+  const facing = runnerAnimation.get(state)?.facing ?? 1;
+  ctx.save();
+  if (facing === -1) {
+    ctx.translate(2 * (x + 17), 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(image, left, top, RUNNER_SPRITE_SIZE, RUNNER_SPRITE_SIZE);
+  ctx.restore();
   return true;
 }
 
@@ -171,15 +229,41 @@ function drawRunnerFallback(ctx: CanvasRenderingContext2D, x: number, y: number)
   ctx.restore();
 }
 
+function drawSceneryBackground(ctx: CanvasRenderingContext2D, state: JumpingRaceState) {
+ const image = scenerySprites.background;
+ if (image) {
+  const scale = Math.max(W / image.naturalWidth, H / image.naturalHeight);
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+  ctx.drawImage(image, (W - width) / 2, (H - height) / 2, width, height);
+  return;
+ }
+ const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,"#0c1346");sky.addColorStop(.65,"#39318b");sky.addColorStop(1,"#9157b3");ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ for(let i=0;i<65;i++){const x=((i*173.1-state.camera*.11)%(W+80)+W+80)%(W+80);const y=18+(i*89)%360;ctx.fillStyle=i%3?"#b8a8ff":"#ffffff";ctx.globalAlpha=.35+(i%4)*.15;ctx.fillRect(x,y,2,2)}ctx.globalAlpha=1;
+ for(let i=0;i<9;i++){const x=((i*247-state.camera*.23)%(W+320)+W+320)%(W+320)-120;const y=300+(i%3)*44;ctx.fillStyle="#413c8a";ctx.beginPath();ctx.ellipse(x,y,180,80,0,0,Math.PI*2);ctx.fill()}
+}
+
+function drawPlatformSprite(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, color: string) {
+ const spaces = Math.max(1, Math.min(4, Math.round(width / TILE_SIZE))) as 1 | 2 | 3 | 4;
+ const image = scenerySprites[`platform${spaces}`];
+ if (image) {
+  // The trimmed PNG begins on its visible upper surface. It is rendered at
+  // the engine's physical width without changing its aspect ratio, so p.y
+  // remains both the collision plane and the visible landing surface.
+  const height = width * (image.naturalHeight / image.naturalWidth);
+  ctx.drawImage(image, x, y, width, height);
+  return;
+ }
+ ctx.shadowBlur=17;ctx.shadowColor=color;ctx.fillStyle=color;ctx.fillRect(x,y,width,23);ctx.shadowBlur=0;
+ ctx.fillStyle="#172254";ctx.fillRect(x+3,y+8,width-6,27);
+ ctx.fillStyle=color;ctx.globalAlpha=.5;for(let k=TILE_SIZE;k<width;k+=TILE_SIZE)ctx.fillRect(x+k,y+8,3,24);ctx.globalAlpha=1;
+}
+
 function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
  const {width:w,height:h}=ctx.canvas;ctx.clearRect(0,0,w,h);
- const sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,"#0c1346");sky.addColorStop(.65,"#39318b");sky.addColorStop(1,"#9157b3");ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
- for(let i=0;i<65;i++){const x=((i*173.1-s.camera*.11)%(W+80)+W+80)%(W+80);const y=18+(i*89)%360;ctx.fillStyle=i%3?"#b8a8ff":"#ffffff";ctx.globalAlpha=.35+(i%4)*.15;ctx.fillRect(x,y,2,2)}ctx.globalAlpha=1;
- for(let i=0;i<9;i++){const x=((i*247-s.camera*.23)%(W+320)+W+320)%(W+320)-120;const y=300+(i%3)*44;ctx.fillStyle="#413c8a";ctx.beginPath();ctx.ellipse(x,y,180,80,0,0,Math.PI*2);ctx.fill()}
+ drawSceneryBackground(ctx, s);
  for(const p of s.platforms){const x=p.x-s.camera;if(x>W+50||x+p.w< -50)continue;
-  ctx.shadowBlur=17;ctx.shadowColor=p.color;ctx.fillStyle=p.color;ctx.fillRect(x,p.y,p.w,23);ctx.shadowBlur=0;
-  ctx.fillStyle="#172254";ctx.fillRect(x+3,p.y+8,p.w-6,27);
-  ctx.fillStyle=p.color;ctx.globalAlpha=.5;for(let k=TILE_SIZE;k<p.w;k+=TILE_SIZE)ctx.fillRect(x+k,p.y+8,3,24);ctx.globalAlpha=1;
+  drawPlatformSprite(ctx, x, p.y, p.w, p.color);
  }
  const px=s.player.x-s.camera,py=s.player.y;
  if(!drawRunnerSprite(ctx,s,px,py)) drawRunnerFallback(ctx,px,py);
@@ -208,6 +292,7 @@ export function JumpingRaceGame() {
       () => { if (active) setRunnerAssetState("ready"); },
       () => { if (active) setRunnerAssetState("fallback"); },
     );
+    void preloadScenerySprites().catch(() => undefined);
     return () => { active = false; };
   }, []);
 

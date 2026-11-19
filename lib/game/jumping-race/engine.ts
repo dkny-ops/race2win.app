@@ -5,6 +5,8 @@ export const STEP = 1 / 120;
 export const PLATFORM_LIFETIME = 2;
 export const TILE_SIZE = 36;
 const FULL_PLATFORM_WIDTH = 4 * TILE_SIZE;
+const PLATFORM_WIDTH_STEP_SECONDS = 60;
+const MIN_PLATFORM_BLOCKS = 1;
 const FLOOR = 460;
 const GRAVITY = 1650;
 const MOVE_SPEED = 380;
@@ -39,7 +41,10 @@ function platform(x: number, y: number, w: number, color: string): Platform {
 }
 
 export function platformWidth(time: number) {
-  return TILE_SIZE * (time >= 120 ? 2 : time >= 60 ? 3 : 4);
+  // The starting floor is always a separate four-block platform. New ledges
+  // narrow by one block every sixty seconds, but never become impassable.
+  const blocks = Math.max(MIN_PLATFORM_BLOCKS, 4 - Math.floor(Math.max(0, time) / PLATFORM_WIDTH_STEP_SECONDS));
+  return TILE_SIZE * blocks;
 }
 
 function fillCourse(state: JumpingRaceState) {
@@ -97,12 +102,9 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
     if (direction !== 0) state.telemetry.directionChanges++;
     state.telemetry.previousDirection = direction;
   }
-  const previousWidth = platformWidth(state.time);
   state.time += STEP;
-  const currentWidth = platformWidth(state.time);
-  if (currentWidth !== previousWidth) {
-    for (const ledge of state.platforms.slice(1)) ledge.w = currentWidth;
-  }
+  // Width changes apply only while adding a new ledge. Existing platforms,
+  // especially the one carrying the player, never shrink beneath them.
   advancePlatformQueue(state);
 
   if (direction === 1) {

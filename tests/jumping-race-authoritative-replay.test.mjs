@@ -56,3 +56,24 @@ test("Jumping Race removes queued platforms every two seconds without changing t
   assert.ok(state.nextRemovalAt !== null);
   assert.ok(Math.abs((state.nextRemovalAt - state.time) - 2) < 1e-9);
 });
+
+test("Jumping Race uses the official four-to-one platform progression without shrinking active ledges", () => {
+  const state = engine.freshJumpingRace();
+
+  assert.equal(state.platforms[0].w, engine.TILE_SIZE * 4);
+  assert.equal(engine.platformWidth(0), engine.TILE_SIZE * 4);
+  assert.equal(engine.platformWidth(59.999), engine.TILE_SIZE * 4);
+  assert.equal(engine.platformWidth(60), engine.TILE_SIZE * 3);
+  assert.equal(engine.platformWidth(119.999), engine.TILE_SIZE * 3);
+  assert.equal(engine.platformWidth(120), engine.TILE_SIZE * 2);
+  assert.equal(engine.platformWidth(179.999), engine.TILE_SIZE * 2);
+  assert.equal(engine.platformWidth(180), engine.TILE_SIZE);
+  assert.equal(engine.platformWidth(600), engine.TILE_SIZE);
+
+  state.started = true;
+  state.time = 120 - engine.STEP / 2;
+  const priorLedgeWidths = state.platforms.map((platform) => platform.w);
+  engine.stepJumpingRace(state, 0, false);
+
+  assert.deepEqual(state.platforms.map((platform) => platform.w), priorLedgeWidths);
+});
