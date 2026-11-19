@@ -277,9 +277,12 @@ export function JumpingRaceGame() {
   const game = useRef<JumpingRaceState | null>(null);
   const jumpQueued = useRef(false);
   const runStartedAt = useRef(0);
+  const music = useRef<HTMLAudioElement | null>(null);
+  const countdownTimers = useRef<number[]>([]);
   const keys = useRef(new Set<string>());
   const pointers = useRef(new Map<number, { origin: number; direction: -1 | 0 | 1 }>());
-  const [status, setStatus] = useState<"ready" | "playing" | "over">("ready");
+  const [status, setStatus] = useState<"ready" | "countdown" | "playing" | "over">("ready");
+  const [countdown, setCountdown] = useState<3 | 2 | 1 | null>(null);
   const [score, setScore] = useState(0);
   const [, setOfficialNotice] = useState("");
   const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
@@ -295,6 +298,26 @@ export function JumpingRaceGame() {
     void preloadScenerySprites().catch(() => undefined);
     return () => { active = false; };
   }, []);
+
+  const clearCountdownTimers = useCallback(() => {
+    for (const timer of countdownTimers.current) window.clearTimeout(timer);
+    countdownTimers.current = [];
+  }, []);
+
+  const prepareMusic = useCallback(() => {
+    if (!music.current) {
+      music.current = new Audio("/audio/jumping-race-race.mp3");
+      music.current.loop = true;
+      music.current.preload = "auto";
+    }
+    return music.current;
+  }, []);
+
+  useEffect(() => () => {
+    clearCountdownTimers();
+    music.current?.pause();
+    music.current = null;
+  }, [clearCountdownTimers]);
 
   const flush = useCallback((run: NonNullable<typeof official.current>) => {
     if (!run.pending.length || run.failed) return;
@@ -341,6 +364,14 @@ export function JumpingRaceGame() {
   const start = useCallback(async () => {
     if (starting) return;
     setStarting(true);
+    clearCountdownTimers();
+    const soundtrack = prepareMusic();
+    soundtrack.pause();
+    soundtrack.currentTime = 0;
+    soundtrack.volume = 0;
+    // Start silently while the click still carries a browser user gesture;
+    // it becomes audible only when the 3-2-1 countdown completes.
+    void soundtrack.play().catch(() => undefined);
     official.current = null;
     try {
       const response = await fetch("/api/jumping-race/start", {
@@ -355,14 +386,27 @@ export function JumpingRaceGame() {
         setOfficialNotice(result.message ? "Practice mode · " + result.message : "Practice mode");
       }
     } catch { setOfficialNotice("Practice mode · Official server unavailable"); }
-    setStarting(false);
     game.current = freshJumpingRace();
-    game.current.started = true;
-    runStartedAt.current = performance.now();
     releaseControls();
     setScore(0);
-    setStatus("playing");
-  }, [releaseControls, starting]);
+    setStarting(false);
+    setCountdown(3);
+    setStatus("countdown");
+    countdownTimers.current = [
+      window.setTimeout(() => setCountdown(2), 1000),
+      window.setTimeout(() => setCountdown(1), 2000),
+      window.setTimeout(() => {
+        const state = game.current;
+        if (!state) return;
+        state.started = true;
+        runStartedAt.current = performance.now();
+        soundtrack.volume = 0.35;
+        setCountdown(null);
+        setStatus("playing");
+        countdownTimers.current = [];
+      }, 3000),
+    ];
+  }, [clearCountdownTimers, prepareMusic, releaseControls, starting]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -424,6 +468,10 @@ export function JumpingRaceGame() {
         }
         if (state.over) {
           releaseControls();
+          if (music.current) {
+            music.current.pause();
+            music.current.currentTime = 0;
+          }
           setScore(state.score);
           const { jumps, doubleJumps, directionChanges, platformsRemoved } = state.telemetry;
           const measure = "jumping-race:last-run";
@@ -469,10 +517,12 @@ export function JumpingRaceGame() {
   }
 
   const playing = status === "playing";
+  const active = playing || status === "countdown";
   return (
-    <section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={playing ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
-      <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={playing ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
-      {playing ? null : (
+    <section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={active ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
+      <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={active ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
+      {countdown !== null ? <div aria-live="assertive" aria-label={`Race starts in ${countdown}`} style={{ position: "fixed", inset: 0, zIndex: 1, display: "grid", placeItems: "center", pointerEvents: "none", color: "#fff", fontSize: "clamp(7rem, 28vw, 18rem)", fontWeight: 900, fontStyle: "italic", textShadow: "0 0 18px #30dfff, 0 0 54px #5260ff" }}>{countdown}</div> : null}
+      {active ? null : (
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link></div>
           {runnerAssetState === "fallback" ? <p role="alert" data-testid="jumping-race-runner-fallback">Developer diagnostic: approved runner sprites did not load; using the visual fallback.</p> : null}
