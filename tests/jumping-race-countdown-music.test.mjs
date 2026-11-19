@@ -17,7 +17,22 @@ test("Jumping Race starts its supplied soundtrack only with the game countdown",
   assert.match(source, /setCountdown\(3\)/);
   assert.match(source, /setCountdown\(2\).*1000/s);
   assert.match(source, /setCountdown\(1\).*2000/s);
-  assert.match(source, /soundtrack\.volume = 0\.35/);
+  assert.match(source, /soundtrack\.volume = musicIsAllowed\(\) \? 0\.35 : 0/);
   assert.match(source, /state\.started = true/);
-  assert.match(source, /music\.current\?\.pause\(\)/);
+  assert.match(source, /soundtrack\?\.pause\(\)/);
+});
+
+test("Jumping Race hands off shared music only when PLAY starts and releases it on navigation", () => {
+  const game = fs.readFileSync(component, "utf8");
+  const coordinator = fs.readFileSync(path.join(root, "components", "layout", "site-audio.tsx"), "utf8");
+
+  assert.match(game, /Keep website music on the pre-game screen/);
+  assert.match(game, /const soundtrack = prepareMusic\(\);\s+\/\/ Keep website music[\s\S]*claimGameAudio\("jumping", soundtrack\)/);
+  assert.match(game, /releaseGameAudio\("jumping", soundtrack\)/);
+  assert.match(game, /GAME OVER returns the shared soundtrack to the website/);
+  assert.match(game, /releaseGameAudio\("jumping", music\.current\)/);
+  assert.match(game, /rtw-site-audio-state/);
+  assert.match(game, /musicIsAllowed\(\)/);
+  assert.match(coordinator, /GameAudioChannel/);
+  assert.match(coordinator, /channel !== "site"/);
 });

@@ -2,15 +2,26 @@
 import { useEffect, useRef, useState } from "react";
 
 type Channel = "site" | "race" | "flappy";
+export type GameAudioChannel = Exclude<Channel, "site"> | "jumping";
 const SOURCES: Record<Channel,string> = { site: "/Music%201.mp3", race: "/Race1.mp3", flappy: "/Flappy10.mp3" };
 const VOLUME: Record<Channel,number> = { site: .22, race: .42, flappy: .42 };
-const active = new Map<Channel,HTMLAudioElement>();
+const active = new Map<Channel | GameAudioChannel,HTMLAudioElement>();
 function syncSite() {
  const site = active.get("site");
  if (!site) return;
- const gameActive = active.has("race") || active.has("flappy");
+ const gameActive = [...active.keys()].some((channel) => channel !== "site");
  if (document.hidden || gameActive || sessionStorage.getItem("rtw-site-paused")==="1") site.pause();
  else void site.play().catch(()=>{});
+}
+export function claimGameAudio(channel: GameAudioChannel, element: HTMLAudioElement) {
+ const existing = active.get(channel);
+ if (existing && existing !== element) existing.pause();
+ active.set(channel, element);
+ syncSite();
+}
+export function releaseGameAudio(channel: GameAudioChannel, element?: HTMLAudioElement) {
+ if (!element || active.get(channel) === element) active.delete(channel);
+ syncSite();
 }
 export function AudioPlayer({ channel, playing = true, showControls = true }: { channel:Channel; playing?:boolean; showControls?:boolean }) {
  const audio = useRef<HTMLAudioElement|null>(null);

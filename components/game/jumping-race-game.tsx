@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import Link from "next/link";
+import { claimGameAudio, releaseGameAudio } from "@/components/layout/site-audio";
 import {
   freshJumpingRace,
   stepJumpingRace,
@@ -313,9 +314,33 @@ export function JumpingRaceGame() {
     return music.current;
   }, []);
 
+  const musicIsAllowed = useCallback(() => {
+    if (sessionStorage.getItem("rtw-site-paused") === "1") return false;
+    const siteVolume = localStorage.getItem("rtw-volume-site");
+    return siteVolume === null || Number(siteVolume) > 0;
+  }, []);
+
+  useEffect(() => {
+    const syncPreference = () => {
+      const soundtrack = music.current;
+      if (!soundtrack) return;
+      if (!musicIsAllowed()) {
+        soundtrack.pause();
+      } else if (game.current?.started && !game.current.over) {
+        void soundtrack.play().catch(() => undefined);
+      }
+    };
+    window.addEventListener("rtw-site-audio-state", syncPreference);
+    return () => {
+      window.removeEventListener("rtw-site-audio-state", syncPreference);
+    };
+  }, [musicIsAllowed]);
+
   useEffect(() => () => {
     clearCountdownTimers();
-    music.current?.pause();
+    const soundtrack = music.current;
+    soundtrack?.pause();
+    if (soundtrack) releaseGameAudio("jumping", soundtrack);
     music.current = null;
   }, [clearCountdownTimers]);
 
@@ -366,12 +391,15 @@ export function JumpingRaceGame() {
     setStarting(true);
     clearCountdownTimers();
     const soundtrack = prepareMusic();
+    // Keep website music on the pre-game screen. Handoff starts only with
+    // the player's PLAY gesture and its 3-2-1 countdown.
+    claimGameAudio("jumping", soundtrack);
     soundtrack.pause();
     soundtrack.currentTime = 0;
     soundtrack.volume = 0;
     // Start silently while the click still carries a browser user gesture;
     // it becomes audible only when the 3-2-1 countdown completes.
-    void soundtrack.play().catch(() => undefined);
+    if (musicIsAllowed()) void soundtrack.play().catch(() => undefined);
     official.current = null;
     try {
       const response = await fetch("/api/jumping-race/start", {
@@ -400,13 +428,13 @@ export function JumpingRaceGame() {
         if (!state) return;
         state.started = true;
         runStartedAt.current = performance.now();
-        soundtrack.volume = 0.35;
+        soundtrack.volume = musicIsAllowed() ? 0.35 : 0;
         setCountdown(null);
         setStatus("playing");
         countdownTimers.current = [];
       }, 3000),
     ];
-  }, [clearCountdownTimers, prepareMusic, releaseControls, starting]);
+  }, [clearCountdownTimers, musicIsAllowed, prepareMusic, releaseControls, starting]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -471,6 +499,10 @@ export function JumpingRaceGame() {
           if (music.current) {
             music.current.pause();
             music.current.currentTime = 0;
+            // GAME OVER returns the shared soundtrack to the website unless
+            // its existing pause preference says otherwise. PLAY AGAIN claims
+            // this channel again when its next countdown starts.
+            releaseGameAudio("jumping", music.current);
           }
           setScore(state.score);
           const { jumps, doubleJumps, directionChanges, platformsRemoved } = state.telemetry;
