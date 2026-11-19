@@ -23,7 +23,7 @@ const copy = {
     faqs: [
       { question: "Is Race To Win live yet?", answer: "The game is playable. Official competition features will be announced separately." },
       { question: "How will the game work?", answer: "Official rules and entry requirements will be published before competitive features become available." },
-      { question: "Will there be prizes?", answer: "A $20 total prize pool is planned for the top three winners. Prize eligibility, verification, and official terms must be confirmed before any competition begins." },
+      { question: "Will there be prizes?", answer: "Three $10 weekly prize pools are planned: one for each game. Prize eligibility, verification, and official terms apply." },
       { question: "Will I need an account?", answer: "Player accounts are available for sign-in and profile setup. Game access details will be shared before launch." },
     ],
   },
@@ -39,7 +39,7 @@ const copy = {
     faqs: [
       { question: "¿Race To Win ya está disponible?", answer: "El juego está disponible para jugar. Las competencias oficiales se anunciarán por separado." },
       { question: "¿Cómo funcionará el juego?", answer: "Las reglas oficiales y los requisitos de participación se publicarán antes de activar las competencias." },
-      { question: "¿Habrá premios?", answer: "Se prevé una bolsa total de $20 repartida entre los tres primeros lugares. Los requisitos, la verificación y las condiciones oficiales deben confirmarse antes del torneo." },
+      { question: "¿Habrá premios?", answer: "Se prevén tres bolsas semanales de $10: una para cada juego. Se aplican requisitos, verificación y condiciones oficiales." },
       { question: "¿Necesitaré una cuenta?", answer: "Puedes iniciar sesión y configurar tu perfil. Se publicarán más detalles antes del lanzamiento." },
     ],
   },
@@ -96,8 +96,8 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
               </article>
             </div>
           </div>
-          <aside className="home-games-prize" aria-label={language === "es" ? "Premios totales de 20 dólares para los tres primeros lugares" : "20 dollar total prize pool for the top three"}>
-            <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $20 total prize pool shared among the top three winners" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
+          <aside className="home-games-prize" aria-label={language === "es" ? "30 dólares en premios totales: 10 dólares por juego" : "30 dollars in total prizes: 10 dollars per game"}>
+            <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $30 total prizes, $10 per game across three games" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
           </aside>
         </div>
       </section>
