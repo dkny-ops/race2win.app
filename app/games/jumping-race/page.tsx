@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdsterraHomeAds } from "@/components/marketing/adsterra-home-ads";
 import { JumpingRaceGame } from "@/components/game/jumping-race-game";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +8,7 @@ export const metadata = { title: "Jumping Race", robots: { index: false, follow:
 export default function JumpingRacePage() {
   return <main className="jumping-race-page page-section shell" style={{ minHeight: "70vh", textAlign: "center" }}>
     <JumpingRaceGame />
+    <AdsterraHomeAds />
     <div style={{ marginTop: 20 }}><Link className="button button--secondary" href="/">← BACK TO HOME</Link></div>
   </main>;
 }
