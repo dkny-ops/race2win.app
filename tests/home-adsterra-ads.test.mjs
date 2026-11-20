@@ -6,18 +6,22 @@ const component = fs.readFileSync("components/marketing/adsterra-home-ads.tsx", 
 const home = fs.readFileSync("components/marketing/localized-home.tsx", "utf8");
 const config = fs.readFileSync("next.config.ts", "utf8");
 
-test("Home-only Adsterra banner slots stay sandboxed and isolate each atOptions global", () => {
-  assert.match(component, /sandbox="allow-scripts"/);
-  assert.match(component, /srcDoc=\{document\}/);
-  assert.match(component, /20fdc8466532d667caf530613bd017bb/);
-  assert.match(component, /65b7d9f72d18a20dc7345201dc2ef23e/);
-  assert.doesNotMatch(component, /container-e247870efd06877c5c0176c6e3b3bc4d/);
-  assert.doesNotMatch(component, /217c62792bbb2e246c4c2579597fee28/);
+test("Home-only banners load from the dedicated ad origin, not inline provider scripts", () => {
+  assert.match(component, /sandbox="allow-scripts allow-same-origin"/);
+  assert.match(component, /src=\{src\}/);
+  assert.match(component, /https:\/\/ads\.racetowin\.app\/desktop\//);
+  assert.match(component, /https:\/\/ads\.racetowin\.app\/mobile\//);
+  assert.match(component, /height=\{90\}/);
+  assert.match(component, /height=\{250\}/);
+  assert.doesNotMatch(component, /srcDoc|atOptions|bauval\.org/);
+  assert.doesNotMatch(component, /container-e247870efd06877c5c0176c6e3b3bc4d|217c62792bbb2e246c4c2579597fee28/);
   assert.ok(home.indexOf("<AdsterraHomeAds />") > home.indexOf("home-games-prize"));
 });
 
-test("Adsterra banner hosts are explicitly allowlisted without weakening the CSP", () => {
-  assert.match(config, /https:\/\/bauval\.org/);
+test("Main application CSP allows only the separate ad frame, not provider scripts or unsafe eval", () => {
+  assert.match(config, /frame-src [^;]*https:\/\/ads\.racetowin\.app/);
+  assert.doesNotMatch(config, /https:\/\/bauval\.org/);
+  assert.doesNotMatch(config, /unsafe-eval/);
   assert.doesNotMatch(config, /https:\/\/cdn\.cloudvideosa\.com/);
   assert.match(config, /object-src 'none'/);
   assert.match(config, /frame-ancestors 'none'/);
