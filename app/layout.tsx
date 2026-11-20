@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AdsterraPublicPageAds } from "@/components/marketing/adsterra-public-page-ads";
 import { AudioPlayer } from "@/components/layout/site-audio";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a className="skip-link" href="#main-content">Skip to content</a>
         <AudioPlayer channel="site" />
         <SiteHeader />
-        <main id="main-content">{children}</main>
+        <main id="main-content"><AdsterraPublicPageAds position="top" />{children}<AdsterraPublicPageAds position="bottom" /></main>
         <SiteFooter />
       </body>
     </html>
