@@ -8,6 +8,7 @@ import { FaqList } from "@/components/marketing/faq-list";
 import { GameCardShareButton } from "@/components/game/game-card-share-button";
 import { AdsterraHomeAds } from "@/components/marketing/adsterra-home-ads";
 import { AdsterraGameBanners } from "@/components/marketing/adsterra-game-banners";
+import { AdsterraVerticalHomeAds } from "@/components/marketing/adsterra-vertical-home-ads";
 import { ROUTES } from "@/lib/routes";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 
@@ -104,7 +105,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $30 total prizes, $10 per game across three games" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
           </aside>
           <AdsterraHomeAds />
-
+          <AdsterraVerticalHomeAds />
         </div>
       </section>
       <section className="section shell two-column" aria-labelledby="fair-title">
