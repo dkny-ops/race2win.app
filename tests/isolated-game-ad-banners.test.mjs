@@ -33,11 +33,13 @@ test("new Home banner stays between game cards and prize banner; game banners on
 test("vertical ads appear only on eligible desktop secondary pages, never Home or games", () => {
   assert.doesNotMatch(home, /<AdsterraVerticalHomeAds|<AdsterraVerticalPageAds/);
   assert.match(layout, /<AdsterraVerticalPageAds>/);
-  assert.match(verticalPages, /https:\\/\\/ads\\.racetowin\\.app\\/home-vertical-300/);
-  assert.match(verticalPages, /https:\\/\\/ads\\.racetowin\\.app\\/home-vertical-600/);
+  assert.ok(verticalPages.includes("https://ads.racetowin.app/home-vertical-300"));
+  assert.ok(verticalPages.includes("https://ads.racetowin.app/home-vertical-600"));
   assert.match(verticalPages, /sandbox="allow-scripts"/);
   assert.doesNotMatch(verticalPages, /allow-same-origin|bauval\\.org/);
   assert.match(verticalPages, /min-width: 1001px/);
   assert.match(verticalPages, /SIDE_AD_PATHS/);
-  assert.doesNotMatch(verticalPages, /"\\/games\\/race-to-win"| "\\/games\\/flappy-race"| "\\/games\\/jumping-race"/);
+  assert.ok(!verticalPages.includes('"/games/race-to-win"'));
+  assert.ok(!verticalPages.includes('"/games/flappy-race"'));
+  assert.ok(!verticalPages.includes('"/games/jumping-race"'));
 });
