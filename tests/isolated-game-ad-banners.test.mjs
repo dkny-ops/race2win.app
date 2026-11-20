@@ -12,14 +12,15 @@ const jumping = fs.readFileSync("components/game/jumping-race-game.tsx", "utf8")
 test("new game banners use the separate advertising origin and load one size at a time", () => {
   assert.match(banner, /https:\/\/ads\.racetowin\.app\/game-desktop/);
   assert.match(banner, /https:\/\/ads\.racetowin\.app\/game-mobile/);
-  assert.match(banner, /sandbox="allow-scripts"/);
-  assert.doesNotMatch(banner, /allow-same-origin/);
+  assert.match(banner, /sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"/);
+  assert.match(banner, /referrerPolicy="no-referrer"/);
   assert.doesNotMatch(banner, /bauval\.org/);
   assert.match(banner, /matchMedia/);
 });
 
 test("new banners stay below the existing Home ads and only on each game's initial screen", () => {
-  assert.ok(home.indexOf("<AdsterraGameBanners") > home.indexOf("<AdsterraHomeAds"));
+  assert.ok(home.indexOf("<AdsterraGameBanners") < home.indexOf('<div className="home-games-grid">'));
+  assert.ok(home.indexOf("<AdsterraHomeAds") > home.indexOf("<AdsterraGameBanners"));
   assert.match(race, /<AdsterraGameBanners className="rtw-game-ad"/);
   assert.match(flappy, /preGameBanner=\{<AdsterraGameBanners className="flappy-game-ad"/);
   assert.match(flappyCanvas, /!expanded && status === "ready" \? preGameBanner : null/);
