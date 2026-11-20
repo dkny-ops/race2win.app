@@ -2585,3 +2585,16 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
     font-size: .62rem;
   }
 }
+
+/* Race To Win: the ad is a normal row after the game, navigation and instructions.
+   The ready-state flex layout gives the logo/game explicit orders, so an unordered
+   ad would otherwise jump above the logo on mobile. */
+.rtw-game-page:has(.rtw-stage--ready) > .home-adsterra-ads {
+  order: 5 !important;
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  align-self: center;
+  clear: both;
+  margin: 16px auto 28px;
+}
