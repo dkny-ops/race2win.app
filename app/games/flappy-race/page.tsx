@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdsterraHomeAds } from "@/components/marketing/adsterra-home-ads";
 import { FlappyRacePage } from "@/components/game/flappy-race-page";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 
@@ -9,5 +10,6 @@ export default async function Page() {
  const context = await getVerifiedUserContext().catch(() => null);
  return <main className="flappy-game-page page-section shell narrow" style={{ textAlign: "center" }}>
   <FlappyRacePage authenticated={Boolean(context)} />
+  <AdsterraHomeAds />
  </main>;
 }
