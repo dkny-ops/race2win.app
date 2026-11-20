@@ -828,6 +828,11 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .home-game-tile--flappy .home-game-actions .button{border-color:#74ffa7;background:linear-gradient(180deg,#096e45,#052a23);box-shadow:0 0 15px #20e47c65}
 .home-games-prize{width:min(950px,100%);margin-top:20px}
 .home-games-prize img{border:1px solid #ffce58;border-radius:20px;box-shadow:0 0 20px #f6b3276b}
+.home-adsterra-ads{width:min(950px,100%);margin:20px auto 0;display:grid;justify-items:center;gap:18px}
+.home-adsterra-ads iframe{border:0;overflow:hidden;background:transparent}
+.home-adsterra-ads__display--desktop{width:728px;max-width:100%;height:90px}
+.home-adsterra-ads__display--mobile{display:none}
+@media(max-width:700px){.home-adsterra-ads{margin-top:16px;gap:16px}.home-adsterra-ads__display--desktop{display:none}.home-adsterra-ads__display--mobile{display:block;width:300px;max-width:100%;height:250px}}
 @media(max-width:700px){.home-games-hero{padding-top:125px}.home-games-content{width:calc(100% - 2rem)}.home-games-brand-title{font-size:clamp(2.15rem,9vw,3.6rem);margin-bottom:24px}.home-game-tile{min-height:260px;padding:22px}.home-game-tile h1,.home-game-tile h2{font-size:clamp(1.7rem,7vw,2.4rem)}.home-game-art{background-position:65% bottom}}
 @media(prefers-reduced-transparency:reduce){.home-game-tile{background:#07172a}.home-game-tile--flappy{background:#09231f}}
 
