@@ -92,6 +92,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
                 <h2 id="jumping-title" style={{position:"relative",margin:0}}><Image src="/images/Jump.PNG" alt="Jumping Race" width={1536} height={512} unoptimized style={{width:"100%",height:"auto",display:"block",objectFit:"contain"}} /></h2>
                 <div className="home-game-actions">
                   <Link href="/games/jumping-race" className="button button--primary home-game-play-link">{language==="es"?"JUGAR":"PLAY"}</Link>
+                  {owner ? <ButtonLink href="/admin/prize-review/jumping-race" variant="secondary">ADMIN</ButtonLink> : null}
                 </div>
                 <GameCardShareButton game="jumping-race" />
               </article>
