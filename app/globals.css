@@ -2624,3 +2624,11 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
 @media (max-width: 700px) {
   #main-content:has(> .adsterra-public-page-ads--top) { padding-top: 185px; }
 }
+
+/* Desktop secondary pages: dedicated side rails, never over the content. */
+.public-vertical-ad-layout{display:grid;grid-template-columns:160px minmax(0,1fr) 160px;gap:20px;align-items:start;max-width:1440px;margin:0 auto}
+.public-vertical-ad-layout__side{padding-top:185px;display:flex;justify-content:center;min-width:0}
+.public-vertical-ad-layout__side iframe{display:block;width:160px;border:0;background:transparent;overflow:hidden;flex:none}
+.public-vertical-ad-layout__content{min-width:0}
+.public-vertical-ad-layout__content .shell,.public-vertical-ad-layout__content .narrow{max-width:100%}
+@media(max-width:1000px){.public-vertical-ad-layout{display:block}.public-vertical-ad-layout__side{display:none}}
