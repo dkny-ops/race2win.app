@@ -18,8 +18,9 @@ test("new game banners use the separate advertising origin and load one size at 
   assert.match(banner, /matchMedia/);
 });
 
-test("new banners stay below the existing Home ads and only on each game's initial screen", () => {
-  assert.ok(home.indexOf("<AdsterraGameBanners") < home.indexOf('<div className="home-games-grid">'));
+test("new Home banner stays between game cards and prize banner; game banners only show before play", () => {
+  assert.ok(home.indexOf("<AdsterraGameBanners") > home.indexOf('<div className="home-games-grid">'));
+  assert.ok(home.indexOf("<AdsterraGameBanners") < home.indexOf('<aside className="home-games-prize"'));
   assert.ok(home.indexOf("<AdsterraHomeAds") > home.indexOf("<AdsterraGameBanners"));
   assert.match(race, /<AdsterraGameBanners className="rtw-game-ad"/);
   assert.match(flappy, /preGameBanner=\{<AdsterraGameBanners className="flappy-game-ad"/);
