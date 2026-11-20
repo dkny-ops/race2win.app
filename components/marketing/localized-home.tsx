@@ -60,6 +60,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
         <div className="home-games-content shell">
           <div className="home-games-logo-banner"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority sizes="(max-width: 760px) calc(100vw - 3rem), 1120px" /></div>
           {username ? <Link className="home-player-banner" href={ROUTES.profile} aria-label={`${t.profile}: ${username}`}>{username}</Link> : null}
+          <AdsterraGameBanners className="adsterra-game-banners--home" />
           <div className="home-games-grid">
             <div className="home-game-entry">
             <article className="home-game-tile home-game-tile--race">
@@ -103,7 +104,7 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
             <Image src="/images/racetowin-prize-banner.png.png" alt="Race To Win — $30 total prizes, $10 per game across three games" width={1536} height={512} sizes="(max-width: 760px) calc(100vw - 2rem), 1100px" />
           </aside>
           <AdsterraHomeAds />
-          <AdsterraGameBanners className="adsterra-game-banners--home" />
+
         </div>
       </section>
       <section className="section shell two-column" aria-labelledby="fair-title">
