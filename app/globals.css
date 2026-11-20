@@ -2615,3 +2615,11 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
     z-index: 1;
   }
 }
+
+/* Keep new public-page ad slots below the absolute site-brand/navigation header. */
+#main-content:has(> .adsterra-public-page-ads--top) { padding-top: 130px; }
+#main-content > .adsterra-public-page-ads--top { margin-top: 0; }
+#main-content > .adsterra-public-page-ads--bottom { margin-bottom: 24px; }
+@media (max-width: 700px) {
+  #main-content:has(> .adsterra-public-page-ads--top) { padding-top: 185px; }
+}
