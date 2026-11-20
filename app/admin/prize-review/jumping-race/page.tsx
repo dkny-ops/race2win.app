@@ -93,12 +93,12 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
       <label>Jugador <input name="q" type="search" defaultValue={search} maxLength={50} placeholder="Usuario o ID" /></label>
       <button className="button button--primary">BUSCAR</button>
     </form>
-    {search && <section>
-      <h2>Jugadores encontrados</h2>
+    <section>
+      <h2>Jugadores de Jumping Race</h2>
       {review.players.length ? <ul>{review.players.map(player =>
         <li key={player.user_id}><Link href={playerLink(player.user_id)}>{player.username ?? player.user_id}</Link></li>,
       )}</ul> : <p>No se encontraron jugadores de Jumping Race.</p>}
-    </section>}
+    </section>
     {review.player && <section className="profile-card" id="jugador" style={cardStyle}>
       <h2>{review.player.username ?? "Jugador"}</h2>
       <p>{review.player.user_id}</p>
