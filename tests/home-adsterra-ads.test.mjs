@@ -7,7 +7,7 @@ const home = fs.readFileSync("components/marketing/localized-home.tsx", "utf8");
 const config = fs.readFileSync("next.config.ts", "utf8");
 
 test("Home-only banners load from the dedicated ad origin, not inline provider scripts", () => {
-  assert.match(component, /sandbox="allow-scripts allow-same-origin"/);
+  assert.match(component, /sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"/);
   assert.match(component, /src=\{src\}/);
   assert.match(component, /https:\/\/ads\.racetowin\.app\/desktop\//);
   assert.match(component, /https:\/\/ads\.racetowin\.app\/mobile\//);
