@@ -808,7 +808,7 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 
 /* Glass arcade showcase: compact cards, dedicated art and centered racing title. */
 .home-games-hero{padding-top:clamp(135px,15vw,200px);padding-bottom:45px}
-.home-games-content{width:min(950px,calc(100% - 3rem))}
+.home-games-content{width:min(1435px,calc(100% - 3rem))}
 .home-games-brand-title{text-align:center;font-size:clamp(2.6rem,7.4vw,6.3rem);font-style:italic;font-weight:1000;letter-spacing:-.075em;line-height:1.05;margin:0 0 clamp(24px,4vw,48px);color:#f6fbff;text-shadow:0 3px 2px #031225,0 0 25px #238affad,3px 4px 0 #0b4d9a}
 .home-games-brand-title em{font-style:inherit;color:#42c8ff;text-shadow:0 0 27px #0c91ff}
 .home-games-brand-title span{font-size:.32em;color:#52bfff;vertical-align:middle;letter-spacing:-.3em}
