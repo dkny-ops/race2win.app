@@ -5,6 +5,7 @@ import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 import { FlappyVerifiedCanvas } from "./flappy-verified-canvas";
 import { FlappyRankingTable } from "@/components/scores/flappy-ranking";
 import { FlappyPersonalWeeklyScore } from "@/components/scores/flappy-personal-weekly-score";
+import { AdsterraGameBanners } from "@/components/marketing/adsterra-game-banners";
 
 export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
  const [language] = usePlayerLanguage();
@@ -16,7 +17,7 @@ export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
    <button className="flappy-score-button" type="button" aria-expanded={weeklyOpen} aria-controls="flappy-weekly-panel" onClick={() => setOpenPanel(weeklyOpen ? null : "weekly")}>WEEKLY SCORE</button>
  </div>;
  return <div className="flappy-race-page" style={{ marginTop: ".75rem" }}>
-   <FlappyVerifiedCanvas language={language} authenticated={authenticated} scoreControls={scoreControls} />
+   <FlappyVerifiedCanvas language={language} authenticated={authenticated} scoreControls={scoreControls} preGameBanner={<AdsterraGameBanners className="flappy-game-ad" />} />
    <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy flappy-bottom-help" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link>
    <div id="flappy-leaderboard-panel" hidden={!leaderboardOpen}>
      {leaderboardOpen ? <FlappyRankingTable language={language} /> : null}

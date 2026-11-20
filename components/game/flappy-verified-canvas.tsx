@@ -11,7 +11,7 @@ import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, check
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
-export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode }) {
+export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode }) {
   const es = language === "es";
   const { begin: beginVerification, finish: finishVerification, stop: stopVerification, widget: verificationWidget } = useFlappyInvisibleCheck();
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -285,6 +285,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls }:
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
     {verificationWidget}
+    {!expanded && status === "ready" ? preGameBanner : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent } from "rea
 import Link from "next/link";
 import { claimGameAudio, releaseGameAudio } from "@/components/layout/site-audio";
 import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
+import { AdsterraGameBanners } from "@/components/marketing/adsterra-game-banners";
 import {
   freshJumpingRace,
   stepJumpingRace,
@@ -617,7 +618,7 @@ export function JumpingRaceGame() {
   const playing = status === "playing";
   const active = playing || status === "countdown";
   return (
-    <section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={active ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
+    <>{status === "ready" ? <AdsterraGameBanners className="jumping-game-ad" /> : null}<section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={active ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={active ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {countdown !== null ? <div aria-live="assertive" aria-label={`Race starts in ${countdown}`} style={{ position: "fixed", inset: 0, zIndex: 1, display: "grid", placeItems: "center", pointerEvents: "none", color: "#fff", fontSize: "clamp(7rem, 28vw, 18rem)", fontWeight: 900, fontStyle: "italic", textShadow: "0 0 18px #30dfff, 0 0 54px #5260ff" }}>{countdown}</div> : null}
       {humanCheck ? <div role="status" aria-live="polite" style={{ position: "fixed", inset: 0, zIndex: 2, display: "grid", placeItems: "center", background: "rgba(4, 7, 26, .78)", color: "white", textAlign: "center", padding: 24 }}><div><p>VERIFYING OFFICIAL SESSION…</p><div ref={humanCheckContainer} /><TurnstileScript onReady={() => setHumanCheckReady(true)} onError={() => { humanCheckResolver.current?.(false); humanCheckResolver.current = null; setHumanCheck(null); }} /></div></div> : null}
@@ -628,6 +629,6 @@ export function JumpingRaceGame() {
           <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
         </>
       )}
-    </section>
+    </section></>
   );
 }
