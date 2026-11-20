@@ -40,8 +40,12 @@ export async function BalanceHistory({playerId}:{playerId:string}){
   if(candidate&&typeof candidate.weeklyTotal==="number")scores.set("flappy-race:"+week,candidate.weeklyTotal);
  }));
  const payoutMap=new Map((payouts.data??[]).map(p=>[p.id,p]));
- return <details style={{margin:"1rem 0",border:"1px solid #3d596b",borderRadius:12,padding:"1rem",overflowWrap:"anywhere"}}>
-  <summary style={{cursor:"pointer",fontWeight:800}}>HISTORIAL PRIVADO DEL BALANCE · {cash(Number(balance.data?.available_cents??0))}</summary>
+ return <section aria-label="Balance global del jugador" style={{margin:"1rem 0",border:"1px solid #3d596b",borderRadius:12,padding:"1rem",overflowWrap:"anywhere"}}>
+  <p style={{fontWeight:800,marginBottom:".35rem"}}>BALANCE GLOBAL DEL JUGADOR · TODOS LOS JUEGOS</p>
+  <p style={{fontSize:"clamp(1.5rem,4vw,2rem)",fontWeight:900,margin:".25rem 0"}}>{cash(Number(balance.data?.available_cents??0))}</p>
+  <p style={{fontSize:".85rem",opacity:.85}}>Saldo disponible acreditado en la cartera compartida. No incluye premios pendientes de aprobación. Los pagos registrados se descuentan del saldo.</p>
+  <details style={{marginTop:".75rem"}}>
+  <summary style={{cursor:"pointer",fontWeight:800}}>VER HISTORIAL PRIVADO DEL BALANCE</summary>
   <p>Solo administrador. Premios acreditados, fecha, torneo, puntuación y pagos registrados. Los movimientos permanecen después de pagar.</p>
   <div style={{display:"grid",gap:".7rem"}}>
    {rows.length===0?<p>No hay movimientos contables registrados.</p>:rows.map(row=>{
@@ -59,5 +63,6 @@ export async function BalanceHistory({playerId}:{playerId:string}){
    })}
   </div>
   <p style={{fontSize:".8rem",opacity:.8}}>Se muestran los últimos 300 movimientos y los últimos 100 pagos. El balance oficial proviene de Supabase.</p>
- </details>;
+ </details>
+ </section>;
 }
