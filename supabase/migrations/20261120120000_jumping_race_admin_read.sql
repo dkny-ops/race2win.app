@@ -34,8 +34,9 @@ begin
     ), players as (
       select p.user_id, p.username
       from public.profiles p
-      where nullif(p_search, '') is not null
-        and (p.user_id::text = lower(p_search) or strpos(lower(p.username), lower(p_search)) > 0)
+      where (nullif(p_search, '') is null
+          or p.user_id::text = lower(p_search)
+          or strpos(lower(coalesce(p.username, '')), lower(p_search)) > 0)
         and exists (select 1 from private.jumping_race_sessions s where s.player_id = p.user_id)
       order by p.username, p.user_id limit 50
     ), player_runs as (
