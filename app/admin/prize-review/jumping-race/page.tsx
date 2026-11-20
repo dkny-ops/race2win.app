@@ -84,15 +84,46 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
 
   return <main className="page-section shell narrow flappy-admin-review">
     <h1 className="flappy-admin-page-title">PANEL DE REVISIÓN SEMANAL · JUMPING RACE</h1>
-    <nav className="button-row">
-      <Link href="/" className="button button--secondary">← VOLVER A HOME</Link>
+    <nav className="button-row" style={{ marginBottom: "1.25rem" }}>
       <Link href="/admin/prize-review/auth-401" className="button button--secondary">REVISAR ACCESOS 401 →</Link>
+      <Link href="/" className="button button--secondary">← VOLVER A HOME</Link>
+      <Link href="#buscar-jugador" className="button button--primary">BUSCAR JUGADOR →</Link>
     </nav>
-    <form action={panel} className="button-row" style={{ margin: "1rem 0" }}>
+    <form id="buscar-jugador" action={panel} className="button-row" style={{ margin: "1rem 0" }}>
       <label>Semana (lunes, Nueva York) <input name="week" type="date" defaultValue={week} required /></label>
       <label>Jugador <input name="q" type="search" defaultValue={search} maxLength={50} placeholder="Usuario o ID" /></label>
       <button className="button button--primary">BUSCAR</button>
     </form>
+    <p>Ganadores de la semana del {week}. Las decisiones requieren revisión humana; Jumping Race mantiene su propio programa de premios y sus controles independientes.</p>
+    <section>
+      <h2>Expedientes de premios</h2>
+      <p>{review.enabled ? (review.frozen ? "Clasificación de premios congelada." : "Semana sin clasificación de premios congelada.") : "Programa de premios desactivado."}</p>
+      {canClose && <ReviewControls key={week} week={week} />}
+      {review.ties > 0 && <p>Jugadores con empate exacto pendientes de revisión: {review.ties}.</p>}
+      {review.candidates.length === 0 && <p>No hay candidatos de premios para esta semana.</p>}
+      {review.candidates.map(candidate => <article className="profile-card" key={candidate.player_id} style={{ ...cardStyle, border: "1px solid rgba(110,255,173,.3)", borderRadius: 14 }}>
+        <h2 style={{ fontSize: "clamp(1.4rem,5vw,2.3rem)" }}>#{candidate.effective_rank} · {candidate.username}</h2>
+        <p>ID de jugador: {candidate.player_id.slice(0,8)}</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: ".75rem" }}>
+          <div className="profile-card" style={cardStyle}><small>TOTAL SEMANAL</small><h3>{candidate.weekly_total.toLocaleString("es-US")}</h3></div>
+          <div className="profile-card" style={cardStyle}><small>PREMIO PROVISIONAL</small><h3>{candidate.amount_cents === null ? "No asignado" : `$${(candidate.amount_cents / 100).toFixed(2)}`}</h3></div>
+          <div className="profile-card" style={cardStyle}><small>ESTADO DEL PREMIO</small><h3>{candidate.award_status ?? "No asignado"}</h3></div>
+        </div>
+        <p>Estado del candidato: {states[candidate.state] ?? candidate.state}</p>
+        <BalanceHistory playerId={candidate.player_id} />
+        <h3>VERIFICACIÓN Y PREMIOS</h3>
+        <p>Estado: {states[candidate.state] ?? candidate.state}</p>
+        <p>La revisión de Jumping Race utiliza decisiones auditadas. La verificación por correo y la acreditación financiera de Flappy Race no se aplican automáticamente a este juego.</p>
+        {review.enabled && ["pending_review", "needs_additional_review"].includes(candidate.state) &&
+          <ReviewControls key={candidate.player_id} week={week} playerId={candidate.player_id} />}
+        <details><summary>Historial de decisiones del expediente semanal</summary>
+          {candidate.events.length ? candidate.events.map(event => <p key={event.id}>{date(event.created_at)} · {states[event.decision] ?? event.decision} · {event.note}</p>) : <p>Sin decisiones registradas.</p>}
+        </details>
+        <details><summary>Ver puntuaciones clasificadas</summary><p>{candidate.scores.length ? candidate.scores.join(" · ") : "Sin puntuaciones registradas."}</p></details>
+        <details><summary>Ver Top 7 de cada día</summary><p>Consulta el historial de partidas verificadas del jugador.</p><Link href={playerLink(candidate.player_id)}>ABRIR HISTORIAL DEL JUGADOR →</Link></details>
+        <details><summary>Historial y datos de revisión</summary><p>ID: {candidate.player_id}</p><p>Estado: {states[candidate.state] ?? candidate.state}</p><p>Premio: {candidate.award_status ?? "No asignado"}</p></details>
+      </article>)}
+    </section>
     <section>
       <h2>Jugadores de Jumping Race</h2>
       {review.players.length ? <ul>{review.players.map(player =>
@@ -113,27 +144,6 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
       {ranking.length ? <ul>{ranking.map(row =>
         <li key={row.username}>{row.reviewRequired ? "Empate exacto" : `#${row.rank}`} · {row.username} · {row.weeklyTotal.toLocaleString("es-US")} puntos</li>,
       )}</ul> : <p>Sin resultados oficiales para esta semana.</p>}
-    </section>
-    <section>
-      <h2>Expedientes de premios</h2>
-      <p>{review.enabled ? (review.frozen ? "Clasificación de premios congelada." : "Semana sin clasificación de premios congelada.") : "Programa de premios desactivado."}</p>
-      {canClose && <ReviewControls key={week} week={week} />}
-      {review.ties > 0 && <p>Jugadores con empate exacto pendientes de revisión: {review.ties}.</p>}
-      {review.candidates.length === 0 && <p>No hay candidatos de premios para esta semana.</p>}
-      {review.candidates.map(candidate => <article className="profile-card" key={candidate.player_id} style={cardStyle}>
-        <h3>#{candidate.effective_rank} · <Link href={playerLink(candidate.player_id)}>{candidate.username}</Link></h3>
-        <p>{candidate.weekly_total.toLocaleString("es-US")} puntos · {states[candidate.state] ?? candidate.state}</p>
-        <p>Premio registrado: {candidate.amount_cents === null ? "Sin asignar" :
-          `$${(candidate.amount_cents / 100).toFixed(2)} · ${candidate.award_status}`}</p>
-        <details><summary>Puntuaciones congeladas</summary><p>{candidate.scores.join(" · ")}</p></details>
-        <details><summary>Historial de decisiones</summary>
-          {candidate.events.length ? <ul>{candidate.events.map(event =>
-            <li key={event.id}>{date(event.created_at)} · {states[event.decision] ?? event.decision} · {event.note}</li>,
-          )}</ul> : <p>Sin decisiones registradas.</p>}
-        </details>
-        {review.enabled && ["pending_review", "needs_additional_review"].includes(candidate.state) &&
-          <ReviewControls key={week} week={week} playerId={candidate.player_id} />}
-      </article>)}
     </section>
   </main>;
 }
