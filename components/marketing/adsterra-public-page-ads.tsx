@@ -12,8 +12,11 @@ const AD_PATHS = new Set([
   "/legal/terms", "/legal/privacy", "/legal/cookies",
 ]);
 
+const INLINE_AD_PATHS = new Set(["/legal/terms", "/legal/privacy", "/legal/cookies", "/rules", "/faq"]);
+
 export function AdsterraPublicPageAds({ position }: { position: "top" | "bottom" }) {
   const pathname = usePathname();
-  if (!AD_PATHS.has(pathname.replace(/\/$/, "") || "/")) return null;
+  const path = pathname.replace(/\/$/, "") || "/";
+  if (!AD_PATHS.has(path) || INLINE_AD_PATHS.has(path)) return null;
   return <AdsterraGameBanners className={`adsterra-public-page-ads adsterra-public-page-ads--${position}`} />;
 }
