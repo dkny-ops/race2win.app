@@ -15,7 +15,7 @@ function AdFrame({ className, height, src, title, width }: AdFrameProps) {
       height={height}
       loading="lazy"
       referrerPolicy="no-referrer"
-      sandbox="allow-scripts allow-same-origin"
+      sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       scrolling="no"
       src={src}
       title={title}
