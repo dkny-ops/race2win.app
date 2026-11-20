@@ -34,7 +34,7 @@ export function AdsterraGameBanners({ className = "" }: AdsterraGameBannersProps
     <aside className={`adsterra-game-banners ${className}`.trim()} aria-label="Advertisement">
       <iframe
         height={height}
-        loading="lazy"
+        loading="eager"
         referrerPolicy="no-referrer"
         sandbox="allow-scripts"
         scrolling="no"
