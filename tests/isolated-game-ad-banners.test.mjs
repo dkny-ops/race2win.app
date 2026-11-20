@@ -8,7 +8,8 @@ const race = fs.readFileSync("app/games/race-to-win/page.tsx", "utf8");
 const flappy = fs.readFileSync("components/game/flappy-race-page.tsx", "utf8");
 const flappyCanvas = fs.readFileSync("components/game/flappy-verified-canvas.tsx", "utf8");
 const jumping = fs.readFileSync("components/game/jumping-race-game.tsx", "utf8");
-const verticalHome = fs.readFileSync("components/marketing/adsterra-vertical-home-ads.tsx", "utf8");
+const verticalPages = fs.readFileSync("components/marketing/adsterra-vertical-home-ads.tsx", "utf8");
+const layout = fs.readFileSync("app/layout.tsx", "utf8");
 
 test("new game banners use the separate advertising origin and load one size at a time", () => {
   assert.match(banner, /https:\/\/ads\.racetowin\.app\/game-desktop/);
@@ -29,11 +30,14 @@ test("new Home banner stays between game cards and prize banner; game banners on
   assert.match(jumping, /status === "ready" \? <AdsterraGameBanners className="jumping-game-ad"/);
 });
 
-test("vertical Home placements remain isolated, desktop-only, and outside game pages", () => {
-  assert.match(home, /<AdsterraVerticalHomeAds/);
-  assert.match(verticalHome, /https:\/\/ads\.racetowin\.app\/home-vertical-300/);
-  assert.match(verticalHome, /https:\/\/ads\.racetowin\.app\/home-vertical-600/);
-  assert.match(verticalHome, /sandbox="allow-scripts"/);
-  assert.doesNotMatch(verticalHome, /allow-same-origin|bauval\.org/);
-  assert.match(verticalHome, /min-width: 1001px/);
+test("vertical ads appear only on eligible desktop secondary pages, never Home or games", () => {
+  assert.doesNotMatch(home, /<AdsterraVerticalHomeAds|<AdsterraVerticalPageAds/);
+  assert.match(layout, /<AdsterraVerticalPageAds>/);
+  assert.match(verticalPages, /https:\\/\\/ads\\.racetowin\\.app\\/home-vertical-300/);
+  assert.match(verticalPages, /https:\\/\\/ads\\.racetowin\\.app\\/home-vertical-600/);
+  assert.match(verticalPages, /sandbox="allow-scripts"/);
+  assert.doesNotMatch(verticalPages, /allow-same-origin|bauval\\.org/);
+  assert.match(verticalPages, /min-width: 1001px/);
+  assert.match(verticalPages, /SIDE_AD_PATHS/);
+  assert.doesNotMatch(verticalPages, /"\\/games\\/race-to-win"| "\\/games\\/flappy-race"| "\\/games\\/jumping-race"/);
 });
