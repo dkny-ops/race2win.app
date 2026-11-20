@@ -13,10 +13,10 @@ export function GameCardShareButton({ game }: { game: keyof typeof gameTitles })
   const title = gameTitles[game];
 
   async function share() {
-    const url = new URL(`/games/${game}`, window.location.origin).toString();
+    const url = new URL("/", window.location.origin).toString();
     try {
       if (navigator.share) {
-        await navigator.share({ title, text: "Play " + title + "!", url });
+        await navigator.share({ title: "Race To Win", text: "Discover our games at Race To Win!", url });
         setNotice("");
       } else {
         await navigator.clipboard.writeText(url);
