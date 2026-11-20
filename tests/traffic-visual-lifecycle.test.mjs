@@ -12,7 +12,7 @@ function loadWorld(source) {
   counters.created++;
   return {root:{userData:{rtwModelVehicle:model},visible:true,position:{set(){}}},chassis:{position:{y:0},rotation:{z:0}},wheels:[]};
  };
- const module = {exports:{}};
+ const loadedModule = {exports:{}};
  const imports = {
   "three":{},
   "./environment":{},
@@ -26,8 +26,8 @@ function loadWorld(source) {
  };
  new Function("require","module","exports",ts.transpileModule(source,{
   compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
- }).outputText)(name=>imports[name],module,module.exports);
- const world=Object.create(module.exports.RaceToWinWorld.prototype);
+ }).outputText)(name=>imports[name],loadedModule,loadedModule.exports);
+ const world=Object.create(loadedModule.exports.RaceToWinWorld.prototype);
  Object.assign(world,{quality:{trafficLimit:18},vehicleAssets:{},vehicleTemplates:{traffic:Array(6).fill({})},
   trafficVisuals:new Map(),trafficVisualPool:[],scene:{children:new Set(),add(root){this.children.add(root)},remove(root){this.children.delete(root)}}});
  return {world,counters};

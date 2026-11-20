@@ -17,7 +17,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
  const latest = useRef<Check | null>(null);
  const refreshInFlight = useRef(false);
  const currentSession = useRef(sessionId);
- currentSession.current = sessionId;
+ useEffect(() => { currentSession.current = sessionId; }, [sessionId]);
  const refresh = useCallback(async () => {
   if (!sessionId || refreshInFlight.current) return;
   refreshInFlight.current = true;
@@ -32,11 +32,12 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   finally { refreshInFlight.current = false; }
  }, [sessionId]);
  useEffect(() => {
-  setCheck(null); latest.current = null; chosen.current = null; timedOutNonce.current = null; setAnswerRecorded(false); setMessage(""); setBusy(false);
-  if (!running || !sessionId) return;
-  void refresh();
+  latest.current = null; chosen.current = null; timedOutNonce.current = null;
+  const resetTimer = window.setTimeout(() => { setCheck(null); setAnswerRecorded(false); setMessage(""); setBusy(false); }, 0);
+  if (!running || !sessionId) return () => window.clearTimeout(resetTimer);
+  const refreshTimer = window.setTimeout(() => { void refresh(); }, 0);
   const timer = window.setInterval(() => { void refresh(); }, 500);
-  return () => window.clearInterval(timer);
+  return () => { window.clearTimeout(resetTimer); window.clearTimeout(refreshTimer); window.clearInterval(timer); };
  }, [sessionId, running, refresh]);
  useEffect(() => { onPauseChange(Boolean(running && sessionId && check?.due && !check.verified)); return () => onPauseChange(false); }, [running, sessionId, check?.due, check?.verified, onPauseChange]);
  useEffect(() => {
@@ -48,14 +49,14 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
    // The server remains authoritative; this clock only drives the local display.
    setSecondsLeft((value) => Math.max(0, value - 0.1));
   };
-  setSecondsLeft(10);
+  const resetTimer = window.setTimeout(() => setSecondsLeft(10), 0);
   const timer = window.setInterval(tick, 100);
   const deadline = window.setTimeout(() => {
    if (timedOutNonce.current === nonce || chosen.current !== null) return;
    timedOutNonce.current = nonce;
    onTimeout();
   }, 10000);
-  return () => { window.clearInterval(timer); window.clearTimeout(deadline); };
+  return () => { window.clearTimeout(resetTimer); window.clearInterval(timer); window.clearTimeout(deadline); };
  }, [running, check?.due, check?.verified, check?.nonce, answerRecorded, onTimeout]);
  const onToken = useCallback(async (token: string) => {
   const active = latest.current;
@@ -89,7 +90,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   });
   widget.current = id;
   return () => { if (widget.current === id) widget.current = null; window.turnstile?.remove(id); };
- }, [running, ready, check?.due, check?.verified, check?.siteKey, onToken]);
+ }, [running, ready, check?.due, check?.verified, check?.siteKey, check?.nonce, onToken]);
  if (!running || !sessionId || !check?.due || check.verified) return null;
  return <aside onPointerDown={(event) => event.stopPropagation()} onPointerUp={(event) => event.stopPropagation()} role="group" aria-label="Human verification" style={{ position:"absolute",top:85,left:"50%",transform:"translateX(-50%)",zIndex:30,background:"rgba(0,0,0,.88)",color:"white",padding:12,borderRadius:12,textAlign:"center",maxWidth:"90vw",pointerEvents:"auto" }}>
   <TurnstileScript onReady={() => setReady(true)} onError={() => setMessage("Verification service unavailable")} />

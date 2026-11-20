@@ -4,9 +4,9 @@ import test from "node:test";
 import ts from "typescript";
 
 const source = readFileSync(new URL("../lib/game/race-to-win/antifraud.ts", import.meta.url), "utf8");
-const module = { exports: {} };
-new Function("module", "exports", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(module, module.exports);
-const antiFraud = module.exports;
+const loadedModule = { exports: {} };
+new Function("module", "exports", ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(loadedModule, loadedModule.exports);
+const antiFraud = loadedModule.exports;
 
 test("Race To Win sends only corroborated uniform high-frequency inputs to review", () => {
   const ordinary = Array.from({ length: 20 }, (_, sequence) => ({ sequence, atMs: sequence * 500, direction: sequence % 2 ? 1 : -1 }));

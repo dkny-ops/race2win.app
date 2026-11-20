@@ -8,7 +8,10 @@ export function MobileMenu({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const pathname = usePathname();
 
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;

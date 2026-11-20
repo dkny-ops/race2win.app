@@ -32,7 +32,8 @@ export function AudioPlayer({ channel, playing = true, showControls = true }: { 
   const element = new Audio(SOURCES[channel]); element.loop=true; element.preload="none";
   const stored = Number(localStorage.getItem("rtw-volume-"+channel));
   const initial = localStorage.getItem("rtw-volume-"+channel) !== null && Number.isFinite(stored) ? Math.max(0,Math.min(1,stored)) : VOLUME[channel];
-  element.volume=initial; setVolume(initial); setMuted(initial===0);
+  element.volume=initial;
+  const stateTimer=window.setTimeout(()=>{setVolume(initial);setMuted(initial===0);},0);
   audio.current=element;
   const onVisibilityChange=()=>{
    if(document.hidden){element.pause();return;}
@@ -50,9 +51,9 @@ export function AudioPlayer({ channel, playing = true, showControls = true }: { 
    document.addEventListener("pointerdown",unlock);
    window.addEventListener("rtw-site-toggle",toggle);
    syncSite();
-   return ()=>{document.removeEventListener("pointerdown",unlock);window.removeEventListener("rtw-site-toggle",toggle);element.pause();active.delete(channel);removeVisibility();};
+   return ()=>{window.clearTimeout(stateTimer);document.removeEventListener("pointerdown",unlock);window.removeEventListener("rtw-site-toggle",toggle);element.pause();active.delete(channel);removeVisibility();};
   }
-  return ()=>{element.pause();active.delete(channel);removeVisibility();syncSite();};
+  return ()=>{window.clearTimeout(stateTimer);element.pause();active.delete(channel);removeVisibility();syncSite();};
  },[channel]);
  useEffect(()=>{
   if(channel==="site")return;

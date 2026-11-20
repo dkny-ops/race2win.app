@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 type Player = {
   id: string; username: string | null; createdAt: string; email: string | null;
   balanceCents: number;
@@ -15,7 +15,7 @@ export function PlayersReview({game = "all"}:{game?: "all" | "flappy-race"}) {
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
   const [selected,setSelected] = useState<string | null>(null);
-  async function load(query: string) {
+  const load = useCallback(async (query: string) => {
     setLoading(true);setError("");
     try {
       const response = await fetch((game === "flappy-race" ? "/api/admin/flappy-race/players?q=" : "/api/admin/players?q=") + encodeURIComponent(query), { cache: "no-store" });
@@ -24,8 +24,8 @@ export function PlayersReview({game = "all"}:{game?: "all" | "flappy-race"}) {
       setPlayers(body.players);setSelected(null);
     } catch(e) {setError(e instanceof Error ? e.message : "Error de consulta");setPlayers([]);}
     finally {setLoading(false);}
-  }
-  useEffect(() => { void load(""); }, []);
+  }, [game]);
+  useEffect(() => { const timer = window.setTimeout(() => { void load(""); }, 0); return () => window.clearTimeout(timer); }, [load]);
   return <section>
     <form onSubmit={e=>{e.preventDefault();void load(q);}} className="button-row" style={{alignItems:"center"}}>
       <input aria-label="Buscar username o ID" placeholder="Username o ID del jugador" value={q} onChange={e=>setQ(e.target.value)} maxLength={80} style={{flex:"1 1 220px",padding:".85rem",background:"#071320",color:"white",border:"1px solid #5a7184"}} />

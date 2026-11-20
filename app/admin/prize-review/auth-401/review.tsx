@@ -1,15 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 type Incident = {incident_id:string;occurred_at:string;route:string;reason:string;request_id:string;player_id:string|null;username:string|null;review_status:string;access_held:boolean};
 export function Auth401Review() {
  const [items,setItems]=useState<Incident[]>([]);
  const [message,setMessage]=useState("Cargando...");
- const load=async()=>{
+ const load=useCallback(async()=>{
   try { const response=await fetch("/api/admin/auth-401-reviews",{cache:"no-store"}); if(!response.ok)throw Error();
    const body=await response.json();setItems(body.incidents);setMessage("");}
   catch {setMessage("No se pudo cargar la revisión.");}
- };
- useEffect(()=>{void load();},[]);
+ },[]);
+ useEffect(()=>{const timer=window.setTimeout(()=>{void load();},0);return()=>window.clearTimeout(timer);},[load]);
  async function authorize(item:Incident) {
   if(!item.player_id || !window.confirm("¿Autorizar nuevamente las partidas de "+(item.username||item.player_id)+"?"))return;
   try {const r=await fetch("/api/admin/auth-401-reviews",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({playerId:item.player_id})});

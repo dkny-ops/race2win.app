@@ -13,7 +13,11 @@ export function FlappyMini({ language, authenticated = false }: { language: "en"
   const [status, setStatus] = useState<"ready" | "running" | "over">("ready");
   const [score, setScore] = useState(0);
   const [guestBlocked, setGuestBlocked] = useState(false);
-  useEffect(() => { if (!authenticated) setGuestBlocked(guestTrialUsed()); }, [authenticated]);
+  useEffect(() => {
+    if (authenticated) return;
+    const timer = window.setTimeout(() => setGuestBlocked(guestTrialUsed()), 0);
+    return () => window.clearTimeout(timer);
+  }, [authenticated]);
   const [countdown, setCountdown] = useState<number | null>(null);
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const returnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

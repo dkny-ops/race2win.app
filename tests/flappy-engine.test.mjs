@@ -6,10 +6,10 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 function load(path, imports = {}) {
   const source = readFileSync(new URL("../"+path, import.meta.url),"utf8");
-  const module = { exports:{} };
+  const loadedModule = { exports:{} };
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  new Function("module","exports","require",code)(module,module.exports,name=>name in imports?imports[name]:name==="@/lib/security/turnstile"?{getTurnstileWidgetConfiguration:()=>null}:require(name));
-  return module.exports;
+  new Function("module","exports","require",code)(loadedModule,loadedModule.exports,name=>name in imports?imports[name]:name==="@/lib/security/turnstile"?{getTurnstileWidgetConfiguration:()=>null}:require(name));
+  return loadedModule.exports;
 }
 const e=load("lib/game/flappy/engine.ts");
 export {load,e};

@@ -29,9 +29,11 @@ export function FlappyPersonalWeeklyScore({
 
   useEffect(() => {
     if (!authenticated) {
-      setData(null);
-      setFailed(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setData(null);
+        setFailed(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
     let active = true;
     const controller = new AbortController();
