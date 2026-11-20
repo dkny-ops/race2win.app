@@ -783,7 +783,7 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 .home-games-backdrop img{object-fit:cover;object-position:center 27%}
 .home-games-hero:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(2,7,16,.10),rgba(2,7,16,.50) 34%,rgba(2,7,16,.94) 100%)}
 .home-games-content{width:min(1120px,calc(100% - 3rem));position:relative}
-.home-games-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:stretch}
+.home-games-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:stretch}
 .home-game-tile{display:flex;flex-direction:column;min-width:0;min-height:340px;padding:clamp(22px,3.5vw,42px);border:1px solid rgba(119,203,255,.56);border-radius:23px;background:linear-gradient(145deg,rgba(6,26,52,.88),rgba(3,11,25,.83));box-shadow:0 16px 48px #0009,inset 0 1px rgba(255,255,255,.16);backdrop-filter:blur(12px)}
 .home-game-tile--flappy{border-color:rgba(103,232,249,.50);background:linear-gradient(145deg,rgba(6,37,58,.9),rgba(3,13,28,.86))}
 .home-game-tile .eyebrow{margin:0 0 20px}
