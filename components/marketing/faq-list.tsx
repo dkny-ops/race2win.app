@@ -10,7 +10,7 @@ export function FaqList({ items }: { items: FaqItem[] }) {
           <summary>{item.question}<span aria-hidden="true">+</span></summary>
           <p>{item.answer}</p>
         </details>
-        {index < 4 && <AdsterraGameBanners className="adsterra-inline-section-ad" />}
+        {index === items.length - 1 && <AdsterraGameBanners className="adsterra-inline-section-ad" />}
         </div>
       ))}
     </div>
