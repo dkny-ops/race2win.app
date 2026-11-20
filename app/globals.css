@@ -2604,3 +2604,14 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
   clear: both;
   margin: 16px auto 28px;
 }
+
+/* Keep the legacy display banner below the Race To Win game card.
+   Mobile ready-screen navigation intentionally overlaps the card by 126px;
+   reserve that space before the following ad instead of covering the game. */
+@media (max-width:720px) {
+  .rtw-game-page:has(.rtw-stage--ready) > .home-adsterra-ads {
+    margin-top: 150px;
+    position: relative;
+    z-index: 1;
+  }
+}
