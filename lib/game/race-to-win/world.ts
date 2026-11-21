@@ -9,7 +9,6 @@ import {
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
 } from "./environment";
-import { CoastalBackdrop } from "./coastal-backdrop";
 import { CoastalScenery } from "./coastal-scenery";
 import {
   createModelVehicleVisual,
@@ -61,7 +60,6 @@ export class RaceToWinWorld {
   private readonly roadAssets = createRoadAssets();
   private readonly vehicleAssets = createVehicleAssets();
   private readonly roadSegments: THREE.Group[] = [];
-  private readonly coastalBackdrop = new CoastalBackdrop();
   private readonly coastalScenery: CoastalScenery;
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
@@ -81,8 +79,6 @@ export class RaceToWinWorld {
   private skyTexture: THREE.Texture | null = null;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
-  private sceneryTexture: THREE.Texture | null = null;
-  private sceneryFailed = false;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -129,9 +125,9 @@ export class RaceToWinWorld {
     if (sky) {
       const gradient = sky.createLinearGradient(0, 0, 0, 1024);
       gradient.addColorStop(0, "#147cc1");
-      gradient.addColorStop(0.46, "#57b6e9");
-      gradient.addColorStop(0.83, "#a7dcf2");
-      gradient.addColorStop(1, "#d4edf6");
+      gradient.addColorStop(0.30, "#57b6e9");
+      gradient.addColorStop(0.50, "#c4e4ee");
+      gradient.addColorStop(1, "#c4e4ee");
       sky.fillStyle = gradient;
       sky.fillRect(0, 0, 2048, 1024);
 
@@ -183,15 +179,13 @@ export class RaceToWinWorld {
     }
     this.skyTexture = new THREE.CanvasTexture(skyCanvas);
     this.skyTexture.colorSpace = THREE.SRGBColorSpace;
+    this.skyTexture.mapping = THREE.EquirectangularReflectionMapping;
     this.scene.background = this.skyTexture;
-    // The pale fog created a visible white band over the distant asphalt.
-    // The coastal image already provides atmospheric perspective.
-    this.scene.fog = null;
+    this.scene.fog = new THREE.Fog("#c4e4ee", 130, 610);
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
       this.coastalTexture = texture;
-      if (this.sceneryFailed) this.coastalBackdrop.setTexture(texture);
       // Soft image-based fill makes metallic paint reflect the same beach
       // palette instead of turning black under direct sunlight alone.
       const environmentSource = texture.clone();
@@ -203,16 +197,6 @@ export class RaceToWinWorld {
       environmentSource.dispose();
       generator.dispose();
     });
-    new THREE.TextureLoader().load("/images/coastal-horizon.webp", (texture) => {
-      if (this.disposed) { texture.dispose(); return; }
-      texture.colorSpace = THREE.SRGBColorSpace;
-      this.sceneryTexture = texture;
-      this.coastalBackdrop.setTexture(texture);
-    }, undefined, () => {
-      this.sceneryFailed = true;
-      if (!this.disposed && this.coastalTexture) this.coastalBackdrop.setTexture(this.coastalTexture);
-    });
-
     this.camera.position.set(0, 7.25, 14.1);
     this.camera.lookAt(0, 1.05, -21);
 
@@ -222,10 +206,7 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    // Use the coastal sky behind the moving terrain and roadside layers.
-    this.scene.add(this.coastalBackdrop.object);
     this.coastalScenery = new CoastalScenery(this.quality);
-    // Fixed-aspect roadside panels share the exact road-distance scroll.
     this.scene.add(this.coastalScenery.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
@@ -270,12 +251,6 @@ export class RaceToWinWorld {
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
     this.updateCamera(snapshot, deltaSeconds);
-    this.coastalBackdrop.update(this.camera, {
-      deltaSeconds,
-      distanceMeters: snapshot.metrics.distanceMeters,
-      speedKph: snapshot.metrics.speedKph,
-      running: snapshot.state === "running",
-    });
     this.coastalScenery.update({ deltaSeconds, distanceMeters: snapshot.metrics.distanceMeters, speedKph: snapshot.metrics.speedKph, running: snapshot.state === "running" });
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
@@ -303,11 +278,9 @@ export class RaceToWinWorld {
     this.roadHaze.dispose();
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
-    this.coastalBackdrop.dispose();
     this.coastalScenery.dispose();
     this.skyTexture?.dispose();
     this.coastalTexture?.dispose();
-    this.sceneryTexture?.dispose();
     this.coastalEnvironment?.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();

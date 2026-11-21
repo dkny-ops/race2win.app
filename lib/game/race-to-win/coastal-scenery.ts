@@ -1,169 +1,191 @@
 import * as THREE from "three";
-import { ROAD_SEGMENT_LENGTH, type RaceToWinQuality } from "./environment";
+import { ROAD_WIDTH, type RaceToWinQuality } from "./environment";
 import { CoastalMotion, type CoastalMotionFrame } from "./coastal-motion";
 
-/** Scenic billboards occupy world space; only the existing snapshot moves them. */
+const LOOP_LENGTH = 768;
+const RECYCLE_BEHIND = 48;
+const HORIZON_REACH = 740;
+
+interface Palm {
+  x: number;
+  z: number;
+  scale: number;
+  angle: number;
+}
+
 export class CoastalScenery {
   public readonly object = new THREE.Group();
-  private readonly geometry: THREE.BufferGeometry[] = [];
-  private readonly materials: THREE.Material[] = [];
-  private readonly textures: THREE.Texture[] = [];
-  private readonly instances: THREE.InstancedMesh[] = [];
+  private readonly resources = new Set<{ dispose(): void }>();
+  private readonly distance = { value: 0 };
+  private readonly phase = { value: 0 };
   private readonly motion = new CoastalMotion();
-  private readonly wind = { value: 0 };
-  private readonly waterTime = { value: 0 };
-  private readonly reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  private disposed = false;
+  private readonly reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  private readonly palms: Palm[];
+  private readonly trunks: THREE.InstancedMesh;
+  private readonly leaves: THREE.InstancedMesh;
+  private readonly shadows: THREE.InstancedMesh;
+  private readonly transform = new THREE.Object3D();
 
-  public constructor(private readonly quality: RaceToWinQuality) {
-    this.object.name = "race-to-win-moving-coastal-layers";
-    this.object.visible = false;
-    void this.load();
-  }
+  public constructor(quality: RaceToWinQuality) {
+    this.object.name = "race-to-win-coastal-world";
+    const floor = this.own(new THREE.PlaneGeometry(1100, HORIZON_REACH + 80));
+    floor.rotateX(-Math.PI / 2);
+    floor.translate(340, -0.035, (80 - HORIZON_REACH) / 2);
+    const surface = this.own(new THREE.MeshStandardMaterial({ roughness: 0.92 }));
+    const turf = new THREE.Color("#607b35");
+    const grass = new THREE.Color("#839a49");
+    const drySand = new THREE.Color("#e9cb91");
+    const wetSand = new THREE.Color("#b8a374");
+    const shallow = new THREE.Color("#27bcb5");
+    const offshore = new THREE.Color("#167faf");
 
-  private async load(): Promise<void> {
-    // Race123.PNG is the canonical, repository-owned coastal artwork.
-    // Optional extracted sprite images must never prevent the terrain from
-    // loading: otherwise the road floats over the scene's blue clear color.
-    const loader = new THREE.TextureLoader();
-    const load = async (path: string): Promise<THREE.Texture | null> => {
-      try {
-        const texture = await loader.loadAsync(path);
-        texture.colorSpace = THREE.SRGBColorSpace;
-        if (this.disposed) texture.dispose();
-        else this.textures.push(texture);
-        return this.disposed ? null : texture;
-      } catch {
-        return null;
-      }
+    surface.onBeforeCompile = shader => {
+      Object.assign(shader.uniforms, {
+        coastalDistance: this.distance, coastalPhase: this.phase,
+        turf: { value: turf }, grass: { value: grass }, drySand: { value: drySand },
+        wetSand: { value: wetSand }, shallow: { value: shallow }, offshore: { value: offshore },
+      });
+      shader.vertexShader = "varying vec2 coastPosition;\n" + shader.vertexShader.replace(
+        "#include <begin_vertex>", "#include <begin_vertex>\ncoastPosition = position.xz;",
+      );
+      shader.fragmentShader = [
+        "uniform float coastalDistance, coastalPhase;",
+        "uniform vec3 turf, grass, drySand, wetSand, shallow, offshore;",
+        "varying vec2 coastPosition;",
+        shader.fragmentShader.replace("#include <color_fragment>", [
+          "#include <color_fragment>",
+          "float x = coastPosition.x;",
+          "float z = coastPosition.y - coastalDistance;",
+          "float grain = sin(x * 8.3 + z * 6.5) * sin(z * 7.2 - x * 3.1);",
+          "grain *= 1.0 - smoothstep(0.18, 0.85, fwidth(x) + fwidth(z));",
+          "float patches = 0.5 + 0.5 * sin(x * 0.26 + z * 0.18) * cos(z * 0.37 - x * 0.53);",
+          "vec3 sand = drySand * (0.94 + patches * 0.1 + grain * 0.045);",
+          "vec3 ground = mix(sand, mix(turf, grass, patches), smoothstep(10.0, 14.0, -x + patches * 2.0));",
+          "float shore = x - 28.0 - 2.6 * sin(z * 0.029) - 0.85 * cos(z * 0.108);",
+          "float tide = shore - 0.65 * sin(coastalPhase + z * 0.11);",
+          "float swell = sin(shore * 0.89 + coastalPhase + sin(z * 0.13));",
+          "float ripple = sin(shore * 2.1 + z * 0.63 + coastalPhase) * cos(z * 0.39 - shore * 1.2 - coastalPhase);",
+          "vec3 water = mix(shallow, offshore, smoothstep(0.0, 65.0, shore));",
+          "water *= 1.0 + 0.062 * swell + 0.045 * ripple;",
+          "float lace = 0.57 + 0.22 * sin(z * 0.91 + shore * 3.0) + 0.21 * cos(z * 1.7 - coastalPhase);",
+          "float foam = (1.0 - smoothstep(0.14, 0.78, abs(tide))) * lace;",
+          "foam += smoothstep(0.93, 1.0, swell) * exp(-abs(shore - 5.0) * 0.32) * 0.24;",
+          "vec3 beach = mix(ground, wetSand, smoothstep(-3.0, -0.4, tide) * 0.45);",
+          "diffuseColor.rgb *= mix(mix(beach, water, smoothstep(-0.3, 0.6, tide)), vec3(0.86, 0.95, 0.93), foam);",
+        ].join("\n")),
+      ].join("\n");
     };
-    const source = await load("/images/Race123.PNG");
-    if (!source || this.disposed) return;
-    const [palm, vegetation] = await Promise.all([
-      load("/images/coastal-palm.webp"),
-      load("/images/coastal-vegetation.webp"),
-    ]);
-    if (this.disposed) return;
-    // A transparent texture keeps the original 3D sand/sea geometry alive
-    // without introducing opaque, rectangular photographs as fake palms.
-    const blank = document.createElement("canvas");
-    blank.width = blank.height = 2;
-    const blankTexture = new THREE.CanvasTexture(blank);
-    this.textures.push(blankTexture);
-    this.build(palm ?? blankTexture, vegetation ?? blankTexture, source);
-    this.object.visible = true;
-  }
+    const terrain = new THREE.Mesh(floor, surface);
+    terrain.receiveShadow = quality.shadows;
+    this.object.add(terrain);
 
-  private texturePatch(source: THREE.Texture, sx: number, sy: number, sw: number, sh: number, repeatX: number, repeatY: number): THREE.CanvasTexture {
-    const canvas = document.createElement("canvas"); canvas.width = canvas.height = 256;
-    const context = canvas.getContext("2d")!;
-    for (let row = 0; row < 2; row++) for (let column = 0; column < 2; column++) {
-      context.save(); context.translate(column ? 256 : 0, row ? 256 : 0);
-      context.scale(column ? -1 : 1, row ? -1 : 1);
-      context.drawImage(source.image as HTMLImageElement, sx, sy, sw, sh, 0, 0, 128, 128);
-      context.restore();
+    this.addHills(quality.mobile);
+
+    const count = quality.mobile ? 22 : 32;
+    const fronds = 8;
+    this.palms = Array.from({ length: count }, (_, index) => ({
+      x: -ROAD_WIDTH / 2 - 4.2 - (index * 7.17) % 23,
+      z: (index + 0.4 * Math.sin(index * 8.91)) * LOOP_LENGTH / count,
+      scale: 0.63 + (index * 0.173) % 0.72,
+      angle: index * 2.39996,
+    }));
+    const trunk = new THREE.CylinderGeometry(0.13, 0.29, 7, 7, 3);
+    const trunkPositions = trunk.getAttribute("position");
+    for (let index = 0; index < trunkPositions.count; index++) {
+      const height = (trunkPositions.getY(index) + 3.5) / 7;
+      trunkPositions.setX(index, trunkPositions.getX(index) + height * height * 1.18);
     }
-    const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping; texture.repeat.set(repeatX, repeatY);
-    texture.anisotropy = this.quality.mobile ? 2 : 4;
-    this.textures.push(texture); return texture;
-  }
+    trunk.translate(0, 3.5, 0);
+    trunk.computeVertexNormals();
 
-  private spriteMaterial(map: THREE.Texture): THREE.MeshBasicMaterial {
-    const material = new THREE.MeshBasicMaterial({ map, alphaTest: 0.5, side: THREE.DoubleSide, toneMapped: false });
-    material.onBeforeCompile = shader => {
-      shader.uniforms.coastalWind = this.wind;
-      shader.vertexShader = `uniform float coastalWind;\n${shader.vertexShader}`.replace("#include <begin_vertex>", `
-        #include <begin_vertex>
-        transformed.x += sin(coastalWind) * sin(coastalWind * 2.0 + uv.x * 3.14159) * smoothstep(0.45, 0.92, uv.y) * 0.004;
-      `);
-    };
-    material.customProgramCacheKey = () => "coastal-palm-breeze-v1";
-    this.materials.push(material); return material;
-  }
-
-  private build(palm: THREE.Texture, vegetation: THREE.Texture, source: THREE.Texture): void {
-    const segments = this.quality.roadSegments;
-    const plane = new THREE.PlaneGeometry(1, ROAD_SEGMENT_LENGTH); this.geometry.push(plane);
-    // Sample open water to the right of the palm, outside the umbrella and boat.
-    const water = this.texturePatch(source, 1632, 350, 36, 85, 1, 1);
-    const sandMat = new THREE.MeshBasicMaterial({ color: "#ead0a2", toneMapped: false });
-    const leftSandMat = new THREE.MeshBasicMaterial({ color: "#ead0a2", toneMapped: false });
-    this.materials.push(sandMat, leftSandMat);
-    const sea = new THREE.ShaderMaterial({
-      uniforms: { time: this.waterTime, waterMap: { value: water }, deep: { value: new THREE.Color("#008ec4") } },
-      vertexShader: `varying vec2 waterUv; void main(){waterUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-      fragmentShader: `
-        uniform float time; uniform sampler2D waterMap; uniform vec3 deep; varying vec2 waterUv;
-        void main(){
-          vec2 ripple=vec2(sin(waterUv.y*40.0+time),sin(waterUv.x*30.0+time))*0.003;
-          vec3 color=texture2D(waterMap,waterUv.yx*vec2(8.0,12.0)+ripple+vec2(0.0,time/6.28318530718)).rgb;
-          color=mix(color,deep,smoothstep(0.0,0.08,waterUv.x)*0.95);
-          color*=1.0+sin(waterUv.x*130.0-time)*sin(waterUv.y*110.0+time)*0.008;
-          gl_FragColor=vec4(color,1.0);
-          #include <colorspace_fragment>
-        }`,
-      toneMapped: false,
-    });
-    this.materials.push(sea);
-    const card = new THREE.PlaneGeometry(1, 1, 8, 12); card.translate(0, 0.5, 0); this.geometry.push(card);
-    const palms = new THREE.InstancedMesh(card, this.spriteMaterial(palm), segments * 8);
-    const bushes = new THREE.InstancedMesh(card, this.spriteMaterial(vegetation), segments * 10);
-    palms.name = "coastal-palm-layer"; bushes.name = "coastal-low-vegetation-layer";
-    const shadowGeometry = new THREE.PlaneGeometry(1, 1); shadowGeometry.rotateX(-Math.PI / 2); this.geometry.push(shadowGeometry);
-    const shadowMaterial = new THREE.ShaderMaterial({
-      vertexShader: `varying vec2 shadowUv;void main(){shadowUv=uv;gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.0);}`,
-      fragmentShader: `varying vec2 shadowUv;void main(){float a=(1.0-smoothstep(0.0,0.5,length(shadowUv-0.5)))*0.18;gl_FragColor=vec4(0.1,0.08,0.04,a);}`,
-      transparent: true, depthWrite: false, toneMapped: false,
-    });
-    this.materials.push(shadowMaterial);
-    const shadows = new THREE.InstancedMesh(shadowGeometry, shadowMaterial, segments * 8);
-    const curbGeometry = new THREE.BoxGeometry(0.55, 0.7, 3.98); this.geometry.push(curbGeometry);
-    const white = new THREE.MeshBasicMaterial({ color: "#f8f4e9", toneMapped: false });
-    const red = new THREE.MeshBasicMaterial({ color: "#eb3636", toneMapped: false }); this.materials.push(white, red);
-    const whiteCurbs = new THREE.InstancedMesh(curbGeometry, white, segments * 24);
-    const redCurbs = new THREE.InstancedMesh(curbGeometry, red, segments * 24);
-    const transform = new THREE.Object3D(); let palmIndex = 0, bushIndex = 0, whiteIndex = 0, redIndex = 0;
-    const put = (mesh: THREE.InstancedMesh, index: number, x: number, y: number, z: number, width: number, height: number) => {
-      transform.position.set(x, y, z); transform.rotation.set(0, 0, 0); transform.scale.set(width, height, 1); transform.updateMatrix();
-      mesh.setMatrixAt(index, transform.matrix);
-    };
-    for (let segment = 0; segment < segments; segment++) {
-      const z = -(segment - 1) * ROAD_SEGMENT_LENGTH;
-      for (const [x, width, material] of [[-59.05, 100, leftSandMat], [17.525, 16.95, sandMat], [126, 200, sea]] as const) {
-        const ground = new THREE.Mesh(plane, material); ground.rotation.x = -Math.PI / 2;
-        ground.position.set(x, -0.025, z); ground.scale.x = width; this.object.add(ground);
-      }
-      for (let n = 0; n < 4; n++) for (const side of [-1, 1]) {
-        const height = 13 + n % 3 * 1.3;
-        transform.position.set(side * (11.4 + n % 2 * 1.8) - height * 0.1, -0.019, z - 36 + n * 24);
-        transform.scale.set(2.5, 1, 1.8); transform.updateMatrix(); shadows.setMatrixAt(palmIndex, transform.matrix);
-        put(palms, palmIndex++, side * (11.4 + n % 2 * 1.8), -height * 0.012, z - 36 + n * 24, height * 2 / 3, height);
-      }
-      for (let n = 0; n < 6; n++) put(bushes, bushIndex++, -12.6, -0.12, z - 44 + n * 16, 4, 1.0);
-      for (let n = 0; n < 4; n++) put(bushes, bushIndex++, -20, -0.15, z - 36 + n * 24, 5, 1.5);
-      for (let n = 0; n < 24; n++) for (const side of [-1, 1]) {
-        const mesh = n % 2 === 0 ? whiteCurbs : redCurbs;
-        const index = n % 2 === 0 ? whiteIndex++ : redIndex++;
-        put(mesh, index, side * 9.32, 0.3, z - 46 + n * 4, 1, 1);
-      }
+    const leaf = new THREE.PlaneGeometry(1, 1, 2, 8);
+    const positions = leaf.getAttribute("position");
+    for (let index = 0; index < positions.count; index++) {
+      const t = 0.5 - positions.getY(index);
+      const across = positions.getX(index);
+      positions.setXYZ(index, t * 4.3, Math.sin(t * Math.PI) * 1.02 - t * t * 1.35 - Math.abs(across) * 0.22, across * 1.75 * Math.pow(Math.sin(t * Math.PI), 0.8));
     }
-    for (const mesh of [palms, bushes, whiteCurbs, redCurbs, shadows]) { mesh.computeBoundingSphere(); this.instances.push(mesh); this.object.add(mesh); }
+    leaf.computeVertexNormals();
+    this.trunks = this.instances(trunk, new THREE.MeshStandardMaterial({ color: "#795535", roughness: 1 }), count);
+    this.leaves = this.instances(leaf, new THREE.MeshStandardMaterial({ color: "#658836", side: THREE.DoubleSide, roughness: 0.84 }), count * fronds);
+    for (let index = 0; index < count * fronds; index++) {
+      const tint = new THREE.Color().setRGB(0.61 + (index * 0.319) % 0.36, 0.72 + (index * 0.27) % 0.26, 0.57 + (index * 0.11) % 0.39);
+      this.leaves.setColorAt(index, tint);
+    }
+
+    const shadow = new THREE.PlaneGeometry(8, 4);
+    shadow.rotateX(-Math.PI / 2);
+    const ink = new THREE.MeshBasicMaterial({ color: "#282c19", transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 });
+    ink.onBeforeCompile = shader => {
+      shader.vertexShader = "varying vec2 shadowUV;\n" + shader.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\nshadowUV = uv;");
+      shader.fragmentShader = "varying vec2 shadowUV;\n" + shader.fragmentShader.replace(
+        "#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.a *= 0.28 * (1.0 - smoothstep(0.12, 0.5, length(shadowUV - 0.5)));",
+      );
+    };
+    this.shadows = this.instances(shadow, ink, count);
+    this.update({ deltaSeconds: 0, distanceMeters: 0, speedKph: 0, running: false });
+  }
+
+  private own<T extends { dispose(): void }>(resource: T): T {
+    this.resources.add(resource);
+    return resource;
+  }
+
+  private instances(geometry: THREE.BufferGeometry, material: THREE.Material, count: number): THREE.InstancedMesh {
+    const mesh = this.own(new THREE.InstancedMesh(this.own(geometry), this.own(material), count));
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+    this.object.add(mesh);
+    return mesh;
+  }
+
+  private addHills(mobile: boolean): void {
+    const terrain = this.own(new THREE.PlaneGeometry(185, 730, mobile ? 18 : 30, mobile ? 44 : 72));
+    terrain.rotateX(-Math.PI / 2);
+    terrain.translate(-133, -0.06, -300);
+    const positions = terrain.getAttribute("position");
+    for (let index = 0; index < positions.count; index++) {
+      const x = positions.getX(index);
+      const z = positions.getZ(index);
+      const blend = THREE.MathUtils.smoothstep(-x, 41, 99);
+      const peaks = 14 + 12 * Math.sin(z * 0.021 + x * 0.046) + 9 * Math.cos(z * 0.038 - x * 0.019);
+      positions.setY(index, -0.06 + blend * (peaks + 10));
+    }
+    terrain.computeVertexNormals();
+    const material = this.own(new THREE.MeshStandardMaterial({ color: "#557c48", roughness: 1 }));
+    this.object.add(new THREE.Mesh(terrain, material));
   }
 
   public update(frame: CoastalMotionFrame): void {
     this.motion.advance(frame);
-    this.wind.value = this.reducedMotion ? 0 : this.motion.windPhase;
-    this.waterTime.value = this.reducedMotion ? 0 : this.motion.waterPhase;
-    // Same world scroll as the road: distance-based, no independent travel clock.
-    this.object.position.z = (Number.isFinite(frame.distanceMeters) ? Math.max(0, frame.distanceMeters) : 0) % ROAD_SEGMENT_LENGTH;
+    this.distance.value = frame.distanceMeters;
+    this.phase.value = this.reducedMotion ? 0 : this.motion.waterPhase;
+    const transform = this.transform;
+    for (const [index, palm] of this.palms.entries()) {
+      // The rear wrap is behind the camera, and the forward wrap is beyond its far plane.
+      const z = RECYCLE_BEHIND - THREE.MathUtils.euclideanModulo(palm.z - frame.distanceMeters + RECYCLE_BEHIND, LOOP_LENGTH);
+      transform.position.set(palm.x, -0.035, z);
+      transform.rotation.set(0, palm.angle, 0);
+      transform.scale.setScalar(palm.scale);
+      transform.updateMatrix();
+      this.trunks.setMatrixAt(index, transform.matrix);
+      transform.position.set(palm.x + 1.18 * palm.scale * Math.cos(palm.angle), 7 * palm.scale - 0.035, z - 1.18 * palm.scale * Math.sin(palm.angle));
+      for (let frond = 0; frond < 8; frond++) {
+        const breeze = this.reducedMotion ? 0 : 0.04 * Math.sin(this.motion.windPhase + index * 0.8 + frond);
+        transform.rotation.set(0, palm.angle + frond * Math.PI / 4, (frond % 3 - 1) * 0.14 + breeze);
+        transform.updateMatrix();
+        this.leaves.setMatrixAt(index * 8 + frond, transform.matrix);
+      }
+      transform.position.set(palm.x - 2.3 * palm.scale, -0.025, z + 2.9 * palm.scale);
+      transform.rotation.set(0, 0.91, 0);
+      transform.scale.set(palm.scale * 1.2, 1, palm.scale);
+      transform.updateMatrix();
+      this.shadows.setMatrixAt(index, transform.matrix);
+    }
+    for (const mesh of [this.trunks, this.leaves, this.shadows]) mesh.instanceMatrix.needsUpdate = true;
   }
 
   public dispose(): void {
-    this.disposed = true;
-    for (const mesh of this.instances) mesh.dispose();
-    for (const item of this.geometry) item.dispose();
-    for (const item of this.materials) item.dispose();
-    for (const item of this.textures) item.dispose();
+    for (const resource of this.resources) resource.dispose();
   }
 }
