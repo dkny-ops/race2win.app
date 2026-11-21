@@ -42,28 +42,32 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     if (!deps.enabled) return reject(action, 403, "FLAPPY_OFFICIAL_DISABLED");
     const access = await deps.access(player);
     if (access !== "allowed") return reject(action, 403, access);
+    let verifiedPreflightNonce: string | null = null;
     if (action === "start") {
       if (!deps.configuration?.("midrun_human_check")) return reject(action, 503, "verification_unavailable");
       const preflight = await readBoundedJson(request, 4096);
       if (!preflight || typeof preflight !== "object" || Array.isArray(preflight) ||
-          Object.keys(preflight).length !== 1 || typeof (preflight as Record<string, unknown>).token !== "string")
+          Object.keys(preflight).length !== 2 || typeof (preflight as Record<string, unknown>).token !== "string" ||
+          typeof (preflight as Record<string, unknown>).nonce !== "string" || !UUID.test((preflight as Record<string, unknown>).nonce as string))
         return reject(action, 403, "verification_unavailable");
-      const verified = await deps.verify?.((preflight as Record<string, unknown>).token, "midrun_human_check");
+      const verified = await deps.verify?.((preflight as Record<string, unknown>).token, "midrun_human_check", {
+        expectedCdata: (preflight as Record<string, unknown>).nonce as string,
+      });
       if (verified?.status !== "verified") return reject(action, 403, "verification_unavailable");
+      verifiedPreflightNonce = (preflight as Record<string, unknown>).nonce as string;
     }
     const admin = deps.admin();
-    // Temporary Flappy diagnostic: official replay remains mandatory; all finalized runs are held for review by the database trigger.
     const quota = await admin.rpc("flappy_consume_quota", { p_player: player, p_action: action });
     if (quota.error) return reject(action, 503, "quota_unavailable");
     if (quota.data !== true) return reject(action, 429, "rate_limited");
-    const body = action === "start" ? { token: "verified" } : await readBoundedJson(request, 48 * 1024);
+    const body = action === "start" ? { token: "verified", nonce: verifiedPreflightNonce } : await readBoundedJson(request, 48 * 1024);
     if (!body || typeof body !== "object" || Array.isArray(body)) return reject(action, 400, "invalid_body");
     const b = body as Record<string, unknown>;
     if (action === "start") {
-      if (Object.keys(b).length !== 1 || typeof b.token !== "string") return reject(action, 400, "invalid_body");
+      if (Object.keys(b).length !== 2 || typeof b.token !== "string" || typeof b.nonce !== "string" || !UUID.test(b.nonce)) return reject(action, 400, "invalid_body");
       const identity = await recordCompetitionAccess(player, "flappy-race", request);
       if (identity !== "allowed") return NextResponse.json({ message: competitionAccessMessage(identity), code: identity }, { status: identity === "unavailable" ? 503 : 403, headers });
-      const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: seedFromServer(), p_version: FLAPPY_VERSION });
+      const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: seedFromServer(), p_version: FLAPPY_VERSION, p_preflight: b.nonce });
       // Match only known database errors; never expose SQL/error details.
       if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");
       if (error?.code === "P0001" && error.message === "Concurrent session") return reject(action, 409, "session_active");
@@ -80,7 +84,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const digest = flapDigest(inputs);
     if (session.status === "finalized") {
       if (action !== "finalize" || session.digest !== digest || session.tick !== b.throughTick) return reject(action, 409, "finalize_conflict");
-      return NextResponse.json({ ...session.outcome, eligibility: "under_review" }, { headers });
+      return NextResponse.json(session.outcome, { headers });
     }
     const now = deps.now();
     const started = Date.parse(session.startsAt), expires = Date.parse(session.expiresAt), lease = Date.parse(session.leaseUntil);
@@ -101,6 +105,30 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       p_digest: digest, p_score: replay.score,
     });
     if (error || !data) return reject(action, 409, "evidence_conflict");
-    return NextResponse.json(action === "finalize" ? { ...data, eligibility: "under_review" } : data, { headers });
+    return NextResponse.json(data, { headers });
   } catch { return reject(action, 503, "service_unavailable"); }
+}
+
+/** Creates a short-lived, single-use server nonce before the widget runs.
+ * The widget is never mounted during flight; Siteverify binds its cdata to this
+ * player-owned nonce, and the START RPC consumes it atomically into the session.
+ */
+export async function handleFlappyPreflight(request: Request, deps: Deps = defaults) {
+  try {
+    const origin = request.headers.get("origin");
+    if (!origin || origin !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") return reject("start", 403, "origin");
+    const player = await deps.user();
+    if (!player) return reject("start", 401, "unauthenticated");
+    if (!deps.enabled) return reject("start", 403, "FLAPPY_OFFICIAL_DISABLED");
+    const access = await deps.access(player);
+    if (access !== "allowed") return reject("start", 403, access);
+    const configuration = deps.configuration?.("midrun_human_check");
+    if (!configuration) return reject("start", 503, "verification_unavailable");
+    const admin = deps.admin();
+    const quota = await admin.rpc("flappy_consume_quota", { p_player: player, p_action: "checkpoint" });
+    if (quota.error || quota.data !== true) return reject("start", quota.data === false ? 429 : 503, quota.data === false ? "rate_limited" : "quota_unavailable");
+    const { data, error } = await admin.rpc("flappy_create_preflight", { p_player: player });
+    if (error || !data || typeof data.nonce !== "string" || !UUID.test(data.nonce) || typeof data.expiresAt !== "string") return reject("start", 503, "verification_unavailable");
+    return NextResponse.json({ ...data, siteKey: configuration.siteKey }, { headers });
+  } catch { return reject("start", 503, "verification_unavailable"); }
 }

@@ -119,16 +119,17 @@ test("player access reuses the existing hold and terms policy scoped to verified
  }
 });
 
+const preflightNonce="11111111-1111-4111-8111-111111111112";
 test("official START returns a server clock reference for monotonic client scheduling",async()=>{
  const now=Date.parse("2026-10-26T04:00:00Z");
  const admin=()=>({rpc:async(name)=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:name==="flappy_turnstile_status"?{data:{required:true},error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null}});
- const r=await api.handleFlappy("start",req({token:"valid-token"}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
+ const r=await api.handleFlappy("start",req({token:"valid-token",nonce:preflightNonce}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async(_token,_action,options)=>{assert.equal(options.expectedCdata,preflightNonce);return {status:"verified"};}});
  assert.equal(r.status,200);assert.equal((await r.json()).serverNow,new Date(now).toISOString());
 });
 
 test("start reports exhausted rolling limit, active session and server errors separately", async () => {
  for (const [message, dbcode, status, code] of [["Hourly limit","P0001",429,"attempts_exhausted"],["Concurrent session","P0001",409,"session_active"],["secret SQL failure","XX000",503,"start_rejected"]]) {
-  const response = await api.handleFlappy("start",req({token:"valid-token"}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
+  const response = await api.handleFlappy("start",req({token:"valid-token",nonce:preflightNonce}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
   assert.equal(response.status,status); assert.equal((await response.json()).code,code);
  }
 });
@@ -137,7 +138,7 @@ test("verified pregame Flappy start consumes quota and creates server-owned sess
  const calls=[];
  const missingProviderApi=load("lib/game/flappy/server.ts",flappyImports,null);
  const now=Date.parse("2026-10-26T04:00:00Z");
- const r=await missingProviderApi.handleFlappy("start",req({token:"valid-token"}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null};}}),now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
+ const r=await missingProviderApi.handleFlappy("start",req({token:"valid-token",nonce:preflightNonce}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null};}}),now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
  assert.equal(r.status,200);
  assert.deepEqual(calls,["flappy_consume_quota","flappy_start"]);
  assert.equal((await r.json()).turnstile,undefined);

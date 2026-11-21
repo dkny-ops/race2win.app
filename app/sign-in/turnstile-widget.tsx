@@ -29,13 +29,15 @@ export function TurnstileScript({ onReady, onError }: Readonly<{ onReady: () => 
 }
 
 /** Collects a token only. The server verifies it and controls authorization. */
-export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange, action = "otp_request", adaptive = false }: Readonly<{
+export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange, action = "otp_request", adaptive = false, cdata }: Readonly<{
   adaptive?: boolean;
   action?: "otp_request" | "weekly_leader_verification" | "midrun_human_check";
   siteKey: string;
   scriptReady: boolean;
   resetNonce: number;
   label: string;
+  /** Server-issued opaque binding. Never derived by the browser. */
+  cdata?: string;
   onTokenChange: (token: string | null) => void;
 }>) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,7 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     onTokenChange(null);
     const id = api.render(containerRef.current, {
       sitekey: siteKey, action, size: action === "midrun_human_check" ? "invisible" : "flexible",
+      ...(cdata ? { cData: cdata } : {}),
       ...(action === "midrun_human_check" ? { execution: "execute" as const, appearance: "interaction-only" as const } : {}),
       ...(adaptive ? { appearance: "interaction-only" as const } : {}),
       callback: (token) => { if (active) onTokenChange(token); },
@@ -61,7 +64,7 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     widgetIdRef.current = id;
     if (action === "midrun_human_check") api.execute(id);
     return () => { active = false; widgetIdRef.current = null; onTokenChange(null); api.remove(id); };
-  }, [action, adaptive, clearAndReset, onTokenChange, scriptReady, siteKey]);
+  }, [action, adaptive, cdata, clearAndReset, onTokenChange, scriptReady, siteKey]);
 
   useEffect(() => {
     if (resetNonce > 0 && widgetIdRef.current && window.turnstile) {

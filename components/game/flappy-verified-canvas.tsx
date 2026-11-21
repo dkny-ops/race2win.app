@@ -1,13 +1,12 @@
 "use client";
 import { TurnstileScript, TurnstileWidget } from "@/app/sign-in/turnstile-widget";
-import { useFlappyInvisibleCheck } from "./flappy-invisible-check";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
 import { AudioPlayer } from "@/components/layout/site-audio";
 import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, flappyGapHalf, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
-import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
+import { FlappyOfficialError, prepareFlappyOfficial, readFlappyAvailability, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappyPreflight, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
 import { FlappyPerformanceDiagnostics, flappyDiagnosticsEnabled } from "@/lib/game/flappy/performance-diagnostics";
 
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
@@ -23,7 +22,6 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const recordDiagnostic = useCallback((kind: "checkpoint" | "turnstile", durationMs?: number) => {
     diagnostics.record({ kind, durationMs });
   }, [diagnostics]);
-  const { stop: stopVerification } = useFlappyInvisibleCheck(recordDiagnostic);
   const canvas = useRef<HTMLCanvasElement>(null);
   const context = useRef<CanvasRenderingContext2D | null>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
@@ -32,20 +30,30 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const obstacleCap = useRef<HTMLCanvasElement | null>(null);
   const readyAssets = useRef({ bird: false, forest: false, obstacle: false });
   const [assetsReady, setAssetsReady] = useState(false);
-  const [pregameSiteKey, setPregameSiteKey] = useState<string | null>(null);
+  const [pregame, setPregame] = useState<FlappyPreflight | null>(null);
   const [pregameReady, setPregameReady] = useState(false);
   const [pregameToken, setPregameToken] = useState<string | null>(null);
   const [pregameReset, setPregameReset] = useState(0);
+  const [status, setStatus] = useState<Status>("ready");
+  const [score, setScore] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [result, setResult] = useState<FlappyResult | null>(null);
+  const [officialError, setOfficialError] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<FlappyAvailability | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [seconds, setSeconds] = useState<number | null>(null);
   const onPregameToken = useCallback((token: string | null) => setPregameToken(token), []);
-  useEffect(() => {
-    if (!authenticated) return;
-    let active = true;
-    fetch("/api/flappy-race/sessions/start", { cache: "no-store" })
-      .then(async response => { if (!response.ok) throw new Error("Unavailable"); return response.json(); })
-      .then(data => { if (active && typeof data.siteKey === "string") setPregameSiteKey(data.siteKey); })
-      .catch(() => { if (active) setPregameSiteKey(null); });
-    return () => { active = false; };
+  const refreshPregame = useCallback(async () => {
+    if (!authenticated || FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE) return;
+    setPregameToken(null);
+    try { setPregame(await prepareFlappyOfficial()); }
+    catch (error) { setPregame(null); setOfficialError(error instanceof FlappyOfficialError ? error.code : "verification_unavailable"); }
   }, [authenticated]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void refreshPregame(), 0);
+    return () => window.clearTimeout(timer);
+  }, [refreshPregame, pregameReset]);
   const markAssetReady = useCallback((asset: "bird" | "forest" | "obstacle") => {
     readyAssets.current[asset] = true;
     if (Object.values(readyAssets.current).every(Boolean)) setAssetsReady(true);
@@ -134,16 +142,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const official = useRef<FlappySession | null>(null);
   const running = useRef(false), busy = useRef(false), origin = useRef(0), nextCheckpoint = useRef(300);
   const pendingFlap = useRef(false), mounted = useRef(true), lastFrame = useRef(0), renderedCountdown = useRef<number | null>(null);
-  const [status, setStatus] = useState<Status>("ready");
-  const [score, setScore] = useState(0);
   const renderedScore = useRef(0);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [result, setResult] = useState<FlappyResult | null>(null);
-  const [officialError, setOfficialError] = useState<string | null>(null);
-  const [availability, setAvailability] = useState<FlappyAvailability | null>(null);
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
-  const [seconds, setSeconds] = useState<number | null>(null);
   const snapshot = useRef<{ data: FlappyAvailability; received: number } | null>(null);
   const reading = useRef(false);
   const refreshAvailability = useCallback(async () => {
@@ -199,7 +198,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   };
   const blocked = !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && authenticated && (!FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || (availability.remaining === 0 && !availability.exempt) || availability.activeUntil !== null);
   const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-  const fail = useCallback(() => { running.current = false; stopVerification(); if (mounted.current) { setResult(null); setStatus("rejected"); } }, [stopVerification]);
+  const fail = useCallback(() => { running.current = false; if (mounted.current) { setResult(null); setStatus("rejected"); } }, []);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
   useEffect(() => {
     onGameActiveChange?.(expanded);
@@ -224,14 +223,15 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [diagnostics]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
   const start = useCallback(async () => {
-    if (busy.current || running.current || blocked || !assetsReady || (authenticated && !pregameToken)) return;
+    if (busy.current || running.current || blocked || !assetsReady || (authenticated && (!pregameToken || !pregame))) return;
     window.dispatchEvent(new Event("rtw-audio-start-flappy"));
     busy.current = true;
     setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
     try {
       const token = pregameToken;
-      if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); }
-      const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial(token!) : null;
+      const challenge = pregame;
+      if (authenticated) { setPregameToken(null); setPregame(null); }
+      const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial(token!, challenge!.nonce) : null;
       void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
@@ -249,7 +249,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
     finally { busy.current = false; void refreshAvailability(); }
-  }, [authenticated, blocked, assetsReady, fail, refreshAvailability, pregameToken]);
+  }, [authenticated, blocked, assetsReady, fail, refreshAvailability, pregame, pregameToken, setOfficialError]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -261,9 +261,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       if (busy.current || !official.current) { fail(); return; }
       busy.current = true; setStatus("validating");
       try {
-        // Human verification paused; server replay and review hold remain enforced.
         const verified = await finalizeFlappyOfficial(official.current, engine.current, inputs.current);
-        stopVerification();
         if (mounted.current) { setResult(verified); setStatus("over"); }
       } catch { fail(); }
       finally { busy.current = false; }
@@ -382,7 +380,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     }
     raf=requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("keydown",key); };
-  }, [flap, fail, stopVerification, recordDiagnostic, diagnostics]);
+  }, [flap, fail, recordDiagnostic, diagnostics]);
   // A collision may occur while its prior checkpoint is in flight. Finish only
   // after that request settles; never send concurrent mutation requests.
   useEffect(() => {
@@ -392,16 +390,16 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       if (busy.current || !active || !official.current) return;
       busy.current=true; window.clearInterval(timer);
       try {
-        // Human verification paused; server replay and review hold remain enforced.
         const verified=await finalizeFlappyOfficial(official.current,engine.current,inputs.current);
-        stopVerification();
         if(active) {setResult(verified);setStatus("over");}
       } catch { if(active) fail(); } finally {busy.current=false;}
     },100);
     return () => {active=false;window.clearInterval(timer);};
-  },[status,result,fail,stopVerification]);
+  },[status,result,fail]);
   useEffect(() => {
-    if (authenticated && (status === "over" || status === "rejected")) setPregameReset(value => value + 1);
+    if (!authenticated || !["over", "rejected"].includes(status)) return;
+    const timer = window.setTimeout(() => setPregameReset(value => value + 1), 0);
+    return () => window.clearTimeout(timer);
   }, [authenticated, status]);
   useEffect(() => {
     if (!["over","rejected"].includes(status)) return;
@@ -421,21 +419,22 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   return <div style={{textAlign:"center"}}>
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
-    {authenticated && pregameSiteKey && !expanded && status !== "starting" ? <div style={{margin:"0 auto 1rem",maxWidth:320}}>
+    {authenticated && pregame && !expanded && status !== "starting" ? <div style={{margin:"0 auto 1rem",maxWidth:320}}>
       <TurnstileScript onReady={() => setPregameReady(true)} onError={() => setOfficialError("verification_unavailable")} />
-      <TurnstileWidget siteKey={pregameSiteKey} scriptReady={pregameReady} resetNonce={pregameReset} label="Verify before playing Flappy Race" action="midrun_human_check" onTokenChange={onPregameToken} />
+      <TurnstileWidget siteKey={pregame.siteKey} scriptReady={pregameReady} resetNonce={pregameReset} label="Verify before playing Flappy Race" action="midrun_human_check" cdata={pregame.nonce} onTokenChange={onPregameToken} />
     </div> : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} preload="auto" />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
-      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting" || (authenticated && !pregameToken)} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : !assetsReady ? "LOADING…" : authenticated && !pregameToken ? "VERIFY TO PLAY" : "▶ PLAY"}</button> : null}
+      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting" || (authenticated && (!pregame || !pregameToken))} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : !assetsReady ? "LOADING…" : authenticated && (!pregame || !pregameToken) ? "VERIFY TO PLAY" : "▶ PLAY"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
         <h2>GAME OVER</h2>
         <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
         {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
-        {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
+        {result?.eligibility === "valid" ? <p>{es ? "Puntuación verificada y publicada en Scores." : "Score verified and published in Scores."}</p> : null}
+        {result?.eligibility === "under_review" ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {terminal ? <button className="button button--primary" type="button" onClick={() => { if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); setExpanded(false); setStatus("ready"); } else { void start(); } }}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
