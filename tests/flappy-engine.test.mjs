@@ -133,7 +133,7 @@ test("start reports exhausted rolling limit, active session and server errors se
  }
 });
 
-test("temporary Flappy Turnstile pause still consumes quota and creates server-owned sessions",async()=>{
+test("verified pregame Flappy start consumes quota and creates server-owned sessions",async()=>{
  const calls=[];
  const missingProviderApi=load("lib/game/flappy/server.ts",flappyImports,null);
  const now=Date.parse("2026-10-26T04:00:00Z");
@@ -141,4 +141,14 @@ test("temporary Flappy Turnstile pause still consumes quota and creates server-o
  assert.equal(r.status,200);
  assert.deepEqual(calls,["flappy_consume_quota","flappy_start"]);
  assert.equal((await r.json()).turnstile,undefined);
+});
+
+test("Flappy official START refuses missing or rejected Turnstile before quota", async () => {
+  let called = false;
+  const deps = { enabled:true, user:async()=>"verified", access:async()=>"allowed",
+    admin:()=>{called=true;throw new Error("Quota must not be touched");}, now:Date.now,
+    configuration:()=>({siteKey:"test-site-key"}), verify:async()=>({status:"rejected",reason:"provider_rejected"}) };
+  assert.equal((await api.handleFlappy("start",req({token:"invalid"}),deps)).status,403);
+  assert.equal((await api.handleFlappy("start",req({}),deps)).status,403);
+  assert.equal(called,false);
 });
