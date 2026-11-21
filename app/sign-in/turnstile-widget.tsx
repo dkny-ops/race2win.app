@@ -31,7 +31,7 @@ export function TurnstileScript({ onReady, onError }: Readonly<{ onReady: () => 
 /** Collects a token only. The server verifies it and controls authorization. */
 export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTokenChange, action = "otp_request", adaptive = false }: Readonly<{
   adaptive?: boolean;
-  action?: "otp_request" | "weekly_leader_verification";
+  action?: "otp_request" | "weekly_leader_verification" | "midrun_human_check";
   siteKey: string;
   scriptReady: boolean;
   resetNonce: number;
