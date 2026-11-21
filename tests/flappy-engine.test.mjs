@@ -122,13 +122,13 @@ test("player access reuses the existing hold and terms policy scoped to verified
 test("official START returns a server clock reference for monotonic client scheduling",async()=>{
  const now=Date.parse("2026-10-26T04:00:00Z");
  const admin=()=>({rpc:async(name)=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:name==="flappy_turnstile_status"?{data:{required:true},error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null}});
- const r=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
+ const r=await api.handleFlappy("start",req({token:"valid-token"}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
  assert.equal(r.status,200);assert.equal((await r.json()).serverNow,new Date(now).toISOString());
 });
 
 test("start reports exhausted rolling limit, active session and server errors separately", async () => {
  for (const [message, dbcode, status, code] of [["Hourly limit","P0001",429,"attempts_exhausted"],["Concurrent session","P0001",409,"session_active"],["secret SQL failure","XX000",503,"start_rejected"]]) {
-  const response = await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now});
+  const response = await api.handleFlappy("start",req({token:"valid-token"}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:{data:null,error:{code:dbcode,message}}}),now:Date.now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
   assert.equal(response.status,status); assert.equal((await response.json()).code,code);
  }
 });
