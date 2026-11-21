@@ -50,6 +50,11 @@ export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   const responseHeaders = { ...CACHE, "X-Request-ID": requestId };
   try {
+    const origin = request.headers.get("origin");
+    if (!origin || origin !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") {
+      logSecurityEvent({ eventType: "game_session.finalize.rejected", route: "/api/game-sessions/finalize", requestId, reason: "origin_rejected", status: 403 });
+      return NextResponse.json({ message: "Request unavailable." }, { status: 403, headers: responseHeaders });
+    }
     const body = parseBody(await readOfficialSessionJson(request));
     if (!body) {
       logSecurityEvent({ eventType: "game_session.anti_cheat_rejected", route: "/api/game-sessions/finalize", requestId, reason: "invalid_request", status: 400 });

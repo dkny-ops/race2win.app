@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (!actions || actions.length > 1000 || digestJumpingRaceActions(actions) !== b.digest) return json({ message: "Invalid actions" }, 400);
   const { data: sessionRows, error: sessionError } = await db.rpc("jr_session_security_info", { p_session_id: b.sessionId, p_player_id: userId });
   const session = sessionRows?.[0];
-  if (sessionError || !session || session.status !== "active") return json({ message: "Session unavailable" }, 409);
+  if (sessionError || !session || session.status !== "active" || session.verification_required !== true || session.verification_status !== "verified") return json({ message: "Human verification required" }, 409);
   const elapsed = Date.now() - Date.parse(session.started_at);
   if (elapsed < 0 || elapsed > 12 * 60_000 || actions.some(a => a.step > Math.floor((elapsed + 1000) * 120 / 1000))) return json({ message: "Future actions rejected" }, 409);
   const { error } = await db.rpc("jr_store_checkpoint", { p_session_id: b.sessionId, p_player_id: userId, p_checkpoint_index: b.index, p_actions: actions, p_action_digest: b.digest });

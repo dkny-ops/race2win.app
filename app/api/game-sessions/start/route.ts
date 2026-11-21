@@ -25,7 +25,11 @@ export async function POST(request: Request) {
   let failureStage = "authentication";
   try {
     const origin = request.headers.get("origin");
-    if ((origin && origin !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") return NextResponse.json({ message: "Request unavailable." }, { status: 403, headers: CACHE });
+    // Official sessions mutate server-side state and are only started by the
+    // first-party browser application.  Do not accept an absent Origin as an
+    // implicit pass: it would turn this endpoint into a cross-site request
+    // target for clients that omit modern fetch metadata.
+    if (!origin || origin !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") return NextResponse.json({ message: "Request unavailable." }, { status: 403, headers: CACHE });
     if (!await hasEmptyBoundedBody(request)) return NextResponse.json({ message: "Invalid request." }, { status: 400, headers: CACHE });
     const context = await getVerifiedUserContext();
     const userId = context?.userId ?? null;

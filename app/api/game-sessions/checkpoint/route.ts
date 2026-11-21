@@ -38,6 +38,11 @@ function parseBody(value: unknown): CheckpointBody | null {
 export async function POST(request: Request) {
   const requestId = createSecurityRequestId();
   try {
+    const origin = request.headers.get("origin");
+    if (!origin || origin !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") {
+      logSecurityEvent({ eventType: "game_session.checkpoint.rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "origin_rejected", status: 403 });
+      return NextResponse.json({ message: "Request unavailable." }, { status: 403, headers: CACHE });
+    }
     const body = parseBody(await readOfficialSessionJson(request));
     if (!body) {
       logSecurityEvent({ eventType: "game_session.checkpoint.rejected", route: "/api/game-sessions/checkpoint", requestId, reason: "invalid_request", status: 400 });

@@ -60,6 +60,7 @@ export type SecurityEventRoute =
 export type SecurityEventReason =
   | "turnstile_verified"
   | "invalid_request"
+  | "origin_rejected"
   | "unauthenticated"
   | "rate_limited"
   | "missing_configuration"
