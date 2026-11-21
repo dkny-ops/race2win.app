@@ -28,7 +28,7 @@ function isScore(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= MAX_DAILY_SCORE;
 }
 
-function parsePersonalWeek(raw: unknown, week: ScoreWeek): FlappyPersonalWeek {
+function parsePersonalWeek(raw: unknown, week: ScoreWeek): Omit<FlappyPersonalWeek, "pendingScores"> {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Invalid personal score metadata");
   const result = raw as { week?: unknown; weeklyTotal?: unknown; days?: unknown };
   if (result.week !== week || !Number.isSafeInteger(result.weeklyTotal) || Number(result.weeklyTotal) < 0 || Number(result.weeklyTotal) > MAX_WEEKLY_SCORE || !Array.isArray(result.days) || result.days.length !== 7) {
