@@ -232,7 +232,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
     finally { busy.current = false; void refreshAvailability(); }
-  }, [authenticated, blocked, assetsReady, fail, refreshAvailability, beginVerification]);
+  }, [authenticated, blocked, assetsReady, fail, refreshAvailability]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -365,7 +365,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     }
     raf=requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("keydown",key); };
-  }, [flap, fail, finishVerification, stopVerification, recordDiagnostic, diagnostics]);
+  }, [flap, fail, stopVerification, recordDiagnostic, diagnostics]);
   // A collision may occur while its prior checkpoint is in flight. Finish only
   // after that request settles; never send concurrent mutation requests.
   useEffect(() => {
