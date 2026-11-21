@@ -1,6 +1,5 @@
 "use client";
 import { useFlappyInvisibleCheck } from "./flappy-invisible-check";
-import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
@@ -14,7 +13,7 @@ import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
 // Temporary diagnostic: Flappy runs locally without creating official sessions.
 // Keep server-side official verification and prize gates unchanged.
-const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = true;
+const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = false;
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner, onGameActiveChange }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode; onGameActiveChange?: (active: boolean) => void }) {
@@ -316,16 +315,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
               else void submitFinal();
             } else setStatus("over");
           } else if (g.tick >= MAX_TICKS) fail();
-          else if (FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && g.tick >= nextCheckpoint.current) {
-            // Isolate the client-side checkpoint snapshot and serialization cost.
-            // No official session, HTTP request, score write or prize eligibility.
-            nextCheckpoint.current = g.tick + 300;
-            const checkpointStartedAt = performance.now();
-            const snapshot = { ...engine.current, pipes: engine.current.pipes.map(p => ({ ...p })) };
-            const evidence = inputs.current.slice();
-            JSON.stringify({ snapshot, evidence });
-            recordDiagnostic("checkpoint", performance.now() - checkpointStartedAt);
-          } else if (official.current && g.tick >= nextCheckpoint.current && !busy.current) {
+          else if (official.current && g.tick >= nextCheckpoint.current && !busy.current) {
             nextCheckpoint.current = g.tick + 300; void checkpoint();
           }
         }
@@ -409,7 +399,6 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
-    {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && expanded ? <TurnstileScript onReady={() => recordDiagnostic("turnstile", 0)} onError={() => recordDiagnostic("turnstile")} /> : null}
     {!FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? verificationWidget : null}
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
