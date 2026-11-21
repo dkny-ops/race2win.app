@@ -11,7 +11,7 @@ import { FlappyPerformanceDiagnostics, flappyDiagnosticsEnabled } from "@/lib/ga
 
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
-type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
+// Temporary diagnostic: Flappy runs locally without creating official sessions.\n// Keep server-side official verification and prize gates unchanged.\nconst FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = true;\n\ntype Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner, onGameActiveChange }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode; onGameActiveChange?: (active: boolean) => void }) {
   const es = language === "es";
   const [diagnostics] = useState(() => new FlappyPerformanceDiagnostics(flappyDiagnosticsEnabled()));
@@ -178,7 +178,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     };
     return (messages[code] ?? ["Error del servidor. Vuelve a intentarlo en unos momentos.", "Server error. Please try again shortly."])[es ? 0 : 1];
   };
-  const blocked = authenticated && (!FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || (availability.remaining === 0 && !availability.exempt) || availability.activeUntil !== null);
+  const blocked = !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && authenticated && (!FLAPPY_COMPETITION_ENABLED || !availability || !!availabilityError || (availability.remaining === 0 && !availability.exempt) || availability.activeUntil !== null);
   const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const fail = useCallback(() => { running.current = false; stopVerification(); if (mounted.current) { setResult(null); setStatus("rejected"); } }, [stopVerification]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
@@ -210,7 +210,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     busy.current = true;
     setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
     try {
-      const session = authenticated ? await startFlappyOfficial() : null;
+      const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial() : null;
       void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
@@ -395,8 +395,8 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
-    {verificationWidget}
-    {!expanded && status === "ready" ? preGameBanner : null}
+    {!FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? verificationWidget : null}
+    {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}\n    {!expanded && status === "ready" ? preGameBanner : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} preload="auto" />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
@@ -417,14 +417,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy flappy-inline-help" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link>
     </div>
     <p>{es ? "Toca o pulsa ESPACIO para volar. Evita los obstáculos." : "Tap or press SPACE to fly. Dodge the obstacles."}</p>
-    {FLAPPY_COMPETITION_ENABLED && !authenticated ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
-    {authenticated ? <div style={{margin:"1rem auto",maxWidth:360}}>
+    {FLAPPY_COMPETITION_ENABLED && !authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? <p><Link className="button" href="/sign-in?next=%2Fgames%2Fflappy-race">{es ? "COMPETIR · INICIAR SESIÓN" : "COMPETE · SIGN IN"}</Link></p> : null}
+    {authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? <div style={{margin:"1rem auto",maxWidth:360}}>
       <p style={{margin:".5rem 0"}}>{es ? "Partidas disponibles" : "Races available"}: <span className="rtw-play-count" style={{position:"static"}} aria-live="polite"><span className="rtw-play-count__ticket" aria-hidden="true">◉</span>{availabilityError ? "—" : availability?.exempt ? "∞" : `${availability?.remaining ?? "…"}/5`}</span></p>
       {availability?.nextAvailableAt && !availability.exempt ? <p style={{margin:".5rem 0"}}>{es ? "Próxima partida disponible en" : "Next race available in"}: <strong>{recovery}</strong></p> : null}
       {availability?.remaining === 0 && !availability.exempt ? <p role="status">{errorMessage("attempts_exhausted")}</p> : null}
       {availability?.activeUntil && !["running","starting","validating"].includes(status) ? <p role="status">{errorMessage("session_active")}</p> : null}
       {availabilityError ? <p role="alert">{errorMessage(availabilityError)} {availabilityError === "terms_required" ? <Link href="/terms/accept">TERMS</Link> : availabilityError === "review_required" ? <Link href="/support/access">SUPPORT</Link> : availabilityError === "unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null} <button type="button" className="button" onClick={() => void refreshAvailability()}>{es ? "REINTENTAR" : "RETRY"}</button></p> : null}
-    </div> : <p role="status">{es ? "Modo invitado: juega gratis sin iniciar sesión. La puntuación no se guarda." : "Guest mode: play free without signing in. Scores are not saved."}</p>}
+    </div> : <p role="status">{es ? "Modo invitado: juega gratis sin iniciar sesión. La puntuación no se guarda." : "Practice mode: scores are not saved."}</p>}
     {officialError ? <p role="alert">{errorMessage(officialError)} {officialError==="terms_required" ? <Link href="/terms/accept">TERMS</Link> : officialError==="review_required" ? <Link href="/support/access">SUPPORT</Link> : officialError==="unauthenticated" ? <Link href="/sign-in?next=%2Fgames%2Fflappy-race">SIGN IN</Link> : null}</p> : null}
   </div>;
 }
