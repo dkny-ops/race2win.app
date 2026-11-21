@@ -32,14 +32,17 @@ export function AdsterraVerticalPageAds({ children }: { children: ReactNode }) {
     <div className="public-vertical-ad-layout">
       <aside className="public-vertical-ad-layout__side" aria-label="Advertisement">
         <iframe height={600} loading="lazy" referrerPolicy="no-referrer"
-          sandbox="allow-scripts" scrolling="no"
+          // This frame is still cross-origin: ads.racetowin.app vs www.racetowin.app.
+          // Keeping its own origin enables the provider's storage without exposing the
+          // application DOM, host-only session cookies, or Supabase credentials.
+          sandbox="allow-scripts allow-same-origin" scrolling="no"
           src="https://ads.racetowin.app/home-vertical-600"
           title="Advertisement (160 by 600)" width={160} />
       </aside>
       <div className="public-vertical-ad-layout__content">{children}</div>
       <aside className="public-vertical-ad-layout__side" aria-label="Advertisement">
         <iframe height={300} loading="lazy" referrerPolicy="no-referrer"
-          sandbox="allow-scripts" scrolling="no"
+          sandbox="allow-scripts allow-same-origin" scrolling="no"
           src="https://ads.racetowin.app/home-vertical-300"
           title="Advertisement (160 by 300)" width={160} />
       </aside>

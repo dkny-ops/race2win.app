@@ -35,8 +35,9 @@ test("vertical ads appear only on eligible desktop secondary pages, never Home o
   assert.match(layout, /<AdsterraVerticalPageAds>/);
   assert.ok(verticalPages.includes("https://ads.racetowin.app/home-vertical-300"));
   assert.ok(verticalPages.includes("https://ads.racetowin.app/home-vertical-600"));
-  assert.match(verticalPages, /sandbox="allow-scripts"/);
-  assert.doesNotMatch(verticalPages, /allow-same-origin|bauval\\.org/);
+  assert.match(verticalPages, /sandbox="allow-scripts allow-same-origin"/);
+  assert.match(verticalPages, /ads\.racetowin\.app vs www\.racetowin\.app/);
+  assert.doesNotMatch(verticalPages, /bauval\\.org/);
   assert.match(verticalPages, /min-width: 1001px/);
   assert.match(verticalPages, /SIDE_AD_PATHS/);
   assert.ok(!verticalPages.includes('"/games/race-to-win"'));
