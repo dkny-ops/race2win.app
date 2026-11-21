@@ -400,7 +400,8 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
     {!FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? verificationWidget : null}
-    {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}\n    {!expanded && status === "ready" ? preGameBanner : null}
+    {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
+    {!expanded && status === "ready" ? preGameBanner : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} preload="auto" />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
