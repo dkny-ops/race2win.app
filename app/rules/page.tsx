@@ -1,4 +1,3 @@
-import { AdsterraGameBanners } from "@/components/marketing/adsterra-game-banners";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -15,12 +14,10 @@ export default function RulesPage() {
           <h2>Official play</h2>
           <p>Only eligible, server-verified official Race To Win runs count toward tournament standings. Registration and successful sign-in are required for official sessions. Guest runs are for entertainment only: signing in later does not turn a guest score into an official result.</p>
         </article>
-        <AdsterraGameBanners className="adsterra-inline-section-ad" />
         <article>
           <h2>Weekly scoring</h2>
           <p>Each day, your seven highest eligible verified scores are added together. Your weekly total is the sum of those daily totals from Monday through Sunday, counting up to 49 runs. Days and weeks follow America/New_York, including daylight saving time. A new week starts Monday at 12:00 a.m. New York time; previous scores do not carry into the new week.</p>
         </article>
-        <AdsterraGameBanners className="adsterra-inline-section-ad" />
         <article>
           <h2>Tied totals</h2>
           <p>If weekly totals are tied, your eligible verified individual scores from that week are compared from highest to lowest: the highest score first, then the next highest, until a difference is found. An exact tie remains pending human review. Standings are provisional until the applicable review is complete.</p>
@@ -29,12 +26,10 @@ export default function RulesPage() {
           <h2>Claims and payments</h2>
           <p>For a prize program that expressly adopts the Terms, the minimum withdrawal is US$20 across Race To Win, FlappyRace, and future games using the shared prize wallet. Smaller valid awards accumulate in your eligible balance until that threshold is reached, subject to the announced program rules. Eligibility, results, and payment details require human approval. Payments are handled manually; neither a ranking nor a claim triggers automatic payment. No exact payment date is guaranteed while verification is pending.</p>
         </article>
-        <AdsterraGameBanners className="adsterra-inline-section-ad" />
         <article>
           <h2>Fair play</h2>
           <p>Cheating, bots or unfair automation, score manipulation, exploiting vulnerabilities, evading limits through account sharing, collusion, and fraudulent claims are prohibited. Suspected violations may place results or awards on hold. Confirmed intentional violations may lead to disqualification, forfeiture of ineligible awards, or permanent suspension after documented human review, subject to the Terms and applicable law. Players may request human reconsideration through an official support channel.</p>
         </article>
-        <AdsterraGameBanners className="adsterra-inline-section-ad" />
         <article>
           <h2>FlappyRace: official tournament</h2>
           <p>FlappyRace now offers an official weekly tournament. Eligible server-verified runs count toward FlappyRace standings, separate from Race To Win. Weekly prize eligibility and credits require administrator review and approval; payments remain manual. Only sessions started after the official prize activation time qualify for the inaugural prize period.</p>
