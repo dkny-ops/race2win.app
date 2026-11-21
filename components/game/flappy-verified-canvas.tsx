@@ -1,5 +1,6 @@
 "use client";
 import { useFlappyInvisibleCheck } from "./flappy-invisible-check";
+import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShareGameButton } from "./share-game-button";
@@ -408,6 +409,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
+    {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && expanded ? <TurnstileScript onReady={() => recordDiagnostic("turnstile", 0)} onError={() => recordDiagnostic("turnstile")} /> : null}
     {!FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? verificationWidget : null}
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
