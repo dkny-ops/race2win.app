@@ -193,6 +193,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       review_required: ["Acceso pendiente de revisión administrativa.", "Game access awaits administrative review."],
       rate_limited: ["Demasiadas solicitudes. Espera unos segundos y vuelve a intentarlo.", "Too many requests. Wait a few seconds and try again."],
       FLAPPY_OFFICIAL_DISABLED: ["La competición oficial no está disponible en este momento.", "Official competition is currently unavailable."],
+      evidence_conflict: ["El servidor rechazó esta puntuación. No se guardó ni cuenta para Scores.", "The server rejected this score. It was not saved and does not count in Scores."],
+      checkpoint_conflict: ["El servidor rechazó esta puntuación. No se guardó ni cuenta para Scores.", "The server rejected this score. It was not saved and does not count in Scores."],
+      replay_rejected: ["El servidor rechazó esta puntuación. No se guardó ni cuenta para Scores.", "The server rejected this score. It was not saved and does not count in Scores."],
+      finalize_conflict: ["El servidor rechazó esta puntuación. No se guardó ni cuenta para Scores.", "The server rejected this score. It was not saved and does not count in Scores."],
+      future_input: ["El servidor rechazó esta puntuación. No se guardó ni cuenta para Scores.", "The server rejected this score. It was not saved and does not count in Scores."],
+      expired: ["El servidor rechazó esta puntuación. No se guardó ni cuenta para Scores.", "The server rejected this score. It was not saved and does not count in Scores."],
     };
     return (messages[code] ?? ["Error del servidor. Vuelve a intentarlo en unos momentos.", "Server error. Please try again shortly."])[es ? 0 : 1];
   };
@@ -432,7 +438,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
         <h2>GAME OVER</h2>
         <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
-        {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
+        {status === "rejected" ? <p role="status">{officialError ? errorMessage(officialError) : (es ? "El servidor no aceptó esta puntuación. No se guardó ni cuenta para Scores." : "The server did not accept this score. It was not saved and does not count in Scores.")}</p> : null}
         {result?.eligibility === "valid" ? <p>{es ? "Puntuación verificada y publicada en Scores." : "Score verified and published in Scores."}</p> : null}
         {result?.eligibility === "under_review" ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {terminal ? <button className="button button--primary" type="button" onClick={() => { if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); setExpanded(false); setStatus("ready"); } else { void start(); } }}>PLAY AGAIN</button> : null}

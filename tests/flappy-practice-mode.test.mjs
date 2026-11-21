@@ -25,3 +25,9 @@ test("Flappy official competition still requires authentication and server valid
   assert.match(component, /await finalizeFlappyOfficial\(/);
   assert.doesNotMatch(component, /await finishVerification\(/);
 });
+
+test("Flappy GAME OVER explicitly distinguishes a rejected official score from a local score", () => {
+  assert.match(component, /El servidor rechazó esta puntuación\. No se guardó ni cuenta para Scores\./);
+  assert.match(component, /The server rejected this score\. It was not saved and does not count in Scores\./);
+  assert.match(component, /status === "rejected" \? <p role="status">/);
+});
