@@ -6,7 +6,8 @@ const component = await readFile(new URL("../components/game/flappy-verified-can
 
 test("Flappy guest practice never creates an official session or sends scoring evidence", () => {
   assert.doesNotMatch(component, /<select|setMode|useSearchParams|location\.search|getRandomValues/);
-  assert.match(component, /const session = authenticated \? await startFlappyOfficial\(\) : null/);
+  assert.match(component, /const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = true/);
+  assert.match(component, /const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE \? await startFlappyOfficial\(\) : null/);
   assert.match(component, /official\.current = session/);
   assert.match(component, /if \(session\) beginVerification\(session\.sessionId, session\.turnstile\)/);
   assert.match(component, /if \(official\.current\)/);
