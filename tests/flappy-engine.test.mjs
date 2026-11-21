@@ -8,7 +8,7 @@ function load(path, imports = {}, turnstile = null) {
   const source = readFileSync(new URL("../"+path, import.meta.url),"utf8");
   const loadedModule = { exports:{} };
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
-  new Function("module","exports","require",code)(loadedModule,loadedModule.exports,name=>name in imports?imports[name]:name==="@/lib/security/turnstile"?{getTurnstileWidgetConfiguration:()=>turnstile}:require(name));
+  new Function("module","exports","require",code)(loadedModule,loadedModule.exports,name=>name in imports?imports[name]:name==="@/lib/security/turnstile"?{getTurnstileWidgetConfiguration:()=>turnstile,verifyTurnstileToken:async()=>({status:"verified"})}:require(name));
   return loadedModule.exports;
 }
 const e=load("lib/game/flappy/engine.ts");
@@ -73,7 +73,7 @@ const api=load("lib/game/flappy/server.ts",flappyImports,{siteKey:"test-site-key
 function req(body){return new Request("https://test/api",{method:"POST",headers:{origin:"https://test","Content-Type":"application/json"},body:JSON.stringify(body)});}
 test("official endpoints remain locked by reviewed code and require live identity",async()=>{
   const db=()=>assert.fail("closed endpoint must not access DB");
-  assert.equal((await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:false,user:async()=>null,admin:db,now:Date.now})).status,401);
+  assert.equal((await api.handleFlappy("start",req({token:"test-token"}),{access:async()=>"allowed",enabled:false,user:async()=>null,admin:db,now:Date.now})).status,401);
   assert.equal((await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:false,user:async()=>"player",admin:db,now:Date.now})).status,403);
 });
 test("authority fields, wrong seeds, forged score and hostile origins cannot enter session APIs",async()=>{
@@ -99,7 +99,7 @@ test("an automated controller can generate a physically valid replay: replay is 
 
 test("access holds and missing tournament consent deny sessions before quota or storage",async()=>{
  for(const reason of ["review_required","terms_required"]){
-  const response=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>reason,admin:()=>assert.fail("Access rejection must precede quota"),now:Date.now});
+  const response=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>reason,admin:()=>assert.fail("Access rejection must precede quota"),now:Date.now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
   assert.equal(response.status,403);assert.equal((await response.json()).code,reason);
  }
  const failure=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>{throw new Error("unavailable");},admin:()=>assert.fail("Access failure must fail closed"),now:Date.now});
@@ -122,7 +122,7 @@ test("player access reuses the existing hold and terms policy scoped to verified
 test("official START returns a server clock reference for monotonic client scheduling",async()=>{
  const now=Date.parse("2026-10-26T04:00:00Z");
  const admin=()=>({rpc:async(name)=>name==="flappy_turnstile_enabled"?{data:true,error:null}:name==="flappy_consume_quota"?{data:true,error:null}:name==="flappy_turnstile_status"?{data:{required:true},error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null}});
- const r=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now});
+ const r=await api.handleFlappy("start",req({}),{enabled:true,user:async()=>"verified",access:async()=>"allowed",admin,now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
  assert.equal(r.status,200);assert.equal((await r.json()).serverNow,new Date(now).toISOString());
 });
 
@@ -137,7 +137,7 @@ test("temporary Flappy Turnstile pause still consumes quota and creates server-o
  const calls=[];
  const missingProviderApi=load("lib/game/flappy/server.ts",flappyImports,null);
  const now=Date.parse("2026-10-26T04:00:00Z");
- const r=await missingProviderApi.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null};}}),now:()=>now});
+ const r=await missingProviderApi.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null};}}),now:()=>now,configuration:()=>({siteKey:"test-site-key"}),verify:async()=>({status:"verified"})});
  assert.equal(r.status,200);
  assert.deepEqual(calls,["flappy_consume_quota","flappy_start"]);
  assert.equal((await r.json()).turnstile,undefined);
