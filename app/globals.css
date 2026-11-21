@@ -2675,3 +2675,10 @@ body:has(.rtw-game-page--desert)::before {
       url("/images/desert-page-background-mobile.webp");
   }
 }
+
+.home-games-logo-banner img,
+.home-game-tile--race h1 img,
+.rtw-game-page--desert .rtw-game-page__brand-banner img {
+  filter: grayscale(1) sepia(.88) saturate(2.4) hue-rotate(-13deg) brightness(1.14)
+    drop-shadow(0 0 13px rgba(227, 99, 40, .30));
+}
