@@ -2669,3 +2669,27 @@ body:has(.rtw-game-page--desert)::before {
   filter: grayscale(1) sepia(.88) saturate(2.4) hue-rotate(-13deg) brightness(1.14)
     drop-shadow(0 0 13px rgba(227, 99, 40, .30));
 }
+
+.home-game-tile--race .home-game-actions > .home-game-play-link {
+  background: linear-gradient(180deg, #ffdf91, #dd8c3d);
+  color: #2d170e;
+  border-color: #ffe6a6;
+  box-shadow: 0 0 16px #dd873b70;
+}
+
+.home-game-tile--race .home-game-actions > .button--secondary {
+  background: linear-gradient(180deg, #79422c, #3b211b);
+  color: #fff1cd;
+  border-color: #d69862;
+  box-shadow: 0 0 12px #cf7b4260;
+}
+
+.home-game-tile--race .home-game-actions > .button:hover {
+  border-color: #ffe7ad;
+  box-shadow: 0 0 18px #eaa25486;
+}
+
+.home-game-tile--race .home-game-actions > .button:focus-visible,
+.home-game-tile--race .home-game-play-link:focus-visible::after {
+  outline-color: #ffdf91;
+}
