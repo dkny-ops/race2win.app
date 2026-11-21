@@ -12,7 +12,7 @@ test("Flappy guest practice never creates an official session or sends scoring e
   assert.match(component, /if \(session\) beginVerification\(session\.sessionId, session\.turnstile\)/);
   assert.match(component, /if \(official\.current\)/);
   assert.match(component, /if \(busy\.current \|\| !official\.current\)/);
-  assert.match(component, /const blocked = authenticated &&/);
+  assert.match(component, /const blocked = !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && authenticated &&/);
   assert.match(component, /disabled=\{blocked/);
 });
 
