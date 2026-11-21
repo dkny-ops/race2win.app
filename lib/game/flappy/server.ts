@@ -1,5 +1,6 @@
 import { recordCompetitionAccess, competitionAccessMessage } from "@/lib/security/competition-access";
 import "server-only";
+import { getTurnstileWidgetConfiguration, verifyTurnstileToken } from "@/lib/security/turnstile";
 import { createHash, randomInt, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { readBoundedJson } from "@/lib/competition/request-body";
@@ -9,14 +10,14 @@ import { isGameAccessHeld } from "@/lib/security/auth-401-review";
 import { FLAPPY_COMPETITION_ENABLED } from "./activation";
 import { FLAPPY_VERSION, MAX_TICKS, parseFlaps, replayFlappy } from "./engine";
 type Action = "start" | "checkpoint" | "finalize";
-type Deps = { access: (player: string) => Promise<"allowed" | "review_required" | "terms_required">; enabled: boolean; user: () => Promise<string | null>; admin: typeof createAdminClient; now: () => number };
+type Deps = { access: (player: string) => Promise<"allowed" | "review_required" | "terms_required">; enabled: boolean; user: () => Promise<string | null>; admin: typeof createAdminClient; now: () => number; verify?: typeof verifyTurnstileToken; configuration?: typeof getTurnstileWidgetConfiguration };
 export async function flappyPlayerAccess(player: string): Promise<"allowed" | "review_required" | "terms_required"> {
   if (await isGameAccessHeld(player)) return "review_required";
   const { data, error } = await createAdminClient().from("player_terms_acceptances").select("terms_version").eq("player_id", player).maybeSingle();
   if (error) throw new Error("Access unavailable");
   return data?.terms_version === "2026-10-18" ? "allowed" : "terms_required";
 }
-const defaults: Deps = { access: flappyPlayerAccess, enabled: FLAPPY_COMPETITION_ENABLED, user: async () => (await getVerifiedUserContext())?.userId ?? null, admin: createAdminClient, now: Date.now };
+const defaults: Deps = { access: flappyPlayerAccess, enabled: FLAPPY_COMPETITION_ENABLED, user: async () => (await getVerifiedUserContext())?.userId ?? null, admin: createAdminClient, now: Date.now, verify: verifyTurnstileToken, configuration: getTurnstileWidgetConfiguration };
 function seedFromServer(): number {
   // Every official session receives a cryptographically random, persisted
   // seed. The client can render it, but it cannot choose or replace it.
@@ -41,16 +42,25 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     if (!deps.enabled) return reject(action, 403, "FLAPPY_OFFICIAL_DISABLED");
     const access = await deps.access(player);
     if (access !== "allowed") return reject(action, 403, access);
+    if (action === "start") {
+      if (!deps.configuration?.("midrun_human_check")) return reject(action, 503, "verification_unavailable");
+      const preflight = await readBoundedJson(request, 4096);
+      if (!preflight || typeof preflight !== "object" || Array.isArray(preflight) ||
+          Object.keys(preflight).length !== 1 || typeof (preflight as Record<string, unknown>).token !== "string")
+        return reject(action, 403, "verification_unavailable");
+      const verified = await deps.verify?.((preflight as Record<string, unknown>).token, "midrun_human_check");
+      if (verified?.status !== "verified") return reject(action, 403, "verification_unavailable");
+    }
     const admin = deps.admin();
     // Temporary Flappy diagnostic: official replay remains mandatory; all finalized runs are held for review by the database trigger.
     const quota = await admin.rpc("flappy_consume_quota", { p_player: player, p_action: action });
     if (quota.error) return reject(action, 503, "quota_unavailable");
     if (quota.data !== true) return reject(action, 429, "rate_limited");
-    const body = await readBoundedJson(request, 48 * 1024);
+    const body = action === "start" ? { token: "verified" } : await readBoundedJson(request, 48 * 1024);
     if (!body || typeof body !== "object" || Array.isArray(body)) return reject(action, 400, "invalid_body");
     const b = body as Record<string, unknown>;
     if (action === "start") {
-      if (Object.keys(b).length) return reject(action, 400, "invalid_body");
+      if (Object.keys(b).length !== 1 || typeof b.token !== "string") return reject(action, 400, "invalid_body");
       const identity = await recordCompetitionAccess(player, "flappy-race", request);
       if (identity !== "allowed") return NextResponse.json({ message: competitionAccessMessage(identity), code: identity }, { status: identity === "unavailable" ? 503 : 403, headers });
       const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: seedFromServer(), p_version: FLAPPY_VERSION });
