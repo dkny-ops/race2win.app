@@ -58,7 +58,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");
       if (error?.code === "P0001" && error.message === "Concurrent session") return reject(action, 409, "session_active");
       if (error || !data) return reject(action, error?.code === "P0001" ? 409 : 503, "start_rejected");
-      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString(), turnstile: { required: false, serverNow: new Date(deps.now()).toISOString() } }, { headers });
+      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString() }, { headers });
     }
     if (Object.keys(b).length !== 3 || typeof b.sessionId !== "string" || !UUID.test(b.sessionId) ||
         typeof b.throughTick !== "number") return reject(action, 400, "invalid_body");
