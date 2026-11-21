@@ -9,7 +9,7 @@ import {
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
 } from "./environment";
-import { createDesertSky, DESERT_HAZE, DesertScenery } from "./desert-scenery";
+import { DESERT_HAZE, DesertScenery } from "./desert-scenery";
 import {
   createModelVehicleVisual,
   disposeModelVehicleVisual,
@@ -116,8 +116,12 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.skyTexture = createDesertSky();
-    this.scene.background = this.skyTexture;
+    this.scene.background = new THREE.Color(DESERT_HAZE);
+    this.skyTexture = new THREE.TextureLoader().load("/images/desert-sky.webp", texture => {
+      if (!this.disposed) this.scene.background = texture;
+    });
+    this.skyTexture.colorSpace = THREE.SRGBColorSpace;
+    this.skyTexture.mapping = THREE.EquirectangularReflectionMapping;
     this.scene.fog = new THREE.Fog(DESERT_HAZE, 145, 610);
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }

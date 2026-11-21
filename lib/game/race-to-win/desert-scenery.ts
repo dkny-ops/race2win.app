@@ -20,47 +20,6 @@ function variation(index: number): number {
   return value - Math.floor(value);
 }
 
-export function createDesertSky(): THREE.CanvasTexture {
-  const canvas = document.createElement("canvas");
-  canvas.width = 2048;
-  canvas.height = 1024;
-  const sky = canvas.getContext("2d")!;
-  const gradient = sky.createLinearGradient(0, 0, 0, 1024);
-  gradient.addColorStop(0, "#276187");
-  gradient.addColorStop(0.31, "#719ebb");
-  gradient.addColorStop(0.43, "#b3c1c7");
-  gradient.addColorStop(0.50, DESERT_HAZE);
-  gradient.addColorStop(1, DESERT_HAZE);
-  sky.fillStyle = gradient;
-  sky.fillRect(0, 0, 2048, 1024);
-
-  // Repeat the subtle sky features around the sphere so camera tracking stays seamless.
-  for (let index = 0; index < 32; index++) {
-    const x = variation(index + 300) * 2048;
-    const y = 418 + variation(index + 700) * 66;
-    const width = 22 + variation(index + 500) * 102;
-    const height = 2 + variation(index + 600) * 6;
-    for (const shifted of [x - 2048, x, x + 2048]) {
-      sky.save();
-      sky.translate(shifted, y);
-      sky.rotate((variation(index + 900) - 0.5) * 0.12);
-      sky.scale(1, height / width);
-      const cloud = sky.createRadialGradient(0, 0, 0, 0, 0, width);
-      cloud.addColorStop(0, "rgba(255,224,189,0.52)");
-      cloud.addColorStop(0.38, "rgba(255,218,183,0.33)");
-      cloud.addColorStop(1, "rgba(255,218,183,0)");
-      sky.fillStyle = cloud;
-      sky.fillRect(-width, -width, width * 2, width * 2);
-      sky.restore();
-    }
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  return texture;
-}
-
 function mesaGeometry(seed: number, mobile: boolean): THREE.BufferGeometry {
   const profile = [
     [0, 1.00], [0.10, 0.96], [0.22, 0.80], [0.39, 0.67],
@@ -80,7 +39,7 @@ function mesaGeometry(seed: number, mobile: boolean): THREE.BufferGeometry {
         + 0.10 * Math.sin(angle * 11 + height * 6 + seed);
       const ledge = 0.026 * Math.sin(angle * 3 + seed) * Math.sin(height * Math.PI);
       positions.push(Math.cos(angle) * radius * rib + height * 0.18, height + ledge, Math.sin(angle) * radius * rib);
-      textureUV.push(side / sides * 5, height * 2.8 + ledge);
+      textureUV.push(side / sides * 10, height * 2.65 + ledge);
       const shade = 0.78 + variation(row + seed * 13) * 0.20 - 0.13 * Number(row === 4 || row === 8);
       colors.push(shade, shade * 0.98, shade * 0.94);
       if (row === 0 || side === sides) continue;
@@ -91,7 +50,7 @@ function mesaGeometry(seed: number, mobile: boolean): THREE.BufferGeometry {
   }
   const cap = positions.length / 3;
   positions.push(0.18, 1.01, 0);
-  textureUV.push(2.5, 2.8);
+  textureUV.push(5, 2.65);
   colors.push(0.95, 0.93, 0.89);
   for (let side = 0; side < sides; side++) {
     const edge = cap - sides - 1 + side;
@@ -191,6 +150,11 @@ export class DesertScenery {
         yaw: variation(index + 25) * 6.28,
       };
     });
+    boulders.push(
+      { x: -14.8, z: 1.6, width: 1.64, length: 1.43, height: 1.28, yaw: 0.32 },
+      { x: -18.2, z: 6.9, width: 1.35, length: 1.10, height: 1.03, yaw: 1.15 },
+      { x: 15.2, z: 5.3, width: 0.86, length: 0.93, height: 0.61, yaw: 0.8 },
+    );
     const boulderGeo = this.own(new THREE.DodecahedronGeometry(1, quality.mobile ? 0 : 1));
     const boulderPosition = boulderGeo.getAttribute("position");
     for (let index = 0; index < boulderPosition.count; index++) {
@@ -217,6 +181,13 @@ export class DesertScenery {
         yaw: variation(index + 444) * 6.28,
       };
     });
+    scrub.push(
+      { x: 13.9, z: 1.6, width: 1.58, length: 1.33, height: 1.30, yaw: 0.9 },
+      { x: 17.2, z: 6.2, width: 1.37, length: 1.49, height: 1.12, yaw: 2.33 },
+      { x: 22, z: 9.1, width: 1.85, length: 1.34, height: 1.36, yaw: 2.75 },
+      { x: 13.2, z: 15.6, width: 1.28, length: 1.1, height: 0.84, yaw: 0.5 },
+      { x: -16.7, z: 8.9, width: 1.64, length: 1.29, height: 1.20, yaw: 2.1 },
+    );
     this.addBatch(this.own(scrubGeometry(quality.mobile)), this.own(new THREE.MeshStandardMaterial({
       side: THREE.DoubleSide, vertexColors: true, color: "#ccbd8f", roughness: 1,
     })), scrub, false);
