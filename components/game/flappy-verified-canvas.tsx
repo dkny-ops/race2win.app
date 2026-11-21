@@ -60,6 +60,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const pendingFlap = useRef(false), mounted = useRef(true), lastFrame = useRef(0);
   const [status, setStatus] = useState<Status>("ready");
   const [score, setScore] = useState(0);
+  const renderedScore = useRef(0);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [result, setResult] = useState<FlappyResult | null>(null);
@@ -124,7 +125,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     if (busy.current || running.current || blocked) return;
     window.dispatchEvent(new Event("rtw-audio-start-flappy"));
     busy.current = true;
-    setOfficialError(null); setStatus("starting"); setResult(null); setScore(0);
+    setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
     try {
       const session = authenticated ? await startFlappyOfficial() : null;
       void refreshAvailability();
@@ -193,7 +194,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
             if (inputs.current.length > MAX_INPUTS) { fail(); break; }
             stepFlappy(g, apply);
           }
-          setScore(g.score);
+          // Only update React when the score changes. Re-rendering the entire
+          // fullscreen game every animation frame can cause mobile Safari jank.
+          if (g.score !== renderedScore.current) {
+            renderedScore.current = g.score;
+            setScore(g.score);
+          }
           if (g.dead && running.current) {
             running.current = false;
             if (official.current) {
@@ -276,7 +282,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     const timer = window.setTimeout(() => {
       running.current=false; official.current=null; pendingFlap.current=false;
       engine.current=initialFlappy(0); inputs.current=[];
-      setExpanded(false);setScore(0);setCountdown(null);setResult(null);setStatus("ready");
+      setExpanded(false);renderedScore.current=0;setScore(0);setCountdown(null);setResult(null);setStatus("ready");
     },5000);
     return () => window.clearTimeout(timer);
   },[status,authenticated]);
