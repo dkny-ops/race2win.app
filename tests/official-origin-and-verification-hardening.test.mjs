@@ -17,10 +17,10 @@ test("Race To Win state-changing official routes require an exact first-party Or
   }
 });
 
-test("Flappy Race refuses to create an official session if its human-verification gate is disabled", async () => {
+test("Flappy temporary verification pause retains origin protection and server replay", async () => {
   const source = await read("lib/game/flappy/server.ts");
-  assert.match(source, /if \(gate\.error \|\| gate\.data !== true \|\| !getTurnstileWidgetConfiguration\("midrun_human_check"\)\)/);
-  assert.match(source, /flappy_turnstile_enabled[\s\S]*flappy_consume_quota/);
+  assert.doesNotMatch(source, /flappy_turnstile_enabled/);
+  assert.match(source, /flappy_consume_quota/);
   assert.match(source, /if \(!origin \|\| origin !== new URL\(request\.url\)\.origin/);
 });
 
