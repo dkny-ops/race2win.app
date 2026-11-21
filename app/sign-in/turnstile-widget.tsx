@@ -51,13 +51,15 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     let active = true;
     onTokenChange(null);
     const id = api.render(containerRef.current, {
-      sitekey: siteKey, action, size: "flexible",
+      sitekey: siteKey, action, size: action === "midrun_human_check" ? "invisible" : "flexible",
+      ...(action === "midrun_human_check" ? { execution: "execute" as const, appearance: "interaction-only" as const } : {}),
       ...(adaptive ? { appearance: "interaction-only" as const } : {}),
       callback: (token) => { if (active) onTokenChange(token); },
       "expired-callback": () => { if (active) clearAndReset(); },
       "error-callback": () => { if (active) clearAndReset(); },
     });
     widgetIdRef.current = id;
+    if (action === "midrun_human_check") api.execute(id);
     return () => { active = false; widgetIdRef.current = null; onTokenChange(null); api.remove(id); };
   }, [action, adaptive, clearAndReset, onTokenChange, scriptReady, siteKey]);
 
