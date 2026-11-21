@@ -8,7 +8,6 @@ import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { isGameAccessHeld } from "@/lib/security/auth-401-review";
 import { FLAPPY_COMPETITION_ENABLED } from "./activation";
 import { FLAPPY_VERSION, MAX_TICKS, parseFlaps, replayFlappy } from "./engine";
-import { getTurnstileWidgetConfiguration } from "@/lib/security/turnstile";
 type Action = "start" | "checkpoint" | "finalize";
 type Deps = { access: (player: string) => Promise<"allowed" | "review_required" | "terms_required">; enabled: boolean; user: () => Promise<string | null>; admin: typeof createAdminClient; now: () => number };
 export async function flappyPlayerAccess(player: string): Promise<"allowed" | "review_required" | "terms_required"> {
@@ -43,15 +42,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const access = await deps.access(player);
     if (access !== "allowed") return reject(action, 403, access);
     const admin = deps.admin();
-    // Check the human-verification control before spending even a rate-limit
-    // token. A provider/control outage must not consume a player's ability to
-    // play when no protected official session can be created.
-    if (action === "start") {
-      const gate = await admin.rpc("flappy_turnstile_enabled");
-      if (gate.error || gate.data !== true || !getTurnstileWidgetConfiguration("midrun_human_check")) {
-        return reject(action, 503, "verification_unavailable");
-      }
-    }
+    // Temporary Flappy diagnostic: official replay remains mandatory; all finalized runs are held for review by the database trigger.
     const quota = await admin.rpc("flappy_consume_quota", { p_player: player, p_action: action });
     if (quota.error) return reject(action, 503, "quota_unavailable");
     if (quota.data !== true) return reject(action, 429, "rate_limited");
@@ -60,9 +51,6 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const b = body as Record<string, unknown>;
     if (action === "start") {
       if (Object.keys(b).length) return reject(action, 400, "invalid_body");
-      const turnstile = getTurnstileWidgetConfiguration("midrun_human_check");
-      // The gate and configuration were checked before quota consumption.
-      if (!turnstile) return reject(action, 503, "verification_unavailable");
       const identity = await recordCompetitionAccess(player, "flappy-race", request);
       if (identity !== "allowed") return NextResponse.json({ message: competitionAccessMessage(identity), code: identity }, { status: identity === "unavailable" ? 503 : 403, headers });
       const { data, error } = await admin.rpc("flappy_start", { p_player: player, p_seed: seedFromServer(), p_version: FLAPPY_VERSION });
@@ -70,10 +58,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       if (error?.code === "P0001" && error.message === "Hourly limit") return reject(action, 429, "attempts_exhausted");
       if (error?.code === "P0001" && error.message === "Concurrent session") return reject(action, 409, "session_active");
       if (error || !data) return reject(action, error?.code === "P0001" ? 409 : 503, "start_rejected");
-      const check = await admin.rpc("flappy_turnstile_status", { p_player: player, p_session: data.sessionId });
-      if (check.error || !check.data?.required) return reject(action, 503, "verification_unavailable");
-      const verification = { ...check.data, siteKey: turnstile.siteKey };
-      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString(), turnstile: verification }, { headers });
+      return NextResponse.json({ ...data, serverNow: new Date(deps.now()).toISOString(), turnstile: { required: false, serverNow: new Date(deps.now()).toISOString() } }, { headers });
     }
     if (Object.keys(b).length !== 3 || typeof b.sessionId !== "string" || !UUID.test(b.sessionId) ||
         typeof b.throughTick !== "number") return reject(action, 400, "invalid_body");
