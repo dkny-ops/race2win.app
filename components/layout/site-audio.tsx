@@ -23,13 +23,17 @@ export function releaseGameAudio(channel: GameAudioChannel, element?: HTMLAudioE
  if (!element || active.get(channel) === element) active.delete(channel);
  syncSite();
 }
-export function AudioPlayer({ channel, playing = true, showControls = true }: { channel:Channel; playing?:boolean; showControls?:boolean }) {
+export function AudioPlayer({ channel, playing = true, showControls = true, preload = "none" }: { channel:Channel; playing?:boolean; showControls?:boolean; preload?: "none" | "metadata" | "auto" }) {
  const audio = useRef<HTMLAudioElement|null>(null);
  const [volume,setVolume] = useState(VOLUME[channel]);
  const [open,setOpen] = useState(false);
  const [muted,setMuted] = useState(false);
  useEffect(()=>{
-  const element = new Audio(SOURCES[channel]); element.loop=true; element.preload="none";
+  const element = new Audio();
+  // Game audio is warmed before PLAY when requested. This avoids forcing
+  // mobile Safari to download and decode a multi-megabyte MP3 in the first
+  // animation frames, while preserving the user's explicit start gesture.
+  element.preload=preload; element.src=SOURCES[channel]; element.loop=true;
   const stored = Number(localStorage.getItem("rtw-volume-"+channel));
   const initial = localStorage.getItem("rtw-volume-"+channel) !== null && Number.isFinite(stored) ? Math.max(0,Math.min(1,stored)) : VOLUME[channel];
   element.volume=initial;
@@ -54,7 +58,7 @@ export function AudioPlayer({ channel, playing = true, showControls = true }: { 
    return ()=>{window.clearTimeout(stateTimer);document.removeEventListener("pointerdown",unlock);window.removeEventListener("rtw-site-toggle",toggle);element.pause();active.delete(channel);removeVisibility();};
   }
   return ()=>{window.clearTimeout(stateTimer);element.pause();active.delete(channel);removeVisibility();syncSite();};
- },[channel]);
+ },[channel,preload]);
  useEffect(()=>{
   if(channel==="site")return;
   const element=audio.current;if(!element)return;

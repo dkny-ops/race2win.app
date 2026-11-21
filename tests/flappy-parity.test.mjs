@@ -72,6 +72,14 @@ test("FlappyRace terminal overlay has no Extra Life and removes stale public sco
  assert.doesNotMatch(source,/Only verified, reviewed official results count\. No withdrawable prizes\./);
 });
 
+test("Flappy warms its soundtrack before PLAY instead of loading it during the first game frames",()=>{
+ const source=readFileSync(new URL("../components/game/flappy-verified-canvas.tsx",import.meta.url),"utf8");
+ const audio=readFileSync(new URL("../components/layout/site-audio.tsx",import.meta.url),"utf8");
+ assert.match(source,/<AudioPlayer channel="flappy"[\s\S]*preload="auto"/);
+ assert.match(audio,/preload\?: "none" \| "metadata" \| "auto"/);
+ assert.match(audio,/element\.preload=preload; element\.src=SOURCES\[channel\]/);
+});
+
 
 test("FlappyRace public page keeps the weekly ranking but omits the weekly closure panel",()=>{
  const source=readFileSync(new URL("../components/game/flappy-race-page.tsx",import.meta.url),"utf8");
