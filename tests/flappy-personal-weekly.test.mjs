@@ -36,7 +36,7 @@ function reader({ data, error = null } = {}) {
   const api = compile(source, (name) => name === "server-only" ? {} :
     name.endsWith("/scores") ? { currentNewYorkTournamentWeek: () => "2026-10-26" } :
     name.endsWith("/admin") ? { createAdminClient: () => ({
-      async rpc(fn, args) { calls.push([fn, args]); return { data, error }; },
+      async rpc(fn, args) { calls.push([fn, args]); return fn === "flappy_read_pending_scores" ? { data: [], error: null } : { data, error }; },
     }) } : assert.fail(name));
   return { api, calls };
 }
@@ -46,7 +46,7 @@ test("personal Flappy score reads only server-selected player and current New Yo
   const { api, calls } = reader({ data: valid });
   const result = await api.readFlappyPersonalWeek(player);
   assert.equal(result.weeklyTotal, 18);
-  assert.deepEqual(calls, [[ "flappy_read_personal_week", { p_player: player, p_week: "2026-10-26" } ]]);
+  assert.deepEqual(calls, [[ "flappy_read_personal_week", { p_player: player, p_week: "2026-10-26" } ], [ "flappy_read_pending_scores", { p_player: player, p_week: "2026-10-26" } ]]);
 });
 
 test("personal Flappy score rejects malformed, inflated and non-counting metadata", async () => {
