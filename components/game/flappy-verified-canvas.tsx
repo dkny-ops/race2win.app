@@ -22,7 +22,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const recordDiagnostic = useCallback((kind: "checkpoint" | "turnstile", durationMs?: number) => {
     diagnostics.record({ kind, durationMs });
   }, [diagnostics]);
-  const { begin: beginVerification, finish: finishVerification, stop: stopVerification, widget: verificationWidget } = useFlappyInvisibleCheck(recordDiagnostic);
+  const { stop: stopVerification } = useFlappyInvisibleCheck(recordDiagnostic);
   const canvas = useRef<HTMLCanvasElement>(null);
   const context = useRef<CanvasRenderingContext2D | null>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
@@ -399,7 +399,6 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
-    {false ? verificationWidget : null}
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
