@@ -840,30 +840,16 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 
 /* Uploaded original artwork: exact case and whitespace in GitHub filenames. */
 .home-game-art--race{background-image:linear-gradient(90deg,rgba(20,11,15,.79) 0%,rgba(20,11,15,.35) 41%,rgba(20,11,15,.03) 87%),url('/images/desert-home-race-card.webp');background-size:cover;background-position:55% center;opacity:.97}
-.home-game-art--flappy{background-image:linear-gradient(90deg,rgba(2,16,26,.88) 0%,rgba(2,16,26,.48) 36%,rgba(2,16,26,.06) 78%),url('/images/Flappy-bird%20.png');background-size:cover;background-position:58% center;opacity:.97}
+.home-game-art--flappy{
+  background-image:linear-gradient(180deg,rgba(3,19,29,.43),transparent 38%,rgba(3,19,29,.19)),url('/images/flappy-race-home-lagoon.webp');
+  background-position:61% center;
+  background-size:cover;
+}
 .home-game-art--jumping{background-image:linear-gradient(90deg,rgba(3,8,32,.82) 0%,rgba(3,8,32,.42) 44%,rgba(3,8,32,.12) 78%),url('/images/jumping-race/home-card.png');background-size:cover;background-position:48% center;opacity:.98}
 .home-game-tile{background-color:rgba(2,10,25,.25)}
 .home-game-tile--flappy{background-color:rgba(2,24,27,.23)}
 .home-game-tile h1,.home-game-tile h2,.home-game-description,.home-game-tile .eyebrow,.home-game-actions{position:relative;z-index:1}
 @media(max-width:700px){.home-game-art--race{background-position:56% center}.home-game-art--flappy{background-position:59% center}.home-game-art--jumping{background-position:35% center}}
-
-/* Flappy card: visually fade the checkerboard embedded in the uploaded PNG.
-   The actual image file is unchanged; only its presentation is masked. */
-.home-game-art--flappy{
-  background-image:none;
-  opacity:1;
-}
-.home-game-art--flappy::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background-image:url('/images/Flappy-bird%20.png');
-  background-position:58% center;
-  background-size:cover;
-  background-repeat:no-repeat;
-  -webkit-mask-image:radial-gradient(ellipse 54% 72% at 70% 55%,#000 45%,transparent 95%);
-  mask-image:radial-gradient(ellipse 54% 72% at 70% 55%,#000 45%,transparent 95%);
-}
 
 /* Keep game pages below the absolute site header, including the SHARE control. */
 body:has(.page-section .rtw-play-count) .site-header{position:relative;inset:auto;background:#06111f}
