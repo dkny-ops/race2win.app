@@ -382,7 +382,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       } catch { if(active) fail(); } finally {busy.current=false;}
     },100);
     return () => {active=false;window.clearInterval(timer);};
-  },[status,result,fail,finishVerification,stopVerification]);
+  },[status,result,fail,stopVerification]);
   useEffect(() => {
     if (!["over","rejected"].includes(status)) return;
     const timer = window.setTimeout(() => {
