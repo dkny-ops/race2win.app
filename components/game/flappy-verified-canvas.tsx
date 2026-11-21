@@ -27,11 +27,11 @@ function prepareBirdWingFrames(source: HTMLCanvasElement): HTMLCanvasElement[] {
   sourceContext.drawImage(source, 0, 0, frameSize, frameSize);
   const original = sourceContext.getImageData(0, 0, frameSize, frameSize).data;
   const wingWidth = Math.round(frameSize * 0.52);
-  const frames = [small];
+  const frames: HTMLCanvasElement[] = [];
 
   // Distort only the lifted wing. The face, belly and position stay anchored.
   // Bake the poses once so the render loop still draws a single small image.
-  for (let pose = 1; pose < BIRD_WING_POSES; pose++) {
+  for (let pose = 0; pose < BIRD_WING_POSES; pose++) {
     const frame = document.createElement("canvas");
     frame.width = frame.height = frameSize;
     const context = frame.getContext("2d");
