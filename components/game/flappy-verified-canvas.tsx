@@ -11,7 +11,11 @@ import { FlappyPerformanceDiagnostics, flappyDiagnosticsEnabled } from "@/lib/ga
 
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
-// Temporary diagnostic: Flappy runs locally without creating official sessions.\n// Keep server-side official verification and prize gates unchanged.\nconst FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = true;\n\ntype Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
+// Temporary diagnostic: Flappy runs locally without creating official sessions.
+// Keep server-side official verification and prize gates unchanged.
+const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = true;
+
+type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner, onGameActiveChange }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode; onGameActiveChange?: (active: boolean) => void }) {
   const es = language === "es";
   const [diagnostics] = useState(() => new FlappyPerformanceDiagnostics(flappyDiagnosticsEnabled()));
