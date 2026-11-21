@@ -409,6 +409,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
         <h2>GAME OVER</h2>
+        <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
         {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
