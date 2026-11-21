@@ -11,6 +11,7 @@ export type FlappyPersonalWeek = Readonly<{
   game: "flappy-race";
   tournamentWeek: ScoreWeek;
   weeklyTotal: number;
+  pendingScores: readonly Readonly<{ day: string; score: number }>[];
   days: readonly Readonly<{ day: string; topScores: readonly number[]; dailyTotal: number }>[];
 }>;
 
@@ -62,5 +63,15 @@ export async function readFlappyPersonalWeek(playerId: string): Promise<FlappyPe
     p_week: week,
   });
   if (error) throw new Error("Personal score unavailable");
-  return parsePersonalWeek(data, week);
+  const verified = parsePersonalWeek(data, week);
+  const pending = await createAdminClient().rpc("flappy_read_pending_scores", { p_player: playerId, p_week: week });
+  if (pending.error || !Array.isArray(pending.data) || pending.data.length > 20) throw new Error("Pending score unavailable");
+  const days = new Set(expectedDays(week));
+  const pendingScores = pending.data.map((row: unknown) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("Invalid pending score");
+    const item = row as { day?: unknown; score?: unknown };
+    if (typeof item.day !== "string" || !days.has(item.day) || !isScore(item.score)) throw new Error("Invalid pending score");
+    return { day: item.day, score: item.score };
+  });
+  return { ...verified, pendingScores };
 }
