@@ -133,15 +133,12 @@ test("start reports exhausted rolling limit, active session and server errors se
  }
 });
 
-test("enabled Flappy verification requires provider configuration before consuming a game attempt",async()=>{
+test("temporary Flappy Turnstile pause still consumes quota and creates server-owned sessions",async()=>{
  const calls=[];
  const missingProviderApi=load("lib/game/flappy/server.ts",flappyImports,null);
- const r=await missingProviderApi.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return {data:true,error:null};}}),now:Date.now});
- assert.equal(r.status,503);assert.equal((await r.json()).code,"verification_unavailable");assert.ok(!calls.includes("flappy_start"));
-});
-
-test("a disabled Flappy verification gate fails closed before any official session is created",async()=>{
- const calls=[];
- const r=await api.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_turnstile_enabled"?{data:false,error:null}:{data:true,error:null};}}),now:Date.now});
- assert.equal(r.status,503);assert.equal((await r.json()).code,"verification_unavailable");assert.deepEqual(calls,["flappy_turnstile_enabled"]);
+ const now=Date.parse("2026-10-26T04:00:00Z");
+ const r=await missingProviderApi.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null};}}),now:()=>now});
+ assert.equal(r.status,200);
+ assert.deepEqual(calls,["flappy_consume_quota","flappy_start"]);
+ assert.equal((await r.json()).turnstile.required,false);
 });
