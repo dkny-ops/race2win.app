@@ -2632,3 +2632,17 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
 .public-vertical-ad-layout__content{min-width:0;padding-top:130px}
 .public-vertical-ad-layout__content .shell,.public-vertical-ad-layout__content .narrow{max-width:100%}
 @media(max-width:1000px){.public-vertical-ad-layout{display:block}.public-vertical-ad-layout__side{display:none}}
+
+/* Rules: never divide the narrowed central rail into three unreadable columns. */
+@media (min-width: 1001px) {
+  .public-vertical-ad-layout__content .rule-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .public-vertical-ad-layout__content .rule-grid article {
+    min-width: 0;
+    padding: clamp(1.2rem, 2vw, 2rem);
+  }
+  .public-vertical-ad-layout__content .rule-grid article h2 {
+    margin-top: 0;
+  }
+}
