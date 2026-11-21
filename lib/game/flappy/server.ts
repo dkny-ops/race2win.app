@@ -80,7 +80,7 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
     const digest = flapDigest(inputs);
     if (session.status === "finalized") {
       if (action !== "finalize" || session.digest !== digest || session.tick !== b.throughTick) return reject(action, 409, "finalize_conflict");
-      return NextResponse.json(session.outcome, { headers });
+      return NextResponse.json({ ...session.outcome, eligibility: "under_review" }, { headers });
     }
     const now = deps.now();
     const started = Date.parse(session.startsAt), expires = Date.parse(session.expiresAt), lease = Date.parse(session.leaseUntil);
@@ -101,6 +101,6 @@ export async function handleFlappy(action: Action, request: Request, deps: Deps 
       p_digest: digest, p_score: replay.score,
     });
     if (error || !data) return reject(action, 409, "evidence_conflict");
-    return NextResponse.json(data, { headers });
+    return NextResponse.json(action === "finalize" ? { ...data, eligibility: "under_review" } : data, { headers });
   } catch { return reject(action, 503, "service_unavailable"); }
 }
