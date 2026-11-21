@@ -839,7 +839,7 @@ body:has(.rtw-game-page .rtw-stage--running) .site-footer{display:none}
 @media(prefers-reduced-transparency:reduce){.home-game-tile{background:#07172a}.home-game-tile--flappy{background:#09231f}}
 
 /* Uploaded original artwork: exact case and whitespace in GitHub filenames. */
-.home-game-art--race{background-image:linear-gradient(90deg,rgba(2,9,25,.86) 0%,rgba(2,9,25,.48) 35%,rgba(2,9,25,.05) 75%),url('/images/Race-car.PNG');background-size:cover;background-position:55% center;opacity:.97}
+.home-game-art--race{background-image:linear-gradient(90deg,rgba(20,11,15,.79) 0%,rgba(20,11,15,.35) 41%,rgba(20,11,15,.03) 87%),url('/images/desert-home-race-card.webp');background-size:cover;background-position:55% center;opacity:.97}
 .home-game-art--flappy{background-image:linear-gradient(90deg,rgba(2,16,26,.88) 0%,rgba(2,16,26,.48) 36%,rgba(2,16,26,.06) 78%),url('/images/Flappy-bird%20.png');background-size:cover;background-position:58% center;opacity:.97}
 .home-game-art--jumping{background-image:linear-gradient(90deg,rgba(3,8,32,.82) 0%,rgba(3,8,32,.42) 44%,rgba(3,8,32,.12) 78%),url('/images/jumping-race/home-card.png');background-size:cover;background-position:48% center;opacity:.98}
 .home-game-tile{background-color:rgba(2,10,25,.25)}
@@ -2645,4 +2645,41 @@ body:has(main:is(.rtw-game-page, .flappy-game-page, .jumping-race-page))
   .public-vertical-ad-layout__content .rule-grid article h2 {
     margin-top: 0;
   }
+}
+
+/* The desert plate surrounds the game and follows the viewport on touch devices. */
+body:has(.rtw-game-page--desert) {
+  isolation: isolate;
+  background: #271b19;
+}
+
+body:has(.rtw-game-page--desert)::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(7, 15, 26, .62), rgba(28, 17, 17, .12) 39%, rgba(20, 10, 12, .72)),
+    url("/images/desert-page-background.webp") center 48% / cover no-repeat;
+}
+
+.rtw-game-page.rtw-game-page--desert {
+  background: transparent;
+}
+
+@media (max-width: 700px) {
+  body:has(.rtw-game-page--desert)::before {
+    background-image:
+      linear-gradient(180deg, rgba(7, 15, 26, .58), rgba(28, 17, 17, .11) 42%, rgba(20, 10, 12, .64)),
+      url("/images/desert-page-background-mobile.webp");
+  }
+}
+
+.site-brand-banner--warm,
+.home-games-logo-banner img,
+.home-game-tile--race h1 img,
+.rtw-game-page--desert .rtw-game-page__brand-banner img {
+  filter: grayscale(1) sepia(.88) saturate(2.4) hue-rotate(-13deg) brightness(1.14)
+    drop-shadow(0 0 13px rgba(227, 99, 40, .30));
 }

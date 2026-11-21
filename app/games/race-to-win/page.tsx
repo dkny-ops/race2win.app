@@ -27,7 +27,7 @@ function GameNavigation() {
 
 export default async function RaceToWinGamePage() {
   const context = await getVerifiedUserContext();
-  if (!context) return <main className="rtw-game-page"><Link className="rtw-game-page__brand-banner" href={ROUTES.home} aria-label="Back to Home"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority /></Link><AdsterraGameBanners className="rtw-game-ad" /><RaceToWinGame canStartOfficial={false} /><GameNavigation /><AdsterraHomeAds /><Link className="rtw-game-how-to-play-link" href="/games/race-to-win/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link></main>;
+  if (!context) return <main className="rtw-game-page rtw-game-page--desert"><Link className="rtw-game-page__brand-banner" href={ROUTES.home} aria-label="Back to Home"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority /></Link><AdsterraGameBanners className="rtw-game-ad" /><RaceToWinGame canStartOfficial={false} /><GameNavigation /><AdsterraHomeAds /><Link className="rtw-game-how-to-play-link" href="/games/race-to-win/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link></main>;
   const { data: profile, error } = await context.supabase.from("profiles").select("username").eq("user_id", context.userId).maybeSingle<{ username: string | null }>();
   if (error) throw new Error("Unable to verify player profile.");
   if (!profile?.username) redirect(ROUTES.profile);
@@ -36,7 +36,7 @@ export default async function RaceToWinGamePage() {
   if (consent?.terms_version !== "2026-10-18") redirect("/terms/accept");
   const authenticated = true;
   return (
-    <main className="rtw-game-page">
+    <main className="rtw-game-page rtw-game-page--desert">
       <Link className="rtw-game-page__brand-banner" href={ROUTES.home} aria-label="Back to Home"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority /></Link>
       <AdsterraGameBanners className="rtw-game-ad" />
       <RaceToWinGame canStartOfficial={authenticated} />

@@ -9,8 +9,7 @@ import {
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
 } from "./environment";
-import { CoastalBackdrop } from "./coastal-backdrop";
-import { CoastalScenery } from "./coastal-scenery";
+import { DESERT_HAZE, DesertScenery } from "./desert-scenery";
 import {
   createModelVehicleVisual,
   disposeModelVehicleVisual,
@@ -39,7 +38,7 @@ export function getRaceToWinQuality(): RaceToWinQuality {
   return {
     mobile,
     shadows: !mobile,
-    // Extend the repeating road and coastal floor beyond the camera far plane.
+    // Extend the repeating road and desert floor beyond the camera far plane.
     // This prevents a bright moving strip where the last segment ends.
     roadSegments: mobile ? 9 : 11,
     trafficLimit: mobile ? 18 : 30,
@@ -61,8 +60,7 @@ export class RaceToWinWorld {
   private readonly roadAssets = createRoadAssets();
   private readonly vehicleAssets = createVehicleAssets();
   private readonly roadSegments: THREE.Group[] = [];
-  private readonly coastalBackdrop = new CoastalBackdrop();
-  private readonly coastalScenery: CoastalScenery;
+  private readonly desertScenery: DesertScenery;
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
   private readonly trafficVisualPool: { variantIndex: number; visual: VehicleVisual }[] = [];
@@ -81,8 +79,6 @@ export class RaceToWinWorld {
   private skyTexture: THREE.Texture | null = null;
   private coastalTexture: THREE.Texture | null = null;
   private coastalEnvironment: THREE.WebGLRenderTarget | null = null;
-  private sceneryTexture: THREE.Texture | null = null;
-  private sceneryFailed = false;
 
   public constructor(canvas: HTMLCanvasElement) {
     this.quality = getRaceToWinQuality();
@@ -120,78 +116,17 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    // Soft, high-resolution sky. Canvas gradients avoid hard-edged cartoon
-    // clouds and the flat yellow disk of the previous implementation.
-    const skyCanvas = document.createElement("canvas");
-    skyCanvas.width = 2048;
-    skyCanvas.height = 1024;
-    const sky = skyCanvas.getContext("2d");
-    if (sky) {
-      const gradient = sky.createLinearGradient(0, 0, 0, 1024);
-      gradient.addColorStop(0, "#147cc1");
-      gradient.addColorStop(0.46, "#57b6e9");
-      gradient.addColorStop(0.83, "#a7dcf2");
-      gradient.addColorStop(1, "#d4edf6");
-      sky.fillStyle = gradient;
-      sky.fillRect(0, 0, 2048, 1024);
-
-      // Atmospheric sunlight: overlapping radial gradients, no drawn circle.
-      for (const [radius, alpha] of [[420, 0.12], [225, 0.23], [100, 0.46]] as const) {
-        const halo = sky.createRadialGradient(1530, 175, 0, 1530, 175, radius);
-        halo.addColorStop(0, `rgba(255,249,220,${alpha})`);
-        halo.addColorStop(0.32, `rgba(255,246,212,${alpha * 0.5})`);
-        halo.addColorStop(1, "rgba(255,247,224,0)");
-        sky.fillStyle = halo;
-        sky.fillRect(1530 - radius, 175 - radius, radius * 2, radius * 2);
-      }
-      const sunCore = sky.createRadialGradient(1530, 175, 0, 1530, 175, 38);
-      sunCore.addColorStop(0, "rgba(255,255,250,0.97)");
-      sunCore.addColorStop(0.62, "rgba(255,254,242,0.88)");
-      sunCore.addColorStop(1, "rgba(255,255,246,0)");
-      sky.fillStyle = sunCore;
-      sky.fillRect(1490, 135, 80, 80);
-
-      // Wispy, translucent clouds made of many overlapping feathered puffs.
-      // Fixed deterministic shapes prevent flickering between frames.
-      const cloud = (cx: number, cy: number, width: number, height: number, opacity: number) => {
-        for (let layer = 0; layer < 3; layer++) {
-          for (let i = 0; i < 19; i++) {
-            const t = i / 18;
-            const x = cx + (t - 0.5) * width;
-            const rise = Math.sin(t * Math.PI) * height * (layer === 0 ? 0.18 : 0.36);
-            const y = cy - rise + Math.sin(i * 2.4 + layer) * height * 0.09;
-            const rx = width * (0.09 + 0.025 * Math.sin(i * 1.9));
-            const ry = height * (0.6 + 0.12 * Math.cos(i * 2.1));
-            sky.save();
-            sky.translate(x, y);
-            sky.scale(1, ry / rx);
-            const puff = sky.createRadialGradient(0, 0, 0, 0, 0, rx);
-            const strength = opacity * (layer === 0 ? 0.28 : layer === 1 ? 0.2 : 0.13);
-            puff.addColorStop(0, `rgba(255,255,255,${strength})`);
-            puff.addColorStop(0.52, `rgba(255,255,255,${strength * 0.65})`);
-            puff.addColorStop(1, "rgba(255,255,255,0)");
-            sky.fillStyle = puff;
-            sky.fillRect(-rx, -rx, rx * 2, rx * 2);
-            sky.restore();
-          }
-        }
-      };
-      cloud(300, 260, 420, 85, 0.9);
-      cloud(870, 160, 310, 65, 0.75);
-      cloud(1240, 340, 380, 72, 0.6);
-      cloud(1890, 275, 310, 68, 0.8);
-    }
-    this.skyTexture = new THREE.CanvasTexture(skyCanvas);
+    this.scene.background = new THREE.Color(DESERT_HAZE);
+    this.skyTexture = new THREE.TextureLoader().load("/images/desert-sky.webp", texture => {
+      if (!this.disposed) this.scene.background = texture;
+    });
     this.skyTexture.colorSpace = THREE.SRGBColorSpace;
-    this.scene.background = this.skyTexture;
-    // The pale fog created a visible white band over the distant asphalt.
-    // The coastal image already provides atmospheric perspective.
-    this.scene.fog = null;
+    this.skyTexture.mapping = THREE.EquirectangularReflectionMapping;
+    this.scene.fog = new THREE.Fog(DESERT_HAZE, 145, 610);
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
       this.coastalTexture = texture;
-      if (this.sceneryFailed) this.coastalBackdrop.setTexture(texture);
       // Soft image-based fill makes metallic paint reflect the same beach
       // palette instead of turning black under direct sunlight alone.
       const environmentSource = texture.clone();
@@ -203,16 +138,6 @@ export class RaceToWinWorld {
       environmentSource.dispose();
       generator.dispose();
     });
-    new THREE.TextureLoader().load("/images/coastal-horizon.webp", (texture) => {
-      if (this.disposed) { texture.dispose(); return; }
-      texture.colorSpace = THREE.SRGBColorSpace;
-      this.sceneryTexture = texture;
-      this.coastalBackdrop.setTexture(texture);
-    }, undefined, () => {
-      this.sceneryFailed = true;
-      if (!this.disposed && this.coastalTexture) this.coastalBackdrop.setTexture(this.coastalTexture);
-    });
-
     this.camera.position.set(0, 7.25, 14.1);
     this.camera.lookAt(0, 1.05, -21);
 
@@ -222,11 +147,8 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    // Use the coastal sky behind the moving terrain and roadside layers.
-    this.scene.add(this.coastalBackdrop.object);
-    this.coastalScenery = new CoastalScenery(this.quality);
-    // Fixed-aspect roadside panels share the exact road-distance scroll.
-    this.scene.add(this.coastalScenery.object);
+    this.desertScenery = new DesertScenery(this.quality);
+    this.scene.add(this.desertScenery.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
@@ -270,13 +192,7 @@ export class RaceToWinWorld {
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
     this.updateCamera(snapshot, deltaSeconds);
-    this.coastalBackdrop.update(this.camera, {
-      deltaSeconds,
-      distanceMeters: snapshot.metrics.distanceMeters,
-      speedKph: snapshot.metrics.speedKph,
-      running: snapshot.state === "running",
-    });
-    this.coastalScenery.update({ deltaSeconds, distanceMeters: snapshot.metrics.distanceMeters, speedKph: snapshot.metrics.speedKph, running: snapshot.state === "running" });
+    this.desertScenery.update(snapshot.metrics.distanceMeters);
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     if (snapshot.state === "running" && !this.wasRunning) this.tireSmoke.trigger(snapshot.player.laneX, false);
@@ -303,11 +219,9 @@ export class RaceToWinWorld {
     this.roadHaze.dispose();
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
-    this.coastalBackdrop.dispose();
-    this.coastalScenery.dispose();
+    this.desertScenery.dispose();
     this.skyTexture?.dispose();
     this.coastalTexture?.dispose();
-    this.sceneryTexture?.dispose();
     this.coastalEnvironment?.dispose();
     this.roadAssets.dispose();
     this.vehicleAssets.dispose();
@@ -316,11 +230,11 @@ export class RaceToWinWorld {
   }
 
   private addLights(): void {
-    const hemisphere = new THREE.HemisphereLight("#c9edff", "#d4bd83", 2.6);
+    const hemisphere = new THREE.HemisphereLight("#acc6e4", "#a16a4e", 1.85);
     this.scene.add(hemisphere);
 
-    const sun = new THREE.DirectionalLight("#fff6d8", 3.2);
-    sun.position.set(35, 60, -45);
+    const sun = new THREE.DirectionalLight("#ffd9ad", 3.2);
+    sun.position.set(49, 25, -31);
     sun.castShadow = this.quality.shadows;
     if (this.quality.shadows) {
       sun.shadow.mapSize.set(1024, 1024);
