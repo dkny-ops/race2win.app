@@ -230,7 +230,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
     try {
       const token = pregameToken;
-      if (authenticated) { setPregameToken(null); setPregameReset(value => value + 1); }
+      if (authenticated) setPregameToken(null);
       const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial(token!) : null;
       void refreshAvailability();
       if (!mounted.current) return;
@@ -400,6 +400,9 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     },100);
     return () => {active=false;window.clearInterval(timer);};
   },[status,result,fail,stopVerification]);
+  useEffect(() => {
+    if (authenticated && (status === "over" || status === "rejected")) setPregameReset(value => value + 1);
+  }, [authenticated, status]);
   useEffect(() => {
     if (!["over","rejected"].includes(status)) return;
     const timer = window.setTimeout(() => {
