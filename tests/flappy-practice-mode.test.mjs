@@ -4,9 +4,10 @@ import test from "node:test";
 
 const component = await readFile(new URL("../components/game/flappy-verified-canvas.tsx", import.meta.url), "utf8");
 
-test("Flappy guest practice never creates an official session or sends scoring evidence", () => {
+test("Flappy guest practice stays local while authenticated play uses official sessions", () => {
   assert.doesNotMatch(component, /<select|setMode|useSearchParams|location\.search|getRandomValues/);
-  assert.match(component, /const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = true/);
+  assert.match(component, /const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = false/);
+  assert.doesNotMatch(component, /FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && g\.tick >= nextCheckpoint\.current/);
   assert.match(component, /const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE \? await startFlappyOfficial\(\) : null/);
   assert.match(component, /official\.current = session/);
   assert.match(component, /if \(session\) beginVerification\(session\.sessionId, session\.turnstile\)/);
