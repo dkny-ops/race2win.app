@@ -9,7 +9,7 @@ import {
   ROAD_SEGMENT_LENGTH,
   SpeedStreakSystem,
 } from "./environment";
-import { CoastalScenery } from "./coastal-scenery";
+import { createDesertSky, DESERT_HAZE, DesertScenery } from "./desert-scenery";
 import {
   createModelVehicleVisual,
   disposeModelVehicleVisual,
@@ -38,7 +38,7 @@ export function getRaceToWinQuality(): RaceToWinQuality {
   return {
     mobile,
     shadows: !mobile,
-    // Extend the repeating road and coastal floor beyond the camera far plane.
+    // Extend the repeating road and desert floor beyond the camera far plane.
     // This prevents a bright moving strip where the last segment ends.
     roadSegments: mobile ? 9 : 11,
     trafficLimit: mobile ? 18 : 30,
@@ -60,7 +60,7 @@ export class RaceToWinWorld {
   private readonly roadAssets = createRoadAssets();
   private readonly vehicleAssets = createVehicleAssets();
   private readonly roadSegments: THREE.Group[] = [];
-  private readonly coastalScenery: CoastalScenery;
+  private readonly desertScenery: DesertScenery;
   private player: VehicleVisual;
   private readonly trafficVisuals = new Map<number, VehicleVisual>();
   private readonly trafficVisualPool: { variantIndex: number; visual: VehicleVisual }[] = [];
@@ -116,13 +116,9 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    this.scene.background = new THREE.Color("#c4e4ee");
-    this.skyTexture = new THREE.TextureLoader().load("/images/coastal-daylight-sky.webp", texture => {
-      if (!this.disposed) this.scene.background = texture;
-    });
-    this.skyTexture.colorSpace = THREE.SRGBColorSpace;
-    this.skyTexture.mapping = THREE.EquirectangularReflectionMapping;
-    this.scene.fog = new THREE.Fog("#c4e4ee", 130, 610);
+    this.skyTexture = createDesertSky();
+    this.scene.background = this.skyTexture;
+    this.scene.fog = new THREE.Fog(DESERT_HAZE, 145, 610);
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
@@ -147,8 +143,8 @@ export class RaceToWinWorld {
       this.roadSegments.push(segment);
       this.scene.add(segment);
     }
-    this.coastalScenery = new CoastalScenery(this.quality);
-    this.scene.add(this.coastalScenery.object);
+    this.desertScenery = new DesertScenery(this.quality);
+    this.scene.add(this.desertScenery.object);
 
     this.player = createPlayerVehicle(this.vehicleAssets);
     this.player.root.position.set(0, 0.05, 0);
@@ -192,7 +188,7 @@ export class RaceToWinWorld {
     this.updatePlayer(snapshot, deltaSeconds);
     this.updateTraffic(snapshot.traffic, snapshot.metrics.speedKph, deltaSeconds);
     this.updateCamera(snapshot, deltaSeconds);
-    this.coastalScenery.update({ deltaSeconds, distanceMeters: snapshot.metrics.distanceMeters, speedKph: snapshot.metrics.speedKph, running: snapshot.state === "running" });
+    this.desertScenery.update(snapshot.metrics.distanceMeters);
     this.speedStreaks.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     this.roadHaze.update(snapshot.metrics.distanceMeters, snapshot.metrics.speedKph);
     if (snapshot.state === "running" && !this.wasRunning) this.tireSmoke.trigger(snapshot.player.laneX, false);
@@ -219,7 +215,7 @@ export class RaceToWinWorld {
     this.roadHaze.dispose();
     this.tireSmoke.dispose();
     this.collisionSparks.dispose();
-    this.coastalScenery.dispose();
+    this.desertScenery.dispose();
     this.skyTexture?.dispose();
     this.coastalTexture?.dispose();
     this.coastalEnvironment?.dispose();
@@ -230,11 +226,11 @@ export class RaceToWinWorld {
   }
 
   private addLights(): void {
-    const hemisphere = new THREE.HemisphereLight("#c9edff", "#d4bd83", 2.6);
+    const hemisphere = new THREE.HemisphereLight("#acc6e4", "#a16a4e", 1.85);
     this.scene.add(hemisphere);
 
-    const sun = new THREE.DirectionalLight("#fff6d8", 3.2);
-    sun.position.set(35, 60, -45);
+    const sun = new THREE.DirectionalLight("#ffd9ad", 3.2);
+    sun.position.set(49, 25, -31);
     sun.castShadow = this.quality.shadows;
     if (this.quality.shadows) {
       sun.shadow.mapSize.set(1024, 1024);
