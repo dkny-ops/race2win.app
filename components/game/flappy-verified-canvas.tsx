@@ -315,7 +315,16 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
               else void submitFinal();
             } else setStatus("over");
           } else if (g.tick >= MAX_TICKS) fail();
-          else if (official.current && g.tick >= nextCheckpoint.current && !busy.current) {
+          else if (FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && g.tick >= nextCheckpoint.current) {
+            // Isolate the client-side checkpoint snapshot and serialization cost.
+            // No official session, HTTP request, score write or prize eligibility.
+            nextCheckpoint.current = g.tick + 300;
+            const checkpointStartedAt = performance.now();
+            const snapshot = { ...engine.current, pipes: engine.current.pipes.map(p => ({ ...p })) };
+            const evidence = inputs.current.slice();
+            JSON.stringify({ snapshot, evidence });
+            recordDiagnostic("checkpoint", performance.now() - checkpointStartedAt);
+          } else if (official.current && g.tick >= nextCheckpoint.current && !busy.current) {
             nextCheckpoint.current = g.tick + 300; void checkpoint();
           }
         }
