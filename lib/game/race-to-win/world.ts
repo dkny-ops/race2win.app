@@ -116,71 +116,12 @@ export class RaceToWinWorld {
     this.renderer.toneMappingExposure = 1.05;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    // Soft, high-resolution sky. Canvas gradients avoid hard-edged cartoon
-    // clouds and the flat yellow disk of the previous implementation.
-    const skyCanvas = document.createElement("canvas");
-    skyCanvas.width = 2048;
-    skyCanvas.height = 1024;
-    const sky = skyCanvas.getContext("2d");
-    if (sky) {
-      const gradient = sky.createLinearGradient(0, 0, 0, 1024);
-      gradient.addColorStop(0, "#147cc1");
-      gradient.addColorStop(0.30, "#57b6e9");
-      gradient.addColorStop(0.50, "#c4e4ee");
-      gradient.addColorStop(1, "#c4e4ee");
-      sky.fillStyle = gradient;
-      sky.fillRect(0, 0, 2048, 1024);
-
-      // Atmospheric sunlight: overlapping radial gradients, no drawn circle.
-      for (const [radius, alpha] of [[420, 0.12], [225, 0.23], [100, 0.46]] as const) {
-        const halo = sky.createRadialGradient(1530, 175, 0, 1530, 175, radius);
-        halo.addColorStop(0, `rgba(255,249,220,${alpha})`);
-        halo.addColorStop(0.32, `rgba(255,246,212,${alpha * 0.5})`);
-        halo.addColorStop(1, "rgba(255,247,224,0)");
-        sky.fillStyle = halo;
-        sky.fillRect(1530 - radius, 175 - radius, radius * 2, radius * 2);
-      }
-      const sunCore = sky.createRadialGradient(1530, 175, 0, 1530, 175, 38);
-      sunCore.addColorStop(0, "rgba(255,255,250,0.97)");
-      sunCore.addColorStop(0.62, "rgba(255,254,242,0.88)");
-      sunCore.addColorStop(1, "rgba(255,255,246,0)");
-      sky.fillStyle = sunCore;
-      sky.fillRect(1490, 135, 80, 80);
-
-      // Wispy, translucent clouds made of many overlapping feathered puffs.
-      // Fixed deterministic shapes prevent flickering between frames.
-      const cloud = (cx: number, cy: number, width: number, height: number, opacity: number) => {
-        for (let layer = 0; layer < 3; layer++) {
-          for (let i = 0; i < 19; i++) {
-            const t = i / 18;
-            const x = cx + (t - 0.5) * width;
-            const rise = Math.sin(t * Math.PI) * height * (layer === 0 ? 0.18 : 0.36);
-            const y = cy - rise + Math.sin(i * 2.4 + layer) * height * 0.09;
-            const rx = width * (0.09 + 0.025 * Math.sin(i * 1.9));
-            const ry = height * (0.6 + 0.12 * Math.cos(i * 2.1));
-            sky.save();
-            sky.translate(x, y);
-            sky.scale(1, ry / rx);
-            const puff = sky.createRadialGradient(0, 0, 0, 0, 0, rx);
-            const strength = opacity * (layer === 0 ? 0.28 : layer === 1 ? 0.2 : 0.13);
-            puff.addColorStop(0, `rgba(255,255,255,${strength})`);
-            puff.addColorStop(0.52, `rgba(255,255,255,${strength * 0.65})`);
-            puff.addColorStop(1, "rgba(255,255,255,0)");
-            sky.fillStyle = puff;
-            sky.fillRect(-rx, -rx, rx * 2, rx * 2);
-            sky.restore();
-          }
-        }
-      };
-      cloud(300, 260, 420, 85, 0.9);
-      cloud(870, 160, 310, 65, 0.75);
-      cloud(1240, 340, 380, 72, 0.6);
-      cloud(1890, 275, 310, 68, 0.8);
-    }
-    this.skyTexture = new THREE.CanvasTexture(skyCanvas);
+    this.scene.background = new THREE.Color("#c4e4ee");
+    this.skyTexture = new THREE.TextureLoader().load("/images/coastal-daylight-sky.webp", texture => {
+      if (!this.disposed) this.scene.background = texture;
+    });
     this.skyTexture.colorSpace = THREE.SRGBColorSpace;
     this.skyTexture.mapping = THREE.EquirectangularReflectionMapping;
-    this.scene.background = this.skyTexture;
     this.scene.fog = new THREE.Fog("#c4e4ee", 130, 610);
     new THREE.TextureLoader().load("/images/Race123.PNG", (texture) => {
       if (this.disposed) { texture.dispose(); return; }
