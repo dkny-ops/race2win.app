@@ -1,4 +1,5 @@
 "use client";
+import { TurnstileScript, TurnstileWidget } from "@/app/sign-in/turnstile-widget";
 import { useFlappyInvisibleCheck } from "./flappy-invisible-check";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -31,6 +32,20 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const obstacleCap = useRef<HTMLCanvasElement | null>(null);
   const readyAssets = useRef({ bird: false, forest: false, obstacle: false });
   const [assetsReady, setAssetsReady] = useState(false);
+  const [pregameSiteKey, setPregameSiteKey] = useState<string | null>(null);
+  const [pregameReady, setPregameReady] = useState(false);
+  const [pregameToken, setPregameToken] = useState<string | null>(null);
+  const [pregameReset, setPregameReset] = useState(0);
+  const onPregameToken = useCallback((token: string | null) => setPregameToken(token), []);
+  useEffect(() => {
+    if (!authenticated) return;
+    let active = true;
+    fetch("/api/flappy-race/sessions/start", { cache: "no-store" })
+      .then(async response => { if (!response.ok) throw new Error("Unavailable"); return response.json(); })
+      .then(data => { if (active && typeof data.siteKey === "string") setPregameSiteKey(data.siteKey); })
+      .catch(() => { if (active) setPregameSiteKey(null); });
+    return () => { active = false; };
+  }, [authenticated]);
   const markAssetReady = useCallback((asset: "bird" | "forest" | "obstacle") => {
     readyAssets.current[asset] = true;
     if (Object.values(readyAssets.current).every(Boolean)) setAssetsReady(true);
@@ -209,12 +224,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [diagnostics]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
   const start = useCallback(async () => {
-    if (busy.current || running.current || blocked || !assetsReady) return;
+    if (busy.current || running.current || blocked || !assetsReady || (authenticated && !pregameToken)) return;
     window.dispatchEvent(new Event("rtw-audio-start-flappy"));
     busy.current = true;
     setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
     try {
-      const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial() : null;
+      const token = pregameToken;
+      if (authenticated) { setPregameToken(null); setPregameReset(value => value + 1); }
+      const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial(token!) : null;
       void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
@@ -232,7 +249,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
     finally { busy.current = false; void refreshAvailability(); }
-  }, [authenticated, blocked, assetsReady, fail, refreshAvailability]);
+  }, [authenticated, blocked, assetsReady, fail, refreshAvailability, pregameToken]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -401,10 +418,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   return <div style={{textAlign:"center"}}>
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
+    {authenticated && pregameSiteKey ? <div style={{display:expanded?"none":"block",margin:"0 auto 1rem",maxWidth:320}}>
+      <TurnstileScript onReady={() => setPregameReady(true)} onError={() => setOfficialError("verification_unavailable")} />
+      <TurnstileWidget siteKey={pregameSiteKey} scriptReady={pregameReady} resetNonce={pregameReset} label="Verify before playing Flappy Race" action="midrun_human_check" onTokenChange={onPregameToken} />
+    </div> : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} preload="auto" />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
-      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : assetsReady ? "▶ PLAY" : "LOADING…"}</button> : null}
+      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting" || (authenticated && !pregameToken)} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : !assetsReady ? "LOADING…" : authenticated && !pregameToken ? "VERIFY TO PLAY" : "▶ PLAY"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
