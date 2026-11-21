@@ -15,6 +15,50 @@ import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 // Keep server-side official verification and prize gates unchanged.
 const FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE = false;
 
+const BIRD_FRAME_SIZE = 128;
+const BIRD_WING_POSES = 9;
+
+function prepareBirdWingFrames(source: HTMLCanvasElement): HTMLCanvasElement[] {
+  const frameSize = BIRD_FRAME_SIZE;
+  const small = document.createElement("canvas");
+  small.width = small.height = frameSize;
+  const sourceContext = small.getContext("2d", { willReadFrequently: true });
+  if (!sourceContext) return [source];
+  sourceContext.drawImage(source, 0, 0, frameSize, frameSize);
+  const original = sourceContext.getImageData(0, 0, frameSize, frameSize).data;
+  const wingWidth = Math.round(frameSize * 0.52);
+  const frames = [small];
+
+  // Distort only the lifted wing. The face, belly and position stay anchored.
+  // Bake the poses once so the render loop still draws a single small image.
+  for (let pose = 1; pose < BIRD_WING_POSES; pose++) {
+    const frame = document.createElement("canvas");
+    frame.width = frame.height = frameSize;
+    const context = frame.getContext("2d");
+    if (!context) return [small];
+    const pixels = context.createImageData(frameSize, frameSize);
+    pixels.data.set(original);
+    const downstroke = pose / (BIRD_WING_POSES - 1) * 0.25 * frameSize;
+    for (let y = 0; y < frameSize; y++) {
+      const relativeY = y / frameSize;
+      const feathers = Math.max(0, Math.min(1, (0.76 - relativeY) / 0.24));
+      const wingBand = feathers * feathers * (3 - 2 * feathers);
+      if (wingBand === 0) break;
+      for (let x = 0; x < wingWidth; x++) {
+        const distanceFromShoulder = 1 - x / wingWidth;
+        const sourceY = Math.round(y - downstroke * distanceFromShoulder ** 1.45 * wingBand);
+        const target = (y * frameSize + x) * 4;
+        if (sourceY < 0) { pixels.data[target + 3] = 0; continue; }
+        const sample = (sourceY * frameSize + x) * 4;
+        for (let channel = 0; channel < 4; channel++) pixels.data[target + channel] = original[sample + channel];
+      }
+    }
+    context.putImageData(pixels, 0, 0);
+    frames.push(frame);
+  }
+  return frames;
+}
+
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner, onGameActiveChange }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode; onGameActiveChange?: (active: boolean) => void }) {
   const es = language === "es";
@@ -24,7 +68,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [diagnostics]);
   const canvas = useRef<HTMLCanvasElement>(null);
   const context = useRef<CanvasRenderingContext2D | null>(null);
-  const birdImage = useRef<HTMLImageElement | null>(null);
+  const birdFrames = useRef<CanvasImageSource[]>([]);
   const forestLayer = useRef<HTMLCanvasElement | null>(null);
   const obstacleBody = useRef<HTMLCanvasElement | null>(null);
   const obstacleCap = useRef<HTMLCanvasElement | null>(null);
@@ -110,7 +154,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       const surface=document.createElement("canvas");
       surface.width=img.naturalWidth;surface.height=img.naturalHeight;
       const context=surface.getContext("2d",{willReadFrequently:true});
-      if(!context){birdImage.current=img;markAssetReady("bird");return;}
+      if(!context){birdFrames.current=[img];markAssetReady("bird");return;}
       context.drawImage(img,0,0);
       const frame=context.getImageData(0,0,surface.width,surface.height);
       const pixels=frame.data, w=surface.width,h=surface.height;
@@ -129,14 +173,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         if(y>0)push(idx-w);if(y<h-1)push(idx+w);
       }
       context.putImageData(frame,0,0);
-      const cleaned=new Image();
-      cleaned.src=surface.toDataURL("image/png");
-      cleaned.onload=()=>{birdImage.current=cleaned;markAssetReady("bird");};
-      cleaned.onerror=()=>{birdImage.current=img;markAssetReady("bird");};
+      birdFrames.current = prepareBirdWingFrames(surface);
+      markAssetReady("bird");
     };
     img.onerror=()=>markAssetReady("bird");
     img.src="/images/Flappy-bird%20.png";
-    return ()=>{img.onload=null;img.onerror=null;birdImage.current=null;};
+    return ()=>{img.onload=null;img.onerror=null;birdFrames.current=[];};
   }, [markAssetReady]);
   const engine = useRef<FlappyState>(initialFlappy(0));
   const inputs = useRef<number[]>([]);
@@ -287,6 +329,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       }
       finally { recordDiagnostic("checkpoint", performance.now() - checkpointStartedAt); busy.current = false; }
     }
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
     function draw(time: number) {
       // Schedule first: a transient Safari Canvas exception must never leave
       // the player staring at a permanently frozen last frame.
@@ -376,7 +419,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
           trunk(0,Math.max(0,top),Math.max(0,top-10));
           trunk(bottom,Math.max(0,480-bottom),bottom,true);
         }
-        if(birdImage.current?.complete && birdImage.current.naturalWidth){ctx.drawImage(birdImage.current,62,g.y/100-20,40,40);}else{ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();}
+        const frames = birdFrames.current;
+        const wingClock = g.tick === 0 ? time / 35 : g.tick;
+        const stroke = motionPreference.matches ? 0 : (1 - Math.cos(wingClock * Math.PI / 10)) / 2;
+        const bird = frames[Math.round(stroke * (frames.length - 1))];
+        if (bird) ctx.drawImage(bird, 62, g.y / 100 - 20, 40, 40);
+        else { ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill(); }
         canvasMs = performance.now() - canvasStartedAt;
       } catch {
         // A decoded image can be discarded by mobile Safari under memory
