@@ -86,11 +86,6 @@ export function FlappyPersonalWeeklyScore({
           <strong>{data.weeklyTotal.toLocaleString(language)}</strong>
         </div>
       </div>
-      {Array.isArray(data.pendingScores) && data.pendingScores.length > 0 ? <div className="flappy-personal-weekly__pending" role="status" style={{margin:"1rem 0",padding:"1rem",border:"1px solid #64748b",borderRadius:12}}>
-        <h3 style={{margin:"0 0 .5rem"}}>{es ? "PUNTUACIONES PENDIENTES DE REVISIÓN" : "SCORES PENDING REVIEW"}</h3>
-        <p style={{margin:".5rem 0"}}>{es ? "Guardadas y verificadas por repetición del servidor. No cuentan para el ranking ni los premios hasta su aprobación." : "Saved and replay-verified by the server. Not counted toward leaderboard or prizes until approved."}</p>
-        <p style={{fontWeight:700,margin:0}}>{data.pendingScores.map((run) => `${run.day}: ${run.score.toLocaleString(language)}`).join(" · ")}</p>
-      </div> : null}
       <p className="flappy-personal-weekly__rule">{es ? "LAS 7 MEJORES PARTIDAS VERIFICADAS DE CADA DÍA" : "YOUR 7 BEST VERIFIED RUNS EACH DAY"}</p>
       <div className="flappy-personal-weekly__days">
         {data.days.map((day) => <article className="flappy-personal-weekly__day" key={day.day}>
