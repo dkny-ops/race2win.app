@@ -12,7 +12,7 @@ const AD_PATHS = new Set([
   "/legal/terms", "/legal/privacy", "/legal/cookies",
 ]);
 
-const INLINE_AD_PATHS = new Set(["/legal/terms", "/legal/privacy", "/legal/cookies", "/rules", "/faq"]);
+const INLINE_AD_PATHS = new Set(["/legal/terms", "/legal/privacy", "/legal/cookies", "/faq"]);
 
 export function AdsterraPublicPageAds({ position }: { position: "top" | "bottom" }) {
   const pathname = usePathname();

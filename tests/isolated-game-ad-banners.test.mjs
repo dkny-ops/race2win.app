@@ -9,6 +9,8 @@ const flappy = fs.readFileSync("components/game/flappy-race-page.tsx", "utf8");
 const flappyCanvas = fs.readFileSync("components/game/flappy-verified-canvas.tsx", "utf8");
 const jumping = fs.readFileSync("components/game/jumping-race-game.tsx", "utf8");
 const verticalPages = fs.readFileSync("components/marketing/adsterra-vertical-home-ads.tsx", "utf8");
+const publicPageAds = fs.readFileSync("components/marketing/adsterra-public-page-ads.tsx", "utf8");
+const rules = fs.readFileSync("app/rules/page.tsx", "utf8");
 const layout = fs.readFileSync("app/layout.tsx", "utf8");
 
 test("new game banners use the separate advertising origin and load one size at a time", () => {
@@ -43,4 +45,11 @@ test("vertical ads appear only on eligible desktop secondary pages, never Home o
   assert.ok(!verticalPages.includes('"/games/race-to-win"'));
   assert.ok(!verticalPages.includes('"/games/flappy-race"'));
   assert.ok(!verticalPages.includes('"/games/jumping-race"'));
+});
+
+test("Rules keeps exactly the global top and bottom slots outside its rule grid", () => {
+  assert.ok(publicPageAds.includes('"/rules"'));
+  assert.doesNotMatch(publicPageAds, /INLINE_AD_PATHS[^;]*"\/rules"/);
+  assert.doesNotMatch(rules, /AdsterraGameBanners|adsterra-inline-section-ad/);
+  assert.match(rules, /<div className="rule-grid">/);
 });
