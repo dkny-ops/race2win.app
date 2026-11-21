@@ -34,6 +34,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const [pregameReady, setPregameReady] = useState(false);
   const [pregameToken, setPregameToken] = useState<string | null>(null);
   const [pregameReset, setPregameReset] = useState(0);
+  const [autoReplay, setAutoReplay] = useState(false);
   const [status, setStatus] = useState<Status>("ready");
   const [score, setScore] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -232,7 +233,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     if (busy.current || running.current || blocked || !assetsReady || (authenticated && (!pregameToken || !pregame))) return;
     window.dispatchEvent(new Event("rtw-audio-start-flappy"));
     busy.current = true;
-    setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
+    setOfficialError(null); setStatus("starting"); setAutoReplay(false); setResult(null); renderedScore.current = 0; setScore(0);
     try {
       const token = pregameToken;
       const challenge = pregame;
@@ -403,16 +404,32 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     return () => {active=false;window.clearInterval(timer);};
   },[status,result,fail]);
   useEffect(() => {
-    if (!authenticated || !["over", "rejected"].includes(status)) return;
-    const timer = window.setTimeout(() => setPregameReset(value => value + 1), 0);
+    if (!autoReplay || status !== "ready") return;
+    const timer = window.setTimeout(() => {
+      if (!blocked && assetsReady && (!authenticated || (pregame && pregameToken))) {
+        void start();
+      } else if (officialError || availabilityError || (availability && availability.remaining === 0 && !availability.exempt)) {
+        setAutoReplay(false);
+        setExpanded(false);
+      }
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [authenticated, status]);
+  }, [autoReplay, status, blocked, assetsReady, authenticated, pregame, pregameToken, start, officialError, availabilityError, availability]);
+  useEffect(() => {
+    if (!autoReplay) return;
+    const timer = window.setTimeout(() => {
+      setAutoReplay(false);
+      setExpanded(false);
+    }, 20000);
+    return () => window.clearTimeout(timer);
+  }, [autoReplay]);
   useEffect(() => {
     if (!["over","rejected"].includes(status)) return;
     const timer = window.setTimeout(() => {
       running.current=false; official.current=null; pendingFlap.current=false;
       engine.current=initialFlappy(0); inputs.current=[];
       setExpanded(false);renderedScore.current=0;setScore(0);setCountdown(null);setResult(null);setStatus("ready");
+      if (authenticated) { setPregame(null); setPregameToken(null); setPregameReset(n => n + 1); }
     },5000);
     return () => window.clearTimeout(timer);
   },[status,authenticated]);
@@ -425,21 +442,22 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   return <div style={{textAlign:"center"}}>
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
-    {authenticated && pregame && !expanded && status !== "starting" ? <div style={{margin:"0 auto 1rem",maxWidth:320}}>
+    {authenticated && pregame && (!expanded || autoReplay) && status === "ready" ? <div style={autoReplay ? {position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",zIndex:10000,maxWidth:320} : {margin:"0 auto 1rem",maxWidth:320}}>
       <TurnstileScript onReady={() => setPregameReady(true)} onError={() => setOfficialError("verification_unavailable")} />
-      <TurnstileWidget siteKey={pregame.siteKey} scriptReady={pregameReady} resetNonce={pregameReset} label="Verify before playing Flappy Race" action="midrun_human_check" cdata={pregame.nonce} onTokenChange={onPregameToken} />
+      <TurnstileWidget siteKey={pregame.siteKey} scriptReady={pregameReady} resetNonce={0} label="Verify before playing Flappy Race" action="midrun_human_check" cdata={pregame.nonce} onTokenChange={onPregameToken} />
     </div> : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} preload="auto" />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
-      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting" || (authenticated && (!pregame || !pregameToken))} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : !assetsReady ? "LOADING…" : authenticated && (!pregame || !pregameToken) ? "VERIFY TO PLAY" : "▶ PLAY"}</button> : null}
+      {!expanded && !autoReplay && (!authenticated || !!pregameToken) ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting" || (authenticated && (!pregame || !pregameToken))} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : !assetsReady ? "LOADING…" : "▶ PLAY"}</button> : null}
+      {expanded && autoReplay ? <div role="status" style={{position:"absolute",fontWeight:800}}>LOADING…</div> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>
         <h2>GAME OVER</h2>
         <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
         {status === "rejected" ? <p role="status">{officialError ? errorMessage(officialError) : (es ? "El servidor no aceptó esta puntuación. No se guardó ni cuenta para Scores." : "The server did not accept this score. It was not saved and does not count in Scores.")}</p> : null}
-        {terminal ? <button className="button button--primary" type="button" onClick={() => { if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); setExpanded(false); setStatus("ready"); } else { void start(); } }}>PLAY AGAIN</button> : null}
+        {terminal ? <button className="button button--primary" type="button" onClick={() => { if (busy.current || running.current) return; setOfficialError(null); setCountdown(null); setAutoReplay(true); setStatus("ready"); if (authenticated) { setPregame(null); setPregameToken(null); setPregameReset(n => n + 1); void refreshAvailability(); } }}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
     {!expanded && status === "ready" ? <div className="flappy-top-results">{scoreControls}</div> : null}
