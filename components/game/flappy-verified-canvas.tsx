@@ -22,11 +22,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const canvas = useRef<HTMLCanvasElement>(null);
   const context = useRef<CanvasRenderingContext2D | null>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
+  const forestLayer = useRef<HTMLCanvasElement | null>(null);
   const obstacleBody = useRef<HTMLCanvasElement | null>(null);
   const obstacleCap = useRef<HTMLCanvasElement | null>(null);
-  const readyAssets = useRef({ bird: false, obstacle: false });
+  const readyAssets = useRef({ bird: false, forest: false, obstacle: false });
   const [assetsReady, setAssetsReady] = useState(false);
-  const markAssetReady = useCallback((asset: "bird" | "obstacle") => {
+  const markAssetReady = useCallback((asset: "bird" | "forest" | "obstacle") => {
     readyAssets.current[asset] = true;
     if (Object.values(readyAssets.current).every(Boolean)) setAssetsReady(true);
   }, []);
@@ -53,6 +54,26 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     img.onerror=finish;
     img.src="/images/flappy-obstacle-trunk.png";
     return ()=>{img.onload=null;img.onerror=null;obstacleBody.current=null;obstacleCap.current=null;};
+  }, [markAssetReady]);
+  useEffect(() => {
+    const img = new Image();
+    const finish = () => markAssetReady("forest");
+    img.onload=()=>{
+      // Preserve the portrait game composition before play instead of asking
+      // Safari to crop the artwork to the device viewport on every frame.
+      const layer=document.createElement("canvas");layer.width=360;layer.height=480;
+      const layerContext=layer.getContext("2d");
+      if(layerContext){
+        const cropWidth=Math.min(img.naturalWidth,img.naturalHeight*.75);
+        const cropHeight=Math.min(img.naturalHeight,img.naturalWidth/.75);
+        layerContext.drawImage(img,(img.naturalWidth-cropWidth)/2,(img.naturalHeight-cropHeight)/2,cropWidth,cropHeight,0,0,360,480);
+        forestLayer.current=layer;
+      }
+      finish();
+    };
+    img.onerror=finish;
+    img.src="/images/flappy-game-background.webp";
+    return ()=>{img.onload=null;img.onerror=null;forestLayer.current=null;};
   }, [markAssetReady]);
   useEffect(() => {
     const img = new Image();
@@ -236,6 +257,9 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       finally { recordDiagnostic("checkpoint", performance.now() - checkpointStartedAt); busy.current = false; }
     }
     function draw(time: number) {
+      // Schedule first: a transient Safari Canvas exception must never leave
+      // the player staring at a permanently frozen last frame.
+      raf=requestAnimationFrame(draw);
       const previousFrame = lastFrame.current;
       let engineMs = 0;
       let canvasMs = 0;
@@ -288,11 +312,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         }
         lastFrame.current = time;
       }
-      if (ctx) {
+      if (ctx) try {
         const canvasStartedAt = performance.now();
-        // The static background is compositor-owned CSS. Keeping the 2D
-        // surface transparent removes one full-canvas image draw per frame.
-        ctx.clearRect(0,0,360,480);
+        // The prepared 3:4 layer preserves the intended composition on tall
+        // iPhone screens; it is inexpensive compared with resampling source
+        // artwork and never changes the physical game coordinates.
+        const forest=forestLayer.current;
+        if(forest) ctx.drawImage(forest,0,0);
+        else { ctx.fillStyle="#275d4d";ctx.fillRect(0,0,360,480); }
         for(const p of g.pipes){
           const gapHalf=flappyGapHalf(g.tick);
           const x=p.x/100, top=(p.gap-gapHalf)/100, bottom=(p.gap+gapHalf)/100;
@@ -320,9 +347,12 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         }
         if(birdImage.current?.complete && birdImage.current.naturalWidth){ctx.drawImage(birdImage.current,62,g.y/100-20,40,40);}else{ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();}
         canvasMs = performance.now() - canvasStartedAt;
+      } catch {
+        // A decoded image can be discarded by mobile Safari under memory
+        // pressure. Keep the simulation alive and retry rendering next frame.
+        ctx.clearRect(0,0,360,480);
       }
       if (previousFrame > 0 && running.current) diagnostics.record({ kind: "frame", frameMs: time - previousFrame, engineMs, canvasMs, state: official.current ? "official" : "practice" });
-      raf=requestAnimationFrame(draw);
     }
     raf=requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("keydown",key); };
@@ -364,7 +394,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     {!expanded && status === "ready" ? preGameBanner : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} preload="auto" />
-      <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none",backgroundColor:"#275d4d",backgroundImage:"url(/images/flappy-game-background.webp)",backgroundPosition:"center",backgroundSize:"cover"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation",backgroundColor:"#275d4d",backgroundImage:"url(/images/flappy-game-background.webp)",backgroundPosition:"center",backgroundSize:"cover"}} />
+      <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
       {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : assetsReady ? "▶ PLAY" : "LOADING…"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}

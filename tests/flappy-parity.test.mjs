@@ -80,11 +80,11 @@ test("Flappy warms its soundtrack before PLAY instead of loading it during the f
  assert.match(audio,/element\.preload=preload; element\.src=SOURCES\[channel\]/);
 });
 
-test("Flappy keeps its static backdrop out of the Canvas animation loop",()=>{
+test("Flappy preserves its prepared backdrop and schedules a recovery frame before rendering",()=>{
  const source=readFileSync(new URL("../components/game/flappy-verified-canvas.tsx",import.meta.url),"utf8");
- assert.match(source,/ctx\.clearRect\(0,0,360,480\)/);
- assert.match(source,/backgroundImage:"url\(\/images\/flappy-game-background\.webp\)"/);
- assert.doesNotMatch(source,/forestLayer/);
+ assert.match(source,/forestLayer/);
+ assert.match(source,/ctx\.drawImage\(forest,0,0\)/);
+ assert.match(source,/function draw\(time: number\) \{\s*\/\/ Schedule first:[\s\S]*raf=requestAnimationFrame\(draw\)/);
 });
 
 
