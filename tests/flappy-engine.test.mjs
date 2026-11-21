@@ -140,5 +140,5 @@ test("temporary Flappy Turnstile pause still consumes quota and creates server-o
  const r=await missingProviderApi.handleFlappy("start",req({}),{access:async()=>"allowed",enabled:true,user:async()=>"verified",admin:()=>({rpc:async name=>{calls.push(name);return name==="flappy_consume_quota"?{data:true,error:null}:{data:{sessionId:"11111111-1111-4111-8111-111111111111",seed:42,version:"flappy-v1",startsAt:new Date(now+3000).toISOString(),expiresAt:new Date(now+603000).toISOString()},error:null};}}),now:()=>now});
  assert.equal(r.status,200);
  assert.deepEqual(calls,["flappy_consume_quota","flappy_start"]);
- assert.equal((await r.json()).turnstile.required,false);
+ assert.equal((await r.json()).turnstile,undefined);
 });
