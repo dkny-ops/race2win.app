@@ -142,6 +142,9 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   useEffect(() => {
     const initial = window.setTimeout(() => void refreshAvailability(), 0);
     const tick = () => {
+      // Availability countdown is outside the full-screen game. Avoid React
+      // updates and availability polling while the player is flying.
+      if (running.current) return;
       const current = snapshot.current;
       if (current) {
         const until = current.data.nextAvailableAt;
@@ -152,8 +155,10 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       }
     };
     const timer = window.setInterval(tick, 1000);
-    const poll = window.setInterval(() => { if (document.visibilityState === "visible") void refreshAvailability(); }, 15000);
-    const focus = () => { void refreshAvailability(); };
+    const poll = window.setInterval(() => {
+      if (!running.current && document.visibilityState === "visible") void refreshAvailability();
+    }, 15000);
+    const focus = () => { if (!running.current) void refreshAvailability(); };
     window.addEventListener("focus", focus); document.addEventListener("visibilitychange", focus);
     return () => { window.clearTimeout(initial); window.clearInterval(timer); window.clearInterval(poll); window.removeEventListener("focus", focus); document.removeEventListener("visibilitychange", focus); };
   }, [refreshAvailability]);
