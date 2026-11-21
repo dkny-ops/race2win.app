@@ -230,7 +230,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
     try {
       const token = pregameToken;
-      if (authenticated) setPregameToken(null);
+      if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); }
       const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? await startFlappyOfficial(token!) : null;
       void refreshAvailability();
       if (!mounted.current) return;
@@ -421,7 +421,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   return <div style={{textAlign:"center"}}>
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
-    {authenticated && pregameSiteKey ? <div style={{display:expanded?"none":"block",margin:"0 auto 1rem",maxWidth:320}}>
+    {authenticated && pregameSiteKey && !expanded && status !== "starting" ? <div style={{margin:"0 auto 1rem",maxWidth:320}}>
       <TurnstileScript onReady={() => setPregameReady(true)} onError={() => setOfficialError("verification_unavailable")} />
       <TurnstileWidget siteKey={pregameSiteKey} scriptReady={pregameReady} resetNonce={pregameReset} label="Verify before playing Flappy Race" action="midrun_human_check" onTokenChange={onPregameToken} />
     </div> : null}
@@ -436,7 +436,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
         {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
-        {terminal ? <button className="button button--primary" type="button" disabled={blocked || (authenticated && !pregameToken)} onClick={() => {void start();}}>{authenticated && !pregameToken ? "VERIFY TO PLAY AGAIN" : "PLAY AGAIN"</button> : null}
+        {terminal ? <button className="button button--primary" type="button" onClick={() => { if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); setExpanded(false); setStatus("ready"); } else { void start(); } }}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
     {!expanded && status === "ready" ? <div className="flappy-top-results">{scoreControls}</div> : null}
