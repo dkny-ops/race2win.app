@@ -436,7 +436,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
         {status === "rejected" && officialError === "verification_unavailable" ? <p role="status">{errorMessage(officialError)}</p> : null}
         {result ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
-        {terminal ? <button className="button button--primary" type="button" disabled={blocked} onClick={() => {void start();}}>PLAY AGAIN</button> : null}
+        {terminal ? <button className="button button--primary" type="button" disabled={blocked || (authenticated && !pregameToken)} onClick={() => {void start();}}>{authenticated && !pregameToken ? "VERIFY TO PLAY AGAIN" : "PLAY AGAIN"</button> : null}
       </div> : null}
     </div>
     {!expanded && status === "ready" ? <div className="flappy-top-results">{scoreControls}</div> : null}
