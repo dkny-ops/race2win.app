@@ -2,7 +2,7 @@ export const WIDTH = 960;
 export const HEIGHT = 540;
 export const PLAYER_HEIGHT = 44;
 export const STEP = 1 / 120;
-export const PLATFORM_LIFETIME = 2;
+export const PLATFORM_LIFETIME = 1.2;
 export const TILE_SIZE = 36;
 const FULL_PLATFORM_WIDTH = 4 * TILE_SIZE;
 const PLATFORM_WIDTH_STEP_SECONDS = 60;
@@ -124,7 +124,7 @@ export function stepJumpingRace(state: JumpingRaceState, direction: -1 | 0 | 1, 
     const startScroll = Math.min(90, Math.max(0, (forward - 110) * 0.24));
     state.cameraTarget = Math.max(state.cameraTarget, startScroll, forward - 350);
   }
-  const cameraTravel = Math.min(260 * STEP, state.cameraTarget - state.camera);
+  const cameraTravel = Math.min(MOVE_SPEED * STEP, Math.max(0, state.cameraTarget - state.camera));
   state.speed = cameraTravel / STEP;
   state.camera += cameraTravel;
   const player = state.player;
