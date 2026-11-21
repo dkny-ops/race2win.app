@@ -12,7 +12,7 @@ import { FlappyPerformanceDiagnostics, flappyDiagnosticsEnabled } from "@/lib/ga
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
-export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode }) {
+export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner, onGameActiveChange }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode; onGameActiveChange?: (active: boolean) => void }) {
   const es = language === "es";
   const [diagnostics] = useState(() => new FlappyPerformanceDiagnostics(flappyDiagnosticsEnabled()));
   const recordDiagnostic = useCallback((kind: "checkpoint" | "turnstile", durationMs?: number) => {
@@ -177,6 +177,10 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const fail = useCallback(() => { running.current = false; stopVerification(); if (mounted.current) { setResult(null); setStatus("rejected"); } }, [stopVerification]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
+  useEffect(() => {
+    onGameActiveChange?.(expanded);
+    return () => onGameActiveChange?.(false);
+  }, [expanded, onGameActiveChange]);
   useEffect(() => {
     const diagnostic = diagnostics;
     if (!diagnostic.enabled) return;

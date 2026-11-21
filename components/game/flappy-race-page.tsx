@@ -6,10 +6,12 @@ import { FlappyVerifiedCanvas } from "./flappy-verified-canvas";
 import { FlappyRankingTable } from "@/components/scores/flappy-ranking";
 import { FlappyPersonalWeeklyScore } from "@/components/scores/flappy-personal-weekly-score";
 import { AdsterraGameBanners } from "@/components/marketing/adsterra-game-banners";
+import { AdsterraHomeAds } from "@/components/marketing/adsterra-home-ads";
 
 export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
  const [language] = usePlayerLanguage();
  const [openPanel, setOpenPanel] = useState<"leaderboard" | "weekly" | null>(null);
+ const [gameActive, setGameActive] = useState(false);
  const leaderboardOpen = openPanel === "leaderboard";
  const weeklyOpen = openPanel === "weekly";
  const scoreControls = <div className="flappy-score-controls">
@@ -17,7 +19,7 @@ export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
    <button className="flappy-score-button" type="button" aria-expanded={weeklyOpen} aria-controls="flappy-weekly-panel" onClick={() => setOpenPanel(weeklyOpen ? null : "weekly")}>WEEKLY SCORE</button>
  </div>;
  return <div className="flappy-race-page" style={{ marginTop: ".75rem" }}>
-   <FlappyVerifiedCanvas language={language} authenticated={authenticated} scoreControls={scoreControls} preGameBanner={<AdsterraGameBanners className="flappy-game-ad" />} />
+   <FlappyVerifiedCanvas language={language} authenticated={authenticated} scoreControls={scoreControls} preGameBanner={<AdsterraGameBanners className="flappy-game-ad" />} onGameActiveChange={setGameActive} />
    <Link className="rtw-game-how-to-play-link rtw-game-how-to-play-link--flappy flappy-bottom-help" href="/games/flappy-race/how-to-play"><span aria-hidden="true">ⓘ</span> HOW TO PLAY</Link>
    <div id="flappy-leaderboard-panel" hidden={!leaderboardOpen}>
      {leaderboardOpen ? <FlappyRankingTable language={language} /> : null}
@@ -25,5 +27,6 @@ export function FlappyRacePage({ authenticated }: { authenticated: boolean }) {
    <div id="flappy-weekly-panel" hidden={!weeklyOpen}>
      {weeklyOpen ? <FlappyPersonalWeeklyScore language={language} authenticated={authenticated} /> : null}
    </div>
+   {!gameActive ? <AdsterraHomeAds /> : null}
  </div>;
 }

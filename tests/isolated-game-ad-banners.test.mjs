@@ -29,6 +29,8 @@ test("new Home banner stays between game cards and prize banner; game banners on
   assert.match(race, /<AdsterraGameBanners className="rtw-game-ad"/);
   assert.match(flappy, /preGameBanner=\{<AdsterraGameBanners className="flappy-game-ad"/);
   assert.match(flappyCanvas, /!expanded && status === "ready" \? preGameBanner : null/);
+  assert.match(flappy, /!gameActive \? <AdsterraHomeAds \/> : null/);
+  assert.match(flappyCanvas, /onGameActiveChange\?\.\(expanded\)/);
   assert.match(jumping, /status === "ready" \? <AdsterraGameBanners className="jumping-game-ad"/);
 });
 

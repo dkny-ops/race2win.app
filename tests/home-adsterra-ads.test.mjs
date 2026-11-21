@@ -13,6 +13,9 @@ test("Home-only banners load from the dedicated ad origin, not inline provider s
   assert.match(component, /https:\/\/ads\.racetowin\.app\/mobile\//);
   assert.match(component, /height=\{90\}/);
   assert.match(component, /height=\{250\}/);
+  assert.match(component, /matchMedia/);
+  assert.match(component, /if \(mobile === null\) return null/);
+  assert.match(component, /mobile\s*\? <AdFrame/);
   assert.doesNotMatch(component, /srcDoc|atOptions|bauval\.org/);
   assert.doesNotMatch(component, /container-e247870efd06877c5c0176c6e3b3bc4d|217c62792bbb2e246c4c2579597fee28/);
   assert.ok(home.indexOf("<AdsterraHomeAds />") > home.indexOf("home-games-prize"));
