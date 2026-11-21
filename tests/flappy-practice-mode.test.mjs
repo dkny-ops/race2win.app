@@ -10,7 +10,7 @@ test("Flappy guest practice stays local while authenticated play uses official s
   assert.doesNotMatch(component, /FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && g\.tick >= nextCheckpoint\.current/);
   assert.match(component, /const session = authenticated && !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE \? await startFlappyOfficial\(\) : null/);
   assert.match(component, /official\.current = session/);
-  assert.match(component, /if \(session\) beginVerification\(session\.sessionId, session\.turnstile\)/);
+  assert.doesNotMatch(component, /beginVerification\(session\.sessionId/);
   assert.match(component, /if \(official\.current\)/);
   assert.match(component, /if \(busy\.current \|\| !official\.current\)/);
   assert.match(component, /const blocked = !FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && authenticated &&/);
@@ -22,5 +22,5 @@ test("Flappy official competition still requires authentication and server valid
   assert.match(component, /await startFlappyOfficial\(\)/);
   assert.match(component, /await checkpointFlappyOfficial\(/);
   assert.match(component, /await finalizeFlappyOfficial\(/);
-  assert.match(component, /await finishVerification\(/);
+  assert.doesNotMatch(component, /await finishVerification\(/);
 });
