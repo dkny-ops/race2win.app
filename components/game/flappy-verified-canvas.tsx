@@ -168,7 +168,10 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       const snapshot = { ...engine.current, pipes: engine.current.pipes.map(p => ({ ...p })) };
       const evidence = inputs.current.slice();
       try { await checkpointFlappyOfficial(official.current, snapshot, evidence); }
-      catch { fail(); }
+      catch (error) {
+        setOfficialError(error instanceof FlappyOfficialError ? error.code : "connection_error");
+        fail();
+      }
       finally { busy.current = false; }
     }
     function draw(time: number) {
