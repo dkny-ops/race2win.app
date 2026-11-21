@@ -67,8 +67,9 @@ export function TurnstileWidget({ siteKey, scriptReady, resetNonce, label, onTok
     if (resetNonce > 0 && widgetIdRef.current && window.turnstile) {
       window.turnstile.reset(widgetIdRef.current);
       onTokenChange(null);
+      if (action === "midrun_human_check") window.turnstile.execute(widgetIdRef.current);
     }
-  }, [onTokenChange, resetNonce]);
+  }, [action, onTokenChange, resetNonce]);
 
   return <div className={adaptive ? "turnstile-widget turnstile-widget--adaptive" : "turnstile-widget"} aria-label={label}><div ref={containerRef} /></div>;
 }
