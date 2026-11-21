@@ -439,8 +439,6 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         <h2>GAME OVER</h2>
         <p role="status" style={{fontSize:"clamp(1.5rem, 7vw, 2.5rem)",fontWeight:900,margin:0}}>SCORE: {result?.score ?? score}</p>
         {status === "rejected" ? <p role="status">{officialError ? errorMessage(officialError) : (es ? "El servidor no aceptó esta puntuación. No se guardó ni cuenta para Scores." : "The server did not accept this score. It was not saved and does not count in Scores.")}</p> : null}
-        {result?.eligibility === "valid" ? <p>{es ? "Puntuación verificada y publicada en Scores." : "Score verified and published in Scores."}</p> : null}
-        {result?.eligibility === "under_review" ? <p>{es ? "Pendiente de revisión antifraude. Aún no cuenta para el ranking." : "Pending antifraud review. Not included in ranking yet."}</p> : null}
         {terminal ? <button className="button button--primary" type="button" onClick={() => { if (authenticated) { setPregameToken(null); setPregameReset(n => n + 1); setExpanded(false); setStatus("ready"); } else { void start(); } }}>PLAY AGAIN</button> : null}
       </div> : null}
     </div>
