@@ -218,7 +218,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       void refreshAvailability();
       if (!mounted.current) return;
       official.current = session;
-      if (session) beginVerification(session.sessionId, session.turnstile);
+      // Turnstile paused for replay-only, review-held scoring diagnostic.
       // Guest runs are local practice only: no session, API writes, or official score.
       const seed = session ? session.seed : Math.floor(Math.random() * 2147483647);
       engine.current = initialFlappy(seed); inputs.current = []; pendingFlap.current = false;
@@ -244,7 +244,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       if (busy.current || !official.current) { fail(); return; }
       busy.current = true; setStatus("validating");
       try {
-        await finishVerification(Date.parse(official.current.startsAt) + engine.current.tick * 1000 / 60).catch(error => { setOfficialError("verification_unavailable"); throw error; });
+        // Human verification paused; server replay and review hold remain enforced.
         const verified = await finalizeFlappyOfficial(official.current, engine.current, inputs.current);
         stopVerification();
         if (mounted.current) { setResult(verified); setStatus("over"); }
@@ -375,7 +375,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       if (busy.current || !active || !official.current) return;
       busy.current=true; window.clearInterval(timer);
       try {
-        await finishVerification(Date.parse(official.current.startsAt) + engine.current.tick * 1000 / 60).catch(error => { setOfficialError("verification_unavailable"); throw error; });
+        // Human verification paused; server replay and review hold remain enforced.
         const verified=await finalizeFlappyOfficial(official.current,engine.current,inputs.current);
         stopVerification();
         if(active) {setResult(verified);setStatus("over");}
@@ -399,7 +399,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   }, [status, refreshAvailability]);
   const terminal = status === "over" || status === "rejected";
   return <div style={{textAlign:"center"}}>
-    {!FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE ? verificationWidget : null}
+    {false ? verificationWidget : null}
     {FLAPPY_TURNSTILE_DIAGNOSTIC_PRACTICE && !expanded ? <p role="status">TEMPORARY PRACTICE MODE · Scores are not recorded</p> : null}
     {!expanded && status === "ready" ? preGameBanner : null}
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
