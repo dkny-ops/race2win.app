@@ -25,8 +25,8 @@ function post(action: string, body: unknown) { return request(`/api/flappy-race/
 export async function readFlappyAvailability(): Promise<FlappyAvailability> {
   return parseFlappyAvailability(await request("/api/flappy-race/opportunities"));
 }
-export async function startFlappyOfficial(): Promise<FlappySession> {
-  const session = await post("start", {}) as FlappySession;
+export async function startFlappyOfficial(token: string): Promise<FlappySession> {
+  const session = await post("start", { token }) as FlappySession;
   if (session.version !== FLAPPY_VERSION || !Number.isInteger(session.seed) ||
       !Number.isFinite(Date.parse(session.startsAt)) || !Number.isFinite(Date.parse(session.serverNow)) || Date.parse(session.startsAt) <= Date.parse(session.serverNow) || !Number.isFinite(Date.parse(session.expiresAt))) throw new Error("Invalid official session");
   if (session.turnstile && (session.turnstile.required !== true || typeof session.turnstile.siteKey !== "string" ||
