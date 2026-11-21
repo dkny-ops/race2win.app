@@ -3,22 +3,32 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TurnstileScript } from "@/app/sign-in/turnstile-widget";
 import { FlappyInvisibleVerification, type FlappyCheck, type FlappyCheckConfiguration } from "@/lib/game/flappy/invisible-verification";
 
-export function useFlappyInvisibleCheck() {
+type DiagnosticEvent = (kind: "turnstile", durationMs?: number) => void;
+
+export function useFlappyInvisibleCheck(onDiagnostic?: DiagnosticEvent) {
   const controller = useRef<FlappyInvisibleVerification | null>(null);
   const container = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [loadScript, setLoadScript] = useState(false);
   const [challenge, setChallenge] = useState<{ siteKey: string; nonce: string } | null>(null);
   const waiting = useRef<{ resolve: (token: string) => void; reject: () => void } | null>(null);
+  const diagnostic = useRef<DiagnosticEvent | undefined>(onDiagnostic);
+  const challengeStartedAt = useRef<number | null>(null);
+  useEffect(() => { diagnostic.current = onDiagnostic; }, [onDiagnostic]);
   const settle = useCallback((token?: string) => {
     const pending = waiting.current;
     waiting.current = null;
     if (token) pending?.resolve(token); else pending?.reject();
+    if (challengeStartedAt.current !== null) {
+      diagnostic.current?.("turnstile", performance.now() - challengeStartedAt.current);
+      challengeStartedAt.current = null;
+    }
     setChallenge(null);
   }, []);
   const token = useCallback((siteKey: string, nonce: string) => new Promise<string>((resolve, reject) => {
     waiting.current?.reject();
     waiting.current = { resolve, reject: () => reject(new Error("Verification unavailable")) };
+    challengeStartedAt.current = performance.now();
     setChallenge({ siteKey, nonce });
   }), []);
   useEffect(() => {
@@ -53,6 +63,7 @@ export function useFlappyInvisibleCheck() {
     if (!config?.required) return;
     setLoadScript(true);
     const transport = async (body: { sessionId: string; nonce?: string; token?: string }): Promise<FlappyCheck> => {
+      const startedAt = performance.now();
       const response = await fetch("/api/flappy-race/sessions/human-check", {
         method: "POST", credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(6000),
         headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
@@ -61,6 +72,7 @@ export function useFlappyInvisibleCheck() {
       const data = await response.json() as FlappyCheck;
       if (typeof data.required !== "boolean" || !Number.isFinite(Date.parse(data.serverNow)) ||
           (data.required && (!Number.isFinite(Date.parse(data.nextDueAt!)) || typeof data.due !== "boolean"))) throw new Error("Invalid verification");
+      diagnostic.current?.("turnstile", performance.now() - startedAt);
       return data;
     };
     controller.current = new FlappyInvisibleVerification(sessionId, config, transport, token);

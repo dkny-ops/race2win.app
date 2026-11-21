@@ -7,28 +7,82 @@ import { AudioPlayer } from "@/components/layout/site-audio";
 import { initialFlappy, stepFlappy, MAX_TICKS, MAX_INPUTS, MIN_FLAP_TICKS, flappyGapHalf, type FlappyState } from "@/lib/game/flappy/engine";
 import { FLAPPY_COMPETITION_ENABLED } from "@/lib/game/flappy/activation";
 import { FlappyOfficialError, readFlappyAvailability, startFlappyOfficial, checkpointFlappyOfficial, finalizeFlappyOfficial, type FlappySession, type FlappyResult } from "@/lib/game/flappy/official-client";
+import { FlappyPerformanceDiagnostics, flappyDiagnosticsEnabled } from "@/lib/game/flappy/performance-diagnostics";
 
 import type { FlappyAvailability } from "@/lib/game/flappy/availability";
 
 type Status = "ready" | "starting" | "running" | "validating" | "over" | "rejected";
 export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, preGameBanner }: { language: "en" | "es"; authenticated: boolean; scoreControls?: ReactNode; preGameBanner?: ReactNode }) {
   const es = language === "es";
-  const { begin: beginVerification, finish: finishVerification, stop: stopVerification, widget: verificationWidget } = useFlappyInvisibleCheck();
+  const [diagnostics] = useState(() => new FlappyPerformanceDiagnostics(flappyDiagnosticsEnabled()));
+  const recordDiagnostic = useCallback((kind: "checkpoint" | "turnstile", durationMs?: number) => {
+    diagnostics.record({ kind, durationMs });
+  }, [diagnostics]);
+  const { begin: beginVerification, finish: finishVerification, stop: stopVerification, widget: verificationWidget } = useFlappyInvisibleCheck(recordDiagnostic);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const context = useRef<CanvasRenderingContext2D | null>(null);
   const birdImage = useRef<HTMLImageElement | null>(null);
-  const forestImage = useRef<HTMLImageElement | null>(null);
-  const obstacleImage = useRef<HTMLImageElement | null>(null);
-  useEffect(() => { const img = new Image(); img.src="/images/flappy-obstacle-trunk.png"; img.onload=()=>{obstacleImage.current=img;}; return ()=>{img.onload=null;obstacleImage.current=null;}; }, []);
-  useEffect(() => { const img = new Image(); img.src="/images/flappy-game-background.webp"; img.onload=()=>{forestImage.current=img;}; return ()=>{img.onload=null; forestImage.current=null;}; }, []);
+  const forestLayer = useRef<HTMLCanvasElement | null>(null);
+  const obstacleBody = useRef<HTMLCanvasElement | null>(null);
+  const obstacleCap = useRef<HTMLCanvasElement | null>(null);
+  const readyAssets = useRef({ bird: false, forest: false, obstacle: false });
+  const [assetsReady, setAssetsReady] = useState(false);
+  const markAssetReady = useCallback((asset: "bird" | "forest" | "obstacle") => {
+    readyAssets.current[asset] = true;
+    if (Object.values(readyAssets.current).every(Boolean)) setAssetsReady(true);
+  }, []);
+  useEffect(() => {
+    context.current = canvas.current?.getContext("2d") ?? null;
+    return () => { context.current = null; };
+  }, []);
   useEffect(() => {
     const img = new Image();
-    img.src="/images/Flappy-bird%20.png";
+    const finish = () => markAssetReady("obstacle");
+    img.onload=()=>{
+      // Crop once before a race instead of down-sampling the large source twice
+      // per pipe on every frame.
+      const body=document.createElement("canvas"); body.width=54;body.height=1770;
+      const cap=document.createElement("canvas"); cap.width=62;cap.height=12;
+      const bodyContext=body.getContext("2d"),capContext=cap.getContext("2d");
+      if(bodyContext && capContext){
+        bodyContext.drawImage(img,264,0,280,1770,0,0,54,1770);
+        capContext.drawImage(img,239,1770,325,125,0,0,62,12);
+        obstacleBody.current=body;obstacleCap.current=cap;
+      }
+      finish();
+    };
+    img.onerror=finish;
+    img.src="/images/flappy-obstacle-trunk.png";
+    return ()=>{img.onload=null;img.onerror=null;obstacleBody.current=null;obstacleCap.current=null;};
+  }, [markAssetReady]);
+  useEffect(() => {
+    const img = new Image();
+    const finish = () => markAssetReady("forest");
+    img.onload=()=>{
+      // Pre-compose the fixed cover crop. The game background is static, so
+      // this removes repeated full-resolution image scaling from the RAF loop.
+      const layer=document.createElement("canvas");layer.width=360;layer.height=480;
+      const layerContext=layer.getContext("2d");
+      if(layerContext){
+        const cropWidth=Math.min(img.naturalWidth,img.naturalHeight*.75);
+        const cropHeight=Math.min(img.naturalHeight,img.naturalWidth/.75);
+        layerContext.drawImage(img,(img.naturalWidth-cropWidth)/2,(img.naturalHeight-cropHeight)/2,cropWidth,cropHeight,0,0,360,480);
+        forestLayer.current=layer;
+      }
+      finish();
+    };
+    img.onerror=finish;
+    img.src="/images/flappy-game-background.webp";
+    return ()=>{img.onload=null;img.onerror=null;forestLayer.current=null;};
+  }, [markAssetReady]);
+  useEffect(() => {
+    const img = new Image();
     img.onload=()=>{
       // Remove the dark checkerboard baked into the source artwork.
       const surface=document.createElement("canvas");
       surface.width=img.naturalWidth;surface.height=img.naturalHeight;
       const context=surface.getContext("2d",{willReadFrequently:true});
-      if(!context){birdImage.current=img;return;}
+      if(!context){birdImage.current=img;markAssetReady("bird");return;}
       context.drawImage(img,0,0);
       const frame=context.getImageData(0,0,surface.width,surface.height);
       const pixels=frame.data, w=surface.width,h=surface.height;
@@ -49,15 +103,18 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       context.putImageData(frame,0,0);
       const cleaned=new Image();
       cleaned.src=surface.toDataURL("image/png");
-      cleaned.onload=()=>{birdImage.current=cleaned;};
+      cleaned.onload=()=>{birdImage.current=cleaned;markAssetReady("bird");};
+      cleaned.onerror=()=>{birdImage.current=img;markAssetReady("bird");};
     };
-    return ()=>{img.onload=null;birdImage.current=null;};
-  }, []);
+    img.onerror=()=>markAssetReady("bird");
+    img.src="/images/Flappy-bird%20.png";
+    return ()=>{img.onload=null;img.onerror=null;birdImage.current=null;};
+  }, [markAssetReady]);
   const engine = useRef<FlappyState>(initialFlappy(0));
   const inputs = useRef<number[]>([]);
   const official = useRef<FlappySession | null>(null);
   const running = useRef(false), busy = useRef(false), origin = useRef(0), nextCheckpoint = useRef(300);
-  const pendingFlap = useRef(false), mounted = useRef(true), lastFrame = useRef(0);
+  const pendingFlap = useRef(false), mounted = useRef(true), lastFrame = useRef(0), renderedCountdown = useRef<number | null>(null);
   const [status, setStatus] = useState<Status>("ready");
   const [score, setScore] = useState(0);
   const renderedScore = useRef(0);
@@ -120,9 +177,26 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
   const recovery = seconds === null ? "…" : `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   const fail = useCallback(() => { running.current = false; stopVerification(); if (mounted.current) { setResult(null); setStatus("rejected"); } }, [stopVerification]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; running.current = false; }; }, [authenticated]);
+  useEffect(() => {
+    const diagnostic = diagnostics;
+    if (!diagnostic.enabled) return;
+    const target = window as Window & { __flappyPerformanceDiagnostics?: FlappyPerformanceDiagnostics };
+    target.__flappyPerformanceDiagnostics = diagnostic;
+    const visibility = () => diagnostic.record({ kind: "visibility", state: document.visibilityState });
+    const focus = () => diagnostic.record({ kind: "focus", state: document.hasFocus() ? "focused" : "blurred" });
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("focus", focus);
+    window.addEventListener("blur", focus);
+    return () => {
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("focus", focus);
+      window.removeEventListener("blur", focus);
+      delete target.__flappyPerformanceDiagnostics;
+    };
+  }, [diagnostics]);
   const flap = useCallback(() => { if (running.current && performance.now() >= origin.current) pendingFlap.current = true; }, []);
   const start = useCallback(async () => {
-    if (busy.current || running.current || blocked) return;
+    if (busy.current || running.current || blocked || !assetsReady) return;
     window.dispatchEvent(new Event("rtw-audio-start-flappy"));
     busy.current = true;
     setOfficialError(null); setStatus("starting"); setResult(null); renderedScore.current = 0; setScore(0);
@@ -138,12 +212,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       nextCheckpoint.current = 300;
       origin.current = session ? performance.now() + (Date.parse(session.startsAt) - Date.parse(session.serverNow)) : performance.now() + 3000;
       if (origin.current <= performance.now()) throw new Error("Start schedule missed");
-      setExpanded(true); setCountdown(Math.ceil((origin.current - performance.now()) / 1000));
+      const initialCountdown = Math.ceil((origin.current - performance.now()) / 1000);
+      renderedCountdown.current = initialCountdown;
+      setExpanded(true); setCountdown(initialCountdown);
       canvas.current?.focus({ preventScroll: true });
       running.current = true; lastFrame.current = performance.now(); setStatus("running");
     } catch (error) { setOfficialError(error instanceof FlappyOfficialError ? error.code : "service_unavailable"); fail(); }
     finally { busy.current = false; void refreshAvailability(); }
-  }, [authenticated, blocked, fail, refreshAvailability, beginVerification]);
+  }, [authenticated, blocked, assetsReady, fail, refreshAvailability, beginVerification]);
 
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
@@ -165,6 +241,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     async function checkpoint() {
       if (busy.current || !official.current) return;
       busy.current = true;
+      const checkpointStartedAt = performance.now();
       // Freeze this evidence snapshot while rendering continues.
       const snapshot = { ...engine.current, pipes: engine.current.pipes.map(p => ({ ...p })) };
       const evidence = inputs.current.slice();
@@ -173,20 +250,33 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         setOfficialError(error instanceof FlappyOfficialError ? error.code : "connection_error");
         fail();
       }
-      finally { busy.current = false; }
+      finally { recordDiagnostic("checkpoint", performance.now() - checkpointStartedAt); busy.current = false; }
     }
     function draw(time: number) {
-      const ctx = canvas.current?.getContext("2d"), g = engine.current;
+      const previousFrame = lastFrame.current;
+      let engineMs = 0;
+      let canvasMs = 0;
+      const ctx = context.current, g = engine.current;
       if (running.current) {
         const untilStart = origin.current - time;
-        if (untilStart > 0) setCountdown(Math.ceil(untilStart / 1000));
+        if (untilStart > 0) {
+          const nextCountdown = Math.ceil(untilStart / 1000);
+          if (renderedCountdown.current !== nextCountdown) {
+            renderedCountdown.current = nextCountdown;
+            setCountdown(nextCountdown);
+          }
+        }
         else {
-          setCountdown(null);
+          if (renderedCountdown.current !== null) {
+            renderedCountdown.current = null;
+            setCountdown(null);
+          }
           // Losing seconds of official activity is a safe rejection, never a
           // browser-driven fast-forward. Practice can resume at its own pace.
           if (official.current && time - lastFrame.current > 2000) fail();
           const target = Math.min(MAX_TICKS, Math.floor((time - origin.current) * 60 / 1000));
           const budget = Math.min(target - g.tick, 120);
+          const engineStartedAt = performance.now();
           for (let n = 0; n < budget && running.current && !g.dead; n++) {
             const previous = inputs.current.at(-1) ?? -MIN_FLAP_TICKS;
             const apply = pendingFlap.current && g.tick - previous >= MIN_FLAP_TICKS;
@@ -194,6 +284,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
             if (inputs.current.length > MAX_INPUTS) { fail(); break; }
             stepFlappy(g, apply);
           }
+          engineMs = performance.now() - engineStartedAt;
           // Only update React when the score changes. Re-rendering the entire
           // fullscreen game every animation frame can cause mobile Safari jank.
           if (g.score !== renderedScore.current) {
@@ -215,13 +306,11 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
         lastFrame.current = time;
       }
       if (ctx) {
+        const canvasStartedAt = performance.now();
         // The uploaded forest artwork is the actual background; obstacles remain independent.
-        const forest=forestImage.current;
-        if(forest?.complete && forest.naturalWidth>0){
-          // Cover the portrait canvas without stretching the wide artwork.
-          const cropWidth = Math.min(forest.naturalWidth, forest.naturalHeight * .75);
-          const cropHeight = Math.min(forest.naturalHeight, forest.naturalWidth / .75);
-          ctx.drawImage(forest,(forest.naturalWidth-cropWidth)/2,(forest.naturalHeight-cropHeight)/2,cropWidth,cropHeight,0,0,360,480);
+        const forest=forestLayer.current;
+        if(forest){
+          ctx.drawImage(forest,0,0);
         }else{
           ctx.fillStyle="#275d4d";ctx.fillRect(0,0,360,480);
         }
@@ -229,15 +318,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
           const gapHalf=flappyGapHalf(g.tick);
           const x=p.x/100, top=(p.gap-gapHalf)/100, bottom=(p.gap+gapHalf)/100;
           const trunk=(y: number,h: number,capY: number,lower=false)=>{
-            const obstacle=obstacleImage.current;
-            if(obstacle?.complete && obstacle.naturalWidth>0 && h>0){
+            if(obstacleBody.current && obstacleCap.current && h>0){
               // The bark stays on the existing 54px collision column.
               // Crop the transparent padding; moss is a separate 12px cap.
               const capHeight=Math.min(12,h),bodyHeight=h-capHeight;
               ctx.save();ctx.translate(x,lower ? y+h : y);
               if(lower)ctx.scale(1,-1);
-              if(bodyHeight>0)ctx.drawImage(obstacle,264,0,280,1770,0,0,54,bodyHeight);
-              ctx.drawImage(obstacle,239,1770,325,125,-4,bodyHeight,62,capHeight);
+              if(bodyHeight>0)ctx.drawImage(obstacleBody.current,0,0,54,1770,0,0,54,bodyHeight);
+              ctx.drawImage(obstacleCap.current,-4,bodyHeight,62,capHeight);
               ctx.restore();return;
             }
             ctx.fillStyle="#6b4128";ctx.fillRect(x,y,54,h);
@@ -252,14 +340,14 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
           trunk(bottom,Math.max(0,480-bottom),bottom,true);
         }
         if(birdImage.current?.complete && birdImage.current.naturalWidth){ctx.drawImage(birdImage.current,62,g.y/100-20,40,40);}else{ctx.fillStyle="#eab308";ctx.beginPath();ctx.arc(82,g.y/100,13,0,Math.PI*2);ctx.fill();}
-        
-
+        canvasMs = performance.now() - canvasStartedAt;
       }
+      if (previousFrame > 0 && running.current) diagnostics.record({ kind: "frame", frameMs: time - previousFrame, engineMs, canvasMs, state: official.current ? "official" : "practice" });
       raf=requestAnimationFrame(draw);
     }
     raf=requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("keydown",key); };
-  }, [flap, fail, finishVerification, stopVerification]);
+  }, [flap, fail, finishVerification, stopVerification, recordDiagnostic, diagnostics]);
   // A collision may occur while its prior checkpoint is in flight. Finish only
   // after that request settles; never send concurrent mutation requests.
   useEffect(() => {
@@ -298,7 +386,7 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
     <div className={expanded ? "flappy-active-frame" : "flappy-ready-frame"} style={expanded ? {position:"fixed",inset:0,zIndex:9999,background:"#071a2c",width:"100vw",height:"100dvh",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"} : {position:"relative",width:"100%",maxWidth:640,margin:"auto"}}>
       <AudioPlayer channel="flappy" playing={status==="starting"||status==="running"} />
       <canvas ref={canvas} width={360} height={480} tabIndex={0} aria-label="Flappy mini game" onPointerDown={() => { canvas.current?.focus({ preventScroll: true }); flap(); }} style={expanded ? {display:"block",width:"100%",height:"100%",objectFit:"contain",touchAction:"none"} : {display:"block",width:"100%",height:"auto",aspectRatio:"3 / 4",objectFit:"fill",border:"1px solid #23617c",borderRadius:12,touchAction:"manipulation"}} />
-      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : "▶ PLAY"}</button> : null}
+      {!expanded ? <button className="button button--primary" type="button" onClick={() => {void start();}} disabled={blocked || !assetsReady || status==="starting"} style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",borderRadius:999,border:"2px solid #67e8f9",background:"#0865d8",color:"white",padding:"1rem 2rem",fontSize:"1.3rem",fontWeight:900,cursor:"pointer",boxShadow:"0 0 30px #0369a1"}}>{status==="starting" ? "…" : assetsReady ? "▶ PLAY" : "LOADING…"}</button> : null}
       {expanded && countdown!==null ? <div aria-live="assertive" style={{position:"absolute",fontSize:"5rem",fontWeight:900,pointerEvents:"none"}}>{countdown}</div> : null}
       {expanded && status==="running" && countdown===null ? <div style={{position:"absolute",top:"max(1rem, env(safe-area-inset-top))",left:16,padding:".5rem 1rem",background:"#071a2ccc",borderRadius:12,pointerEvents:"none",fontWeight:800}}>SCORE: {score}</div> : null}
       {expanded && (terminal || status==="validating") ? <div role="status" style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",gap:16,background:"#06121de8",padding:20,overflowY:"auto",justifyContent:"safe center"}}>

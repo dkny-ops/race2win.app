@@ -12,6 +12,7 @@ function load(path, imports = {}, turnstile = null) {
   return loadedModule.exports;
 }
 const e=load("lib/game/flappy/engine.ts");
+const diagnostics=load("lib/game/flappy/performance-diagnostics.ts");
 export {load,e};
 test("Flappy fixed-step replay is bit-identical and collision is authoritative",()=>{
   const a=e.replayFlappy(123,[],100);
@@ -22,6 +23,23 @@ test("seeded obstacle layouts are reproducible and different seeds diverge",()=>
   function simulate(seed){const s=e.initialFlappy(seed);for(let n=0;n<140&&!s.dead;n++)e.stepFlappy(s,s.y>25000&&s.vy>0);return s;}
   assert.deepEqual(simulate(9),simulate(9));
   assert.notDeepEqual(simulate(9).pipes,simulate(10).pipes);
+});
+test("precomputed speed keeps the original v1 integer difficulty schedule",()=>{
+  let expected=215;
+  for(let step=0;step<40;step++){
+    assert.equal(e.flappySpeed(step*900),expected);
+    const increase=step<2?103:(step+1)%4===0?110:106;
+    expected=Math.round(expected*increase/100);
+  }
+});
+test("Flappy performance diagnostics stay opt-in and bounded",()=>{
+  const disabled=new diagnostics.FlappyPerformanceDiagnostics(false);
+  disabled.record({kind:"frame",frameMs:500});
+  assert.equal(disabled.snapshot().length,0);
+  const enabled=new diagnostics.FlappyPerformanceDiagnostics(true);
+  for(let n=0;n<260;n++) enabled.record({kind:"frame",frameMs:n});
+  assert.equal(enabled.snapshot().length,240);
+  assert.equal(enabled.snapshot()[0].frameMs,20);
 });
 test("official Flappy sessions receive a fresh server-generated course seed",()=>{
   const server=readFileSync(new URL("../lib/game/flappy/server.ts",import.meta.url),"utf8");

@@ -18,6 +18,25 @@ function random(s: FlappyState): number {
   s.rng = (Math.imul(s.rng, 1664525) + 1013904223) >>> 0;
   return s.rng;
 }
+
+// Speed only changes every 900 fixed ticks. Precompute the exact integer
+// sequence used by flappy-v1 instead of rebuilding it in every simulation
+// step. This is deliberately derived with the original formula so browser
+// play and server replay remain byte-for-byte deterministic.
+const FLAPPY_SPEEDS = (() => {
+  const speeds = [215];
+  for (let step = 1; step <= Math.floor((MAX_TICKS - 1) / 900); step++) {
+    const previous = speeds[step - 1]!;
+    const increase = step - 1 < 2 ? 103 : step % 4 === 0 ? 110 : 106;
+    speeds.push(Math.round(previous * increase / 100));
+  }
+  return speeds;
+})();
+
+export function flappySpeed(tick: number): number {
+  return FLAPPY_SPEEDS[Math.min(FLAPPY_SPEEDS.length - 1, Math.max(0, Math.floor(tick / 900)))]!;
+}
+
 export function stepFlappy(s: FlappyState, flap: boolean): void {
   if (s.dead || s.tick >= MAX_TICKS) return;
   if (flap) s.vy = -550;
@@ -28,18 +47,21 @@ export function stepFlappy(s: FlappyState, flap: boolean): void {
   }
   // Every 15 seconds: first two increases are 3%, then 6%, except 10% at each full minute.
   // Integer math keeps browser simulation and server replay exactly identical.
-  const difficultySteps = Math.floor(s.tick / 900);
-  let speed = 215;
-  for (let i = 0; i < difficultySteps; i++) {
-    speed = Math.round(speed * (i < 2 ? 103 : (i + 1) % 4 === 0 ? 110 : 106) / 100);
-  }
+  const speed = flappySpeed(s.tick);
   const gapHalf = flappyGapHalf(s.tick);
   for (const p of s.pipes) {
     p.x -= speed;
     if (!p.passed && p.x + 5400 < 8200) { p.passed = true; s.score++; }
     if (9500 > p.x && 6900 < p.x + 5400 && (s.y - 1300 < p.gap - gapHalf || s.y + 1300 > p.gap + gapHalf)) s.dead = true;
   }
-  s.pipes = s.pipes.filter(p => p.x > -5400);
+  // Keep the same order while compacting in place. The prior filter() made a
+  // new array on every 60 Hz tick, causing avoidable garbage collection on
+  // mobile Safari during long races.
+  let retained = 0;
+  for (const pipe of s.pipes) {
+    if (pipe.x > -5400) s.pipes[retained++] = pipe;
+  }
+  s.pipes.length = retained;
   if (s.y < 1300 || s.y > 44400) s.dead = true;
   s.tick++;
 }
