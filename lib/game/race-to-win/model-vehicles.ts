@@ -157,7 +157,8 @@ function addPlayerDetails(chassis: THREE.Group, model: THREE.Object3D): void {
   if (originalBody) originalBody.visible = false;
 
   const paint = new THREE.MeshPhysicalMaterial({
-    color: "#c81722", metalness: 0.22, roughness: 0.27, clearcoat: 1, clearcoatRoughness: 0.10, envMapIntensity: 1.28,
+    color: "#ff102d", metalness: 0.12, roughness: 0.28, clearcoat: 0.9, clearcoatRoughness: 0.14, envMapIntensity: 0.72,
+    emissive: "#d50020", emissiveIntensity: 0.38,
   });
   const carbon = new THREE.MeshPhysicalMaterial({ color: "#151820", metalness: 0.24, roughness: 0.37, clearcoat: 0.62 });
   const glass = new THREE.MeshPhysicalMaterial({ color: "#131b24", metalness: 0.12, roughness: 0.15, clearcoat: 1 });
