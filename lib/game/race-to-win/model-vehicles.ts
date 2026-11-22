@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import type { VehicleVisual } from "./vehicles";
@@ -79,15 +80,12 @@ function improveMaterial(mesh: THREE.Mesh, source: THREE.Material, player: boole
     material.emissiveIntensity = isRear ? 2.6 : 2.1;
     material.roughness = 0.18;
   } else if (player && !isWheel) {
-    material.color.set("#ff1734");
-    material.metalness = 0.87;
-    material.roughness = 0.105;
-    material.emissive.set("#760009");
-    material.emissiveIntensity = 0.3;
-    if (material instanceof THREE.MeshPhysicalMaterial) {
-      material.clearcoat = 1;
-      material.clearcoatRoughness = 0.045;
-    }
+    const painted = new THREE.MeshPhysicalMaterial({
+      color: "#e51c32", map: material.map, metalness: 0.46, roughness: 0.25,
+      clearcoat: 0.95, clearcoatRoughness: 0.14, envMapIntensity: 1.16,
+    });
+    material.dispose();
+    return painted;
   }
 
   return material;
@@ -109,59 +107,78 @@ function centerAndScale(model: THREE.Object3D, targetLength: number): void {
   model.position.y -= bounds.min.y;
 }
 
-/**
- * Rear-facing color accents based on the approved player-car reference.
- * Purely decorative meshes: no physics, collider, or source GLB changes.
- */
-function addPlayerPaintAccents(chassis: THREE.Group, model: THREE.Object3D): void {
+/** Geometry and materials owned by this visual instance. */
+function addPlayerDetails(chassis: THREE.Group, model: THREE.Object3D): void {
   const bounds = new THREE.Box3().setFromObject(model);
-  const size = bounds.getSize(new THREE.Vector3());
-  const width = size.x;
-  const length = size.z;
+  const { x: width, z: length } = bounds.getSize(new THREE.Vector3());
   const top = bounds.max.y;
   const rear = bounds.max.z;
-
-  const silver = new THREE.MeshPhysicalMaterial({
-    color: "#f5f8ff", metalness: 0.66, roughness: 0.12,
-    clearcoat: 1, clearcoatRoughness: 0.06,
+  const paint = new THREE.MeshPhysicalMaterial({
+    color: "#ae0d24", metalness: 0.51, roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.12,
   });
-  const amber = new THREE.MeshStandardMaterial({
-    color: "#ffc234", emissive: "#ffad00", emissiveIntensity: 2.8,
-    metalness: 0.3, roughness: 0.22,
+  const carbon = new THREE.MeshStandardMaterial({ color: "#171a20", metalness: 0.28, roughness: 0.57 });
+  const titanium = new THREE.MeshStandardMaterial({ color: "#939da9", metalness: 0.89, roughness: 0.27 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: "#142632", metalness: 0.22, roughness: 0.17, clearcoat: 1 });
+  const lens = new THREE.MeshPhysicalMaterial({
+    color: "#ff293b", emissive: "#f92026", emissiveIntensity: 1.85, roughness: 0.23, clearcoat: 0.86,
   });
-  const whiteLight = new THREE.MeshStandardMaterial({
-    color: "#fff8f5", emissive: "#ffe9eb", emissiveIntensity: 1.65,
-    metalness: 0.12, roughness: 0.2,
-  });
-
-  const accent = (name: string, geometry: THREE.BufferGeometry, material: THREE.Material,
-    x: number, y: number, z: number): void => {
+  const add = (name: string, geometry: THREE.BufferGeometry, material: THREE.Material,
+    x: number, y: number, z: number): THREE.Mesh => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.name = name;
     mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     mesh.userData.rtwRuntimeGeometry = true;
     chassis.add(mesh);
+    return mesh;
   };
+  const trim = (name: string, material: THREE.Material, w: number, h: number, depth: number,
+    x: number, y: number, z: number, bevel: number): THREE.Mesh =>
+    add(name, new RoundedBoxGeometry(w, h, depth, 2, bevel), material, x, y, z);
 
-  // Slim white/silver center stripe, above the engine cover and behind the cockpit.
-  accent("player-silver-center-stripe",
-    new THREE.BoxGeometry(width * 0.16, 0.035, length * 0.38), silver,
-    0, top * 0.84, rear - length * 0.46);
-
-  // Two illuminated white rear shoulder blocks, symmetric around the center.
+  trim("painted-rear-fascia", paint, width * 0.84, 0.49, 0.34, 0, top * 0.48, rear - 0.13, 0.095);
+  trim("recessed-diffuser", carbon, width * 0.79, 0.30, 0.18, 0, top * 0.27, rear + 0.052, 0.05);
+  trim("diffuser-lip", titanium, width * 0.65, 0.036, 0.09, 0, top * 0.21, rear + 0.144, 0.015);
+  trim("rear-deck-vent", carbon, width * 0.47, 0.065, length * 0.14, 0, top * 0.78, rear - length * 0.29, 0.025);
+  trim("tinted-rear-window", glass, width * 0.41, 0.10, length * 0.16, 0, top * 0.98, rear - length * 0.55, 0.045).rotation.x = -0.14;
   for (const side of [-1, 1]) {
-    accent("player-white-rear-shoulder",
-      new THREE.BoxGeometry(width * 0.12, 0.14, length * 0.12), whiteLight,
-      side * width * 0.34, top * 0.72, rear - length * 0.35);
+    trim("tail-lamp-housing", carbon, width * 0.29, 0.15, 0.09, side * width * 0.26, top * 0.54, rear + 0.042, 0.04);
+    trim("red-tail-lamp", lens, width * 0.25, 0.055, 0.063, side * width * 0.26, top * 0.55, rear + 0.098, 0.026).rotation.z = side * 0.08;
+    for (const offset of [-1, 1]) {
+      const x = side * width * 0.22 + offset * 0.071;
+      add("exhaust-opening", new THREE.CircleGeometry(0.051, 20), carbon, x, top * 0.28, rear + 0.149);
+      add("exhaust-rim", new THREE.TorusGeometry(0.055, 0.009, 6, 20), titanium, x, top * 0.28, rear + 0.157);
+    }
   }
+}
 
-  // Amber center brake-light panel and the silver lower rear bumper.
-  accent("player-amber-rear-panel",
-    new THREE.BoxGeometry(width * 0.39, 0.16, 0.085), amber,
-    0, top * 0.45, rear + 0.045);
-  accent("player-silver-rear-bumper",
-    new THREE.BoxGeometry(width * 0.83, 0.075, 0.08), silver,
-    0, bounds.min.y + 0.29, rear + 0.07);
+function addPlayerWheelDetails(wheel: THREE.Mesh, side: number): void {
+  // These dimensions are in the source GLB’s local units and follow its wheel nodes.
+  const mount = new THREE.Group();
+  // Hide the old mesh via its cloned material so its children still render and rotate.
+  if (Array.isArray(wheel.material)) wheel.material.forEach(material => { material.visible = false; });
+  else wheel.material.visible = false;
+  wheel.add(mount);
+  mount.position.set(side * 0.15, 0, 0);
+  const rubber = new THREE.MeshStandardMaterial({ color: "#17191f", roughness: 0.88 });
+  const alloy = new THREE.MeshStandardMaterial({ color: "#9a9ca3", metalness: 0.8, roughness: 0.32 });
+  const add = (geometry: THREE.BufferGeometry, material: THREE.Material, x = 0): void => {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.x = x;
+    mesh.rotation.z = Math.PI / 2;
+    mesh.castShadow = true;
+    mesh.userData.rtwRuntimeGeometry = true;
+    mount.add(mesh);
+  };
+  add(new THREE.LatheGeometry([
+    new THREE.Vector2(0, -0.15), new THREE.Vector2(0.24, -0.15),
+    new THREE.Vector2(0.283, -0.13), new THREE.Vector2(0.3, -0.09),
+    new THREE.Vector2(0.3, 0.09), new THREE.Vector2(0.283, 0.13),
+    new THREE.Vector2(0.24, 0.15), new THREE.Vector2(0, 0.15),
+  ], 32), rubber);
+  add(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 28), alloy, side * 0.151);
+  add(new THREE.CylinderGeometry(0.091, 0.091, 0.024, 20), rubber, side * 0.166);
 }
 
 function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
@@ -174,33 +191,16 @@ function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
   blueGlow.position.set(0, 0.65, -1.8);
   chassis.add(blueGlow);
 
-  const rearGlow = new THREE.PointLight("#ff3045", player ? 12 : 1.6, player ? 10 : 4.5, 2);
+  const rearGlow = new THREE.PointLight("#ff3045", player ? 5.5 : 1.6, player ? 10 : 4.5, 2);
   rearGlow.position.set(0, 0.72, 2.15);
   chassis.add(rearGlow);
 
-  const beam = new THREE.SpotLight("#d7f4ff", 145, 50, Math.PI / 7, 0.72, 1.25);
+  const beam = new THREE.SpotLight("#d7f4ff", 86, 50, Math.PI / 7, 0.72, 1.25);
   beam.position.set(0, 1.05, -2.65);
   const target = new THREE.Object3D();
   target.position.set(0, 0.1, -40);
   chassis.add(beam, target);
   beam.target = target;
-
-  // Runtime-only LED accents make the owned red car read clearly against the
-  // dark city without altering the source GLB or any traffic vehicle.
-  const accentMaterial = new THREE.MeshStandardMaterial({
-    color: "#ffd7dc",
-    emissive: "#ff1636",
-    emissiveIntensity: 4.2,
-    metalness: 0.4,
-    roughness: 0.2,
-  });
-  const rearStrip = new THREE.Mesh(new THREE.BoxGeometry(2.75, 0.1, 0.09), accentMaterial);
-  rearStrip.name = "race-to-win-player-rear-led";
-  rearStrip.position.set(0, 0.72, 2.86);
-  rearStrip.userData.rtwRuntimeGeometry = true;
-  chassis.add(rearStrip);
-
-
 }
 
 /** Creates a per-instance visual from an owned GLB without mutating the source asset. */
@@ -229,7 +229,12 @@ export function createModelVehicleVisual(template: THREE.Group, player: boolean)
   });
 
   chassis.add(model);
-  if (player) addPlayerPaintAccents(chassis, model);
+  if (player) {
+    addPlayerDetails(chassis, model);
+    for (const wheel of wheels) {
+      if (wheel instanceof THREE.Mesh) addPlayerWheelDetails(wheel, wheel.name.endsWith("-left") ? 1 : -1);
+    }
+  }
   addRuntimeLights(chassis, player);
   root.add(chassis);
   root.userData.rtwModelVehicle = true;
@@ -238,12 +243,14 @@ export function createModelVehicleVisual(template: THREE.Group, player: boolean)
 
 /** Frees only per-instance cloned materials; template geometry stays cached and reusable. */
 export function disposeModelVehicleVisual(visual: VehicleVisual): void {
+  const ownedMaterials = new Set<THREE.Material>();
   visual.root.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return;
     const materials = Array.isArray(object.material) ? object.material : [object.material];
-    for (const material of materials) material.dispose();
+    for (const material of materials) ownedMaterials.add(material);
     if (object.userData.rtwRuntimeGeometry) object.geometry.dispose();
   });
+  for (const material of ownedMaterials) material.dispose();
 }
 
 export function isModelVehicleVisual(visual: VehicleVisual): boolean {
