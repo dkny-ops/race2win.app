@@ -282,6 +282,7 @@ export function JumpingRaceGame() {
   const runStartedAt = useRef(0);
   const music = useRef<HTMLAudioElement | null>(null);
   const countdownTimers = useRef<number[]>([]);
+  const gameOverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keys = useRef(new Set<string>());
   const pointers = useRef(new Map<number, { origin: number; direction: -1 | 0 | 1 }>());
   const [status, setStatus] = useState<"ready" | "countdown" | "playing" | "over">("ready");
@@ -397,6 +398,7 @@ export function JumpingRaceGame() {
   }, [musicIsAllowed]);
 
   useEffect(() => () => {
+    if (gameOverTimer.current !== null) clearTimeout(gameOverTimer.current);
     clearCountdownTimers();
     const soundtrack = music.current;
     soundtrack?.pause();
@@ -416,8 +418,8 @@ export function JumpingRaceGame() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: run.id, index, actions, digest }),
       });
-      if (!response.ok) throw new Error("Checkpoint rejected");
-    }).catch(() => { run.failed = true; setOfficialNotice("Official run could not be verified."); });
+      if (!response.ok) { const detail = await response.json().catch(() => null) as { message?: string } | null; throw new Error(detail?.message ?? "Checkpoint rejected"); }
+    }).catch((error: unknown) => { run.failed = true; setOfficialNotice("Official score not saved: " + (error instanceof Error ? error.message : "Checkpoint rejected")); });
   }, []);
 
   const finishOfficial = useCallback(async (run: NonNullable<typeof official.current>) => {
@@ -432,7 +434,9 @@ export function JumpingRaceGame() {
       const result = await response.json();
       setOfficialNotice(response.ok && result.result?.result_status === "verified"
         ? "Official score verified: " + result.result.score
-        : "Score not verified: " + (result.message ?? "Review required"));
+        : response.ok && result.result?.result_status === "pending_review"
+          ? "Official score pending review"
+          : "Score not verified: " + (result.message ?? "Review required"));
     } catch { setOfficialNotice("Unable to finalize official run."); }
   }, [flush]);
 
@@ -449,6 +453,7 @@ export function JumpingRaceGame() {
   const start = useCallback(async () => {
     if (starting) return;
     setStarting(true);
+    if (gameOverTimer.current !== null) { clearTimeout(gameOverTimer.current); gameOverTimer.current = null; }
     setOfficialNotice("");
     clearCountdownTimers();
     const soundtrack = prepareMusic();
@@ -584,6 +589,10 @@ export function JumpingRaceGame() {
           } catch { /* Browser performance diagnostics must never block Game Over or score submission. */ }
           setStatus("over");
           if (official.current) void finishOfficial(official.current);
+          gameOverTimer.current = setTimeout(() => {
+            setStatus("ready");
+            gameOverTimer.current = null;
+          }, 5000);
         }
       } else {
         accumulated = 0;
@@ -619,13 +628,13 @@ export function JumpingRaceGame() {
   }
 
   const playing = status === "playing";
-  const active = playing || status === "countdown";
+  const active = playing || status === "countdown" || status === "over";
   return (
     <>{status === "ready" ? <AdsterraGameBanners className="jumping-game-ad" /> : null}<section onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} onLostPointerCapture={endGesture} style={active ? { position: "fixed", inset: 0, zIndex: 2147483000, background: "#090d2d", display: "flex", flexDirection: "column", alignItems: "center", width: "100vw", height: "100dvh", overflow: "hidden", touchAction: "none" } : { maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={active ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {countdown !== null ? <div aria-live="assertive" aria-label={`Race starts in ${countdown}`} style={{ position: "fixed", inset: 0, zIndex: 1, display: "grid", placeItems: "center", pointerEvents: "none", color: "#fff", fontSize: "clamp(7rem, 28vw, 18rem)", fontWeight: 900, fontStyle: "italic", textShadow: "0 0 18px #30dfff, 0 0 54px #5260ff" }}>{countdown}</div> : null}
       {humanCheck ? <div role="status" aria-live="polite" style={{ position: "fixed", inset: 0, zIndex: 2, display: "grid", placeItems: "center", background: "rgba(4, 7, 26, .78)", color: "white", textAlign: "center", padding: 24 }}><div><p>VERIFYING OFFICIAL SESSION…</p><div ref={humanCheckContainer} /><TurnstileScript onReady={() => setHumanCheckReady(true)} onError={() => { humanCheckResolver.current?.(false); humanCheckResolver.current = null; setHumanCheck(null); }} /></div></div> : null}
-      {status === "over" ? <div role="status" aria-live="polite" style={{ padding: "12px 16px", fontWeight: 800, fontSize: "1.4rem", color: "#fff" }}>GAME OVER · SCORE: {score}</div> : null}
+      {status === "over" ? <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 3, background: "rgba(4,7,26,.8)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, pointerEvents: "none", color: "#fff", textAlign: "center" }}><strong style={{ fontSize: "clamp(2.5rem, 9vw, 5rem)" }}>GAME OVER</strong><strong style={{ fontSize: "clamp(1.5rem, 5vw, 3rem)" }}>SCORE: {score}</strong><span>Returning to start…</span></div> : null}
       {active ? null : (
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : status === "over" ? "PLAY AGAIN" : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link></div>
