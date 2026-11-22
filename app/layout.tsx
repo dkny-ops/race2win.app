@@ -24,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <a className="skip-link" href="#main-content">Skip to content</a>
         <AudioPlayer channel="site" />
         <SiteHeader />
+        <AdsterraSocialBar position="top" />
         <main id="main-content"><AdsterraVerticalPageAds><AdsterraPublicPageAds position="top" />{children}<AdsterraPublicPageAds position="bottom" /></AdsterraVerticalPageAds></main>
         <AdsterraSocialBar />
         <SiteFooter />
