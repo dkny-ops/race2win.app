@@ -5,7 +5,7 @@ export type TurnstileAction =
   | "otp_request"
   | "weekly_leader_verification"
   | "midrun_human_check"
-  | "jumping_race_session_verification";
+  | "jumping_race_verify";
 
 type Verification =
   | Readonly<{ status: "verified" }>
@@ -51,7 +51,7 @@ function configuration(action: TurnstileAction = "otp_request"): Configuration |
   if (!secret || secret.length < 16 || hostnames.length === 0 || hostnames.some((hostname) => !validHostname(hostname))
     || !(actions?.includes(action)
       || (action === "midrun_human_check" && process.env.TURNSTILE_MIDRUN_ENABLED === "true")
-      || (action === "jumping_race_session_verification" && process.env.TURNSTILE_JUMPING_RACE_ENABLED === "true"))) return null;
+      || (action === "jumping_race_verify" && process.env.TURNSTILE_JUMPING_RACE_ENABLED === "true"))) return null;
   return { secret, allowedHostnames: new Set(hostnames) };
 }
 
