@@ -14,6 +14,9 @@ export async function POST(request: Request) {
   // rejects early, while jr_finalize_session remains the transaction-level
   // authority under concurrent requests or a compromised application layer.
   if (session.status !== "active" || session.verification_required !== true || session.verification_status !== "verified") return json({ message: "Human verification required" }, 409);
+  if (session.final_verification_required === true && session.final_verification_status !== "verified") {
+    return json({ message: "Final human verification required" }, 409);
+  }
   const { data: batches, error: be } = await db.rpc("jr_session_batches", { p_session_id: b.sessionId, p_player_id: userId });
   if (be || !batches) return json({ message: "Unable to verify" }, 503);
   if (batches.length !== session.next_checkpoint - 1 || batches.some((x: { checkpoint_index: number }, i: number) => x.checkpoint_index !== i + 1)) return json({ message: "Missing checkpoints" }, 409);

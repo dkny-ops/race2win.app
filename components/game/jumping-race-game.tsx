@@ -295,7 +295,13 @@ export function JumpingRaceGame() {
   const humanCheckContainer = useRef<HTMLDivElement>(null);
   const humanCheckResolver = useRef<((verified: boolean) => void) | null>(null);
   const [humanCheckReady, setHumanCheckReady] = useState(false);
-  const [humanCheck, setHumanCheck] = useState<{ sessionId: string; nonce: string; siteKey: string } | null>(null);
+  const [humanCheck, setHumanCheck] = useState<{
+    sessionId: string;
+    nonce: string;
+    siteKey: string;
+    action: "jumping_race_verify" | "jumping_race_finalize";
+    endpoint: "/api/jumping-race/human-check" | "/api/jumping-race/finalize-human-check";
+  } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -312,14 +318,19 @@ export function JumpingRaceGame() {
     countdownTimers.current = [];
   }, []);
 
-  const verifyOfficialHuman = useCallback(async (sessionId: string, configuration: unknown): Promise<boolean> => {
+  const verifyOfficialHuman = useCallback(async (
+    sessionId: string,
+    configuration: unknown,
+    action: "jumping_race_verify" | "jumping_race_finalize",
+    endpoint: "/api/jumping-race/human-check" | "/api/jumping-race/finalize-human-check",
+  ): Promise<boolean> => {
     if (!configuration || typeof configuration !== "object") return false;
     const check = configuration as Record<string, unknown>;
     if (typeof check.siteKey !== "string" || typeof check.nonce !== "string") return false;
     return new Promise<boolean>((resolve) => {
       humanCheckResolver.current?.(false);
       humanCheckResolver.current = resolve;
-      setHumanCheck({ sessionId, siteKey: check.siteKey as string, nonce: check.nonce as string });
+      setHumanCheck({ sessionId, siteKey: check.siteKey as string, nonce: check.nonce as string, action, endpoint });
     });
   }, []);
 
@@ -338,14 +349,14 @@ export function JumpingRaceGame() {
     try {
       widget = api.render(humanCheckContainer.current, {
         sitekey: humanCheck.siteKey,
-        action: "jumping_race_verify",
+        action: humanCheck.action,
         cData: humanCheck.nonce,
         size: "invisible",
         execution: "execute",
         appearance: "interaction-only",
         callback: async (token) => {
           try {
-            const response = await fetch("/api/jumping-race/human-check", {
+            const response = await fetch(humanCheck.endpoint, {
               method: "POST", credentials: "same-origin", cache: "no-store",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ sessionId: humanCheck.sessionId, nonce: humanCheck.nonce, token }),
@@ -427,6 +438,25 @@ export function JumpingRaceGame() {
     await run.queue;
     if (run.failed) { setOfficialNotice("Official score not saved: checkpoint verification failed."); return; }
     try {
+      // The post-run challenge is intentionally outside the live Canvas loop.
+      // Its fresh server nonce makes a captured START token insufficient to
+      // publish a mechanically valid bot replay.
+      setOfficialNotice("Checking final human verification…");
+      const challengeResponse = await fetch("/api/jumping-race/finalize-challenge", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: run.id }),
+      });
+      const challenge = await challengeResponse.json().catch(() => null) as { verified?: unknown; humanVerification?: unknown; message?: string } | null;
+      const humanVerified = challenge?.verified === true || await verifyOfficialHuman(
+        run.id,
+        challenge?.humanVerification,
+        "jumping_race_finalize",
+        "/api/jumping-race/finalize-human-check",
+      );
+      if (!challengeResponse.ok || !humanVerified) {
+        setOfficialNotice("Official score not saved: final human verification was not completed.");
+        return;
+      }
       const response = await fetch("/api/jumping-race/finalize", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: run.id }),
@@ -438,7 +468,7 @@ export function JumpingRaceGame() {
           ? "Official score pending review"
           : "Score not verified: " + (result.message ?? "Review required"));
     } catch { setOfficialNotice("Unable to finalize official run."); }
-  }, [flush]);
+  }, [flush, verifyOfficialHuman]);
 
   const releaseControls = useCallback(() => {
     keys.current.clear();
@@ -475,7 +505,12 @@ export function JumpingRaceGame() {
       });
       const result = await response.json();
       if (response.ok && result.session?.id && Number.isInteger(result.session.courseSeed)) {
-        const verified = await verifyOfficialHuman(result.session.id, result.humanVerification);
+        const verified = await verifyOfficialHuman(
+          result.session.id,
+          result.humanVerification,
+          "jumping_race_verify",
+          "/api/jumping-race/human-check",
+        );
         if (verified) {
           courseSeed = result.session.courseSeed;
           official.current = { id: result.session.id, index: 1, step: 0, lastDirection: 0, pending: [], queue: Promise.resolve(), failed: false };
