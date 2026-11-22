@@ -338,7 +338,7 @@ export function JumpingRaceGame() {
     try {
       widget = api.render(humanCheckContainer.current, {
         sitekey: humanCheck.siteKey,
-        action: "jumping_race_session_verification",
+        action: "jumping_race_verify",
         cData: humanCheck.nonce,
         size: "invisible",
         execution: "execute",
