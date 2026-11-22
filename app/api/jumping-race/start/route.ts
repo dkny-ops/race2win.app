@@ -13,7 +13,17 @@ export async function POST(request: Request) {
   const db = admin();
   if (!db) return json({ message: "Official play unavailable", practice: true }, 503);
   const widget = getTurnstileWidgetConfiguration("jumping_race_session_verification");
-  if (!widget) return json({ message: "Human verification is temporarily unavailable", practice: true }, 503);
+  if (!widget) {
+    console.warn("jumping_race_start_turnstile_configuration", {
+      enforcementEnabled: process.env.TURNSTILE_ENFORCEMENT_ENABLED === "true",
+      jumpingActionEnabled: process.env.TURNSTILE_JUMPING_RACE_ENABLED === "true",
+      actionInAllowlist: (process.env.TURNSTILE_ENABLED_ACTIONS ?? "").split(",").map(value => value.trim()).includes("jumping_race_session_verification"),
+      secretConfigured: Boolean(process.env.TURNSTILE_SECRET_KEY?.trim()),
+      siteKeyConfigured: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()),
+      hostnamesConfigured: Boolean(process.env.TURNSTILE_ALLOWED_HOSTNAMES?.trim()),
+    });
+    return json({ message: "Human verification is temporarily unavailable", practice: true }, 503);
+  }
   const { data: consent, error: consentError } = await db.from("player_terms_acceptances").select("terms_version").eq("player_id", userId).maybeSingle();
   if (consentError || consent?.terms_version !== "2026-10-18") return json({ message: "Accept tournament terms before official play", practice: true }, 403);
   const { data: control, error: controlError } = await db.rpc("jr_competition_enabled");
