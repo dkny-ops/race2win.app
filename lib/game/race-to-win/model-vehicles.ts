@@ -5,7 +5,10 @@ import type { VehicleVisual } from "./vehicles";
 
 const ASSET_ROOT = "/game/assets";
 
-export const PLAYER_MODEL_PATH = `${ASSET_ROOT}/models/race.glb`;
+// Exterior adapted from Jaron K. Bragg's CC0 Spectral GT RS.
+// https://github.com/JaronKBragg7337/spectral-gt-rs
+export const PLAYER_MODEL_PATH = `${ASSET_ROOT}/models/player-supercar.glb`;
+const LEGACY_PLAYER_MODEL_PATH = `${ASSET_ROOT}/models/race.glb`;
 export const TRAFFIC_MODEL_PATHS = [
   `${ASSET_ROOT}/models/sedan.glb`,
   `${ASSET_ROOT}/models/taxi.glb`,
@@ -49,7 +52,7 @@ function loadModel(path: string): Promise<THREE.Group | null> {
 
 export async function loadRaceToWinVehicleTemplates(): Promise<RaceToWinVehicleTemplates> {
   const [player, ...traffic] = await Promise.all([
-    loadModel(PLAYER_MODEL_PATH),
+    loadModel(PLAYER_MODEL_PATH).then((model) => model ?? loadModel(LEGACY_PLAYER_MODEL_PATH)),
     ...TRAFFIC_MODEL_PATHS.map((path) => loadModel(path)),
   ]);
   return { player, traffic };
@@ -203,34 +206,63 @@ function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
 
 }
 
+function addSupercarContactShadow(root: THREE.Group): void {
+  const geometry = new THREE.PlaneGeometry(3.65, 6.5);
+  geometry.rotateX(-Math.PI / 2);
+  const material = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    vertexShader: "varying vec2 contactUv; void main() { contactUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: "varying vec2 contactUv; void main() { float shadow = 1.0 - smoothstep(0.29, 0.5, length(contactUv - 0.5)); gl_FragColor = vec4(0.025, 0.020, 0.019, shadow * 0.57); }",
+  });
+  const groundContact = new THREE.Mesh(geometry, material);
+  groundContact.position.y = -0.04;
+  groundContact.userData.rtwRuntimeGeometry = true;
+  root.add(groundContact);
+}
+
 /** Creates a per-instance visual from an owned GLB without mutating the source asset. */
 export function createModelVehicleVisual(template: THREE.Group, player: boolean): VehicleVisual {
   const root = new THREE.Group();
   root.name = player ? "race-to-win-player-model" : "race-to-win-traffic-model";
   const chassis = new THREE.Group();
   const model = cloneSkinned(template);
-  // The original vehicle models face positive Z; the game advances down -Z.
-  model.rotation.y = Math.PI;
+  const supercar = player && Boolean(model.getObjectByName("rtw-supercar"));
+  // The supercar export already faces down the track. Legacy GLBs face +Z.
+  if (!supercar) model.rotation.y = Math.PI;
   centerAndScale(model, player ? 5.85 : 5.25);
 
   // `race.glb` includes named wheel nodes. Lift only its body to make the
   // silhouette read as a road sports car rather than an exposed F1 chassis.
-  if (player) model.getObjectByName("body")?.position.add(new THREE.Vector3(0, 0.24, 0));
+  if (player && !supercar) model.getObjectByName("body")?.position.add(new THREE.Vector3(0, 0.24, 0));
   const wheels: THREE.Object3D[] = [];
+  const supercarMaterials = new Map<THREE.Material, THREE.Material>();
 
   model.traverse((object) => {
+    if (/^wheel-(front|back)-(left|right)$/.test(object.name)) wheels.push(object);
     if (!(object instanceof THREE.Mesh)) return;
     object.castShadow = true;
     object.receiveShadow = true;
-    object.material = Array.isArray(object.material)
-      ? object.material.map((material) => improveMaterial(object, material, player))
-      : improveMaterial(object, object.material, player);
-    if (/wheel-(front|back)-(left|right)/.test(object.name)) wheels.push(object);
+    const prepare = (source: THREE.Material): THREE.Material => {
+      if (!supercar) return improveMaterial(object, source, player);
+      const cached = supercarMaterials.get(source);
+      if (cached) return cached;
+      const material = source.clone();
+      if (material instanceof THREE.MeshStandardMaterial) {
+        material.envMapIntensity = material.name === "Obsidian black paint" ? 1.65 : 1.12;
+      }
+      supercarMaterials.set(source, material);
+      return material;
+    };
+    object.material = Array.isArray(object.material) ? object.material.map(prepare) : prepare(object.material);
   });
 
   chassis.add(model);
-  if (player) addPlayerPaintAccents(chassis, model);
-  addRuntimeLights(chassis, player);
+  if (supercar) {
+    addSupercarContactShadow(root);
+  } else {
+    if (player) addPlayerPaintAccents(chassis, model);
+    addRuntimeLights(chassis, player);
+  }
   root.add(chassis);
   root.userData.rtwModelVehicle = true;
   return { root, chassis, wheels };
@@ -238,12 +270,14 @@ export function createModelVehicleVisual(template: THREE.Group, player: boolean)
 
 /** Frees only per-instance cloned materials; template geometry stays cached and reusable. */
 export function disposeModelVehicleVisual(visual: VehicleVisual): void {
+  const ownedMaterials = new Set<THREE.Material>();
   visual.root.traverse((object) => {
     if (!(object instanceof THREE.Mesh)) return;
     const materials = Array.isArray(object.material) ? object.material : [object.material];
-    for (const material of materials) material.dispose();
+    for (const material of materials) ownedMaterials.add(material);
     if (object.userData.rtwRuntimeGeometry) object.geometry.dispose();
   });
+  for (const material of ownedMaterials) material.dispose();
 }
 
 export function isModelVehicleVisual(visual: VehicleVisual): boolean {
