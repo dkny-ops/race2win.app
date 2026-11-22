@@ -273,7 +273,7 @@ function draw(ctx:CanvasRenderingContext2D,s:JumpingRaceState){
  ctx.fillStyle="#fff";ctx.font="bold 24px system-ui";ctx.fillText("JUMPING RACE",24,40);
  ctx.font="bold 20px system-ui";ctx.fillText("SCORE "+s.score,24,73);ctx.fillText("SPEED "+Math.round(s.speed),W-170,40);
  ctx.font="16px system-ui";ctx.fillText("DOUBLE JUMP: "+(2-s.player.jumps),W-188,72);
- if(!s.started||s.over){ctx.fillStyle="rgba(7,10,35,.75)";ctx.fillRect(0,0,W,H);ctx.textAlign="center";ctx.fillStyle="#fff";ctx.font="bold 52px system-ui";ctx.fillText(s.over?"GAME OVER":"JUMPING RACE",W/2,210);ctx.font="23px system-ui";ctx.fillText(s.over?"SCORE: "+s.score:"MOVE FORWARD, BACKWARD AND DOUBLE JUMP",W/2,265);ctx.fillText(s.over?"Press PLAY AGAIN":"Press PLAY to start",W/2,308);ctx.textAlign="start"}
+ // The full-screen React overlay owns Game Over; the ready canvas stays clean.
 }
 export function JumpingRaceGame() {
   const canvas = useRef<HTMLCanvasElement>(null);
