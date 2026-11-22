@@ -12,12 +12,12 @@ export async function POST(request: Request) {
   if (await isGameAccessHeld(userId)) { console.warn("jumping_race_start_rejected", { stage: "security_hold", status: 403 }); return json({ message: "Account pending security review", practice: true }, 403); }
   const db = admin();
   if (!db) { console.warn("jumping_race_start_rejected", { stage: "database_configuration", status: 503 }); return json({ message: "Official play unavailable", practice: true }, 503); }
-  const widget = getTurnstileWidgetConfiguration("jumping_race_session_verification");
+  const widget = getTurnstileWidgetConfiguration("jumping_race_verify");
   if (!widget) {
     console.warn("jumping_race_start_turnstile_configuration", {
       enforcementEnabled: process.env.TURNSTILE_ENFORCEMENT_ENABLED === "true",
       jumpingActionEnabled: process.env.TURNSTILE_JUMPING_RACE_ENABLED === "true",
-      actionInAllowlist: (process.env.TURNSTILE_ENABLED_ACTIONS ?? "").split(",").map(value => value.trim()).includes("jumping_race_session_verification"),
+      actionInAllowlist: (process.env.TURNSTILE_ENABLED_ACTIONS ?? "").split(",").map(value => value.trim()).includes("jumping_race_verify"),
       secretConfigured: Boolean(process.env.TURNSTILE_SECRET_KEY?.trim()),
       siteKeyConfigured: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()),
       hostnamesConfigured: Boolean(process.env.TURNSTILE_ALLOWED_HOSTNAMES?.trim()),
