@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   if (controlError || !control) { console.warn("jumping_race_start_rejected", { stage: "competition_control", status: 503 }); return json({ message: "Official scoring not active", practice: true }, 503); }
   const requestId = typeof b.requestId === "string" && /^[a-f0-9-]{36}$/i.test(b.requestId) ? b.requestId : randomUUID();
   const { data, error } = await db.rpc("jr_start_session", { p_player_id: userId, p_request_id: requestId });
-  if (error) { console.warn("jumping_race_start_rejected", { stage: "session_rpc", status: error.message.includes("exhausted") ? 429 : 503, exhausted: error.message.includes("exhausted") }); return json({ message: error.message.includes("exhausted") ? "Five official attempts used this hour" : "Unable to start official run", practice: true }, error.message.includes("exhausted") ? 429 : 503); }
+  if (error) { console.warn("jumping_race_start_rejected", { stage: "session_rpc", status: error.message.includes("exhausted") ? 429 : 503, exhausted: error.message.includes("exhausted"), databaseCode: error.code ?? "unknown", databaseMessage: error.message.slice(0, 220) }); return json({ message: error.message.includes("exhausted") ? "Five official attempts used this hour" : "Unable to start official run", practice: true }, error.message.includes("exhausted") ? 429 : 503); }
   const session = Array.isArray(data) ? data[0] : data;
   if (!session?.id) { console.warn("jumping_race_start_rejected", { stage: "session_response", status: 503 }); return json({ message: "Unable to start official run", practice: true }, 503); }
   const { data: securityRows, error: securityError } = await db.rpc("jr_session_security_info", { p_session_id: session.id, p_player_id: userId });
