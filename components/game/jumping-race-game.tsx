@@ -288,7 +288,7 @@ export function JumpingRaceGame() {
   const [status, setStatus] = useState<"ready" | "countdown" | "playing" | "over">("ready");
   const [countdown, setCountdown] = useState<3 | 2 | 1 | null>(null);
   const [score, setScore] = useState(0);
-  const [officialNotice, setOfficialNotice] = useState("");
+  const [, setOfficialNotice] = useState("");
   const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
   const [starting, setStarting] = useState(false);
   const [runnerAssetState, setRunnerAssetState] = useState<"loading" | "ready" | "fallback">("loading");
@@ -639,7 +639,7 @@ export function JumpingRaceGame() {
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link></div>
           {runnerAssetState === "fallback" ? <p role="alert" data-testid="jumping-race-runner-fallback">Developer diagnostic: approved runner sprites did not load; using the visual fallback.</p> : null}
-          {officialNotice ? <p role="status" aria-live="polite" style={{ color: "#ffffff", background: "#172554", border: "2px solid #38bdf8", borderRadius: 12, padding: "14px 18px", margin: "12px auto", maxWidth: 760, fontSize: "1rem", fontWeight: 800, lineHeight: 1.5 }}>{officialNotice}</p> : null}
+          
           <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
         </>
       )}
