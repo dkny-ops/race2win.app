@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const migration = readFileSync(new URL("../supabase/migrations/20261119051142_harden_jumping_race_session_verification.sql", import.meta.url), "utf8");
-const finalPrepareMigration = readFileSync(new URL("../supabase/migrations/20261122010000_jumping_race_final_human_prepare.sql", import.meta.url), "utf8");
-const finalGuardMigration = readFileSync(new URL("../supabase/migrations/20261122010001_jumping_race_final_human_finalize_guard.sql", import.meta.url), "utf8");
+const finalPrepareMigration = readFileSync(new URL("../supabase/migrations/20261122232018_jumping_race_final_human_prepare.sql", import.meta.url), "utf8");
+const finalGuardMigration = readFileSync(new URL("../supabase/migrations/20261122232251_jumping_race_final_human_finalize_guard.sql", import.meta.url), "utf8");
 const startRoute = readFileSync(new URL("../app/api/jumping-race/start/route.ts", import.meta.url), "utf8");
 const checkRoute = readFileSync(new URL("../app/api/jumping-race/human-check/route.ts", import.meta.url), "utf8");
 const finalChallengeRoute = readFileSync(new URL("../app/api/jumping-race/finalize-challenge/route.ts", import.meta.url), "utf8");
@@ -53,6 +53,7 @@ test("Jumping Race requires an independent final human proof before an official 
   assert.match(game, /"\/api\/jumping-race\/finalize-challenge"/);
   assert.match(game, /"jumping_race_finalize"/);
   assert.match(game, /Checking final human verification/);
+  assert.match(game, /finishOfficial\(run\)\.finally\(returnToStart\)/);
 });
 
 test("Final verification migrations remain financial-data free and service-only", () => {

@@ -623,11 +623,23 @@ export function JumpingRaceGame() {
             });
           } catch { /* Browser performance diagnostics must never block Game Over or score submission. */ }
           setStatus("over");
-          if (official.current) void finishOfficial(official.current);
-          gameOverTimer.current = setTimeout(() => {
-            setStatus("ready");
-            gameOverTimer.current = null;
-          }, 5000);
+          // An official run stays on its Game Over screen until its final,
+          // session-bound human proof and server finalization have settled.
+          // Returning to READY earlier would let the player start over while
+          // the original session was still active, which is both confusing
+          // and unsafe under the one-active-session rule.
+          const returnToStart = () => {
+            gameOverTimer.current = setTimeout(() => {
+              setStatus("ready");
+              gameOverTimer.current = null;
+            }, 5000);
+          };
+          const run = official.current;
+          if (run) {
+            void finishOfficial(run).finally(returnToStart);
+          } else {
+            returnToStart();
+          }
         }
       } else {
         accumulated = 0;
