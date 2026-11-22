@@ -288,7 +288,7 @@ export function JumpingRaceGame() {
   const [status, setStatus] = useState<"ready" | "countdown" | "playing" | "over">("ready");
   const [countdown, setCountdown] = useState<3 | 2 | 1 | null>(null);
   const [score, setScore] = useState(0);
-  const [, setOfficialNotice] = useState("");
+  const [officialNotice, setOfficialNotice] = useState("");
   const official = useRef<{ id: string; index: number; step: number; lastDirection: -1 | 0 | 1; pending: { step: number; direction: -1 | 0 | 1; jump: boolean }[]; queue: Promise<void>; failed: boolean } | null>(null);
   const [starting, setStarting] = useState(false);
   const [runnerAssetState, setRunnerAssetState] = useState<"loading" | "ready" | "fallback">("loading");
@@ -634,12 +634,12 @@ export function JumpingRaceGame() {
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={active ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {countdown !== null ? <div aria-live="assertive" aria-label={`Race starts in ${countdown}`} style={{ position: "fixed", inset: 0, zIndex: 1, display: "grid", placeItems: "center", pointerEvents: "none", color: "#fff", fontSize: "clamp(7rem, 28vw, 18rem)", fontWeight: 900, fontStyle: "italic", textShadow: "0 0 18px #30dfff, 0 0 54px #5260ff" }}>{countdown}</div> : null}
       {humanCheck ? <div role="status" aria-live="polite" style={{ position: "fixed", inset: 0, zIndex: 2, display: "grid", placeItems: "center", background: "rgba(4, 7, 26, .78)", color: "white", textAlign: "center", padding: 24 }}><div><p>VERIFYING OFFICIAL SESSION…</p><div ref={humanCheckContainer} /><TurnstileScript onReady={() => setHumanCheckReady(true)} onError={() => { humanCheckResolver.current?.(false); humanCheckResolver.current = null; setHumanCheck(null); }} /></div></div> : null}
-      {status === "over" ? <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 3, background: "rgba(4,7,26,.8)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, pointerEvents: "none", color: "#fff", textAlign: "center" }}><strong style={{ fontSize: "clamp(2.5rem, 9vw, 5rem)" }}>GAME OVER</strong><strong style={{ fontSize: "clamp(1.5rem, 5vw, 3rem)" }}>SCORE: {score}</strong><span>Returning to start…</span></div> : null}
+      {status === "over" ? <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 3, background: "rgba(4,7,26,.8)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, pointerEvents: "none", color: "#fff", textAlign: "center", padding: 24 }}><strong style={{ fontSize: "clamp(2.5rem, 9vw, 5rem)" }}>GAME OVER</strong><strong style={{ fontSize: "clamp(1.5rem, 5vw, 3rem)" }}>SCORE: {score}</strong>{officialNotice ? <span style={{ maxWidth: 480 }}>{officialNotice}</span> : <span>Verifying official score…</span>}<span>Returning to start…</span></div> : null}
       {active ? null : (
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link></div>
           {runnerAssetState === "fallback" ? <p role="alert" data-testid="jumping-race-runner-fallback">Developer diagnostic: approved runner sprites did not load; using the visual fallback.</p> : null}
-          
+          {officialNotice ? <p role="status" aria-live="polite">{officialNotice}</p> : null}
           <p>Score: {score} · PC: Use ← / → to move and SPACE to jump · Mobile: Drag on the left half to move and tap the right half to jump. Tap again in midair to double jump.</p>
         </>
       )}
