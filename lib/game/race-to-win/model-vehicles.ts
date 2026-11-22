@@ -107,21 +107,68 @@ function centerAndScale(model: THREE.Object3D, targetLength: number): void {
   model.position.y -= bounds.min.y;
 }
 
-/** Geometry and materials owned by this visual instance. */
+interface BodySection {
+  z: number;
+  halfWidth: number;
+  bottom: number;
+  top: number;
+}
+
+/** A subdivided, closed body skin from front to rear. */
+function sculptBody(sections: readonly BodySection[]): THREE.BufferGeometry {
+  const profile = [
+    [-0.78, 0], [-0.94, 0.14], [-1, 0.44], [-0.99, 0.67], [-0.88, 0.88],
+    [-0.63, 0.98], [-0.33, 1], [0.33, 1], [0.63, 0.98], [0.88, 0.88],
+    [0.99, 0.67], [1, 0.44], [0.94, 0.14], [0.78, 0], [0, 0],
+  ];
+  const positions: number[] = [];
+  const indices: number[] = [];
+  const steps = 26;
+  for (const [x, h] of profile) {
+    const rail = new THREE.CatmullRomCurve3(sections.map(section => new THREE.Vector3(
+      x * section.halfWidth, THREE.MathUtils.lerp(section.bottom, section.top, h), section.z,
+    )));
+    for (const point of rail.getPoints(steps)) positions.push(point.x, point.y, point.z);
+  }
+  for (let edge = 0; edge < profile.length; edge++) {
+    const next = (edge + 1) % profile.length;
+    for (let row = 0; row < steps; row++) {
+      const x = edge * (steps + 1) + row;
+      const y = next * (steps + 1) + row;
+      indices.push(x, x + 1, y, y, x + 1, y + 1);
+    }
+  }
+  for (let edge = 1; edge < profile.length - 1; edge++) {
+    indices.push(0, edge * (steps + 1), (edge + 1) * (steps + 1));
+    indices.push(steps, (edge + 1) * (steps + 1) + steps, edge * (steps + 1) + steps);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/** Original compact hatchback inspired by the reference, in the existing car envelope. */
 function addPlayerDetails(chassis: THREE.Group, model: THREE.Object3D): void {
   const bounds = new THREE.Box3().setFromObject(model);
   const { x: width, z: length } = bounds.getSize(new THREE.Vector3());
-  const top = bounds.max.y;
-  const rear = bounds.max.z;
+  const originalBody = model.getObjectByName("body");
+  if (originalBody) originalBody.visible = false;
+
   const paint = new THREE.MeshPhysicalMaterial({
-    color: "#ae0d24", metalness: 0.51, roughness: 0.24, clearcoat: 1, clearcoatRoughness: 0.12,
+    color: "#c81722", metalness: 0.22, roughness: 0.27, clearcoat: 1, clearcoatRoughness: 0.10, envMapIntensity: 1.28,
   });
-  const carbon = new THREE.MeshStandardMaterial({ color: "#171a20", metalness: 0.28, roughness: 0.57 });
-  const titanium = new THREE.MeshStandardMaterial({ color: "#939da9", metalness: 0.89, roughness: 0.27 });
-  const glass = new THREE.MeshPhysicalMaterial({ color: "#142632", metalness: 0.22, roughness: 0.17, clearcoat: 1 });
-  const lens = new THREE.MeshPhysicalMaterial({
-    color: "#ff293b", emissive: "#f92026", emissiveIntensity: 1.85, roughness: 0.23, clearcoat: 0.86,
+  const carbon = new THREE.MeshPhysicalMaterial({ color: "#151820", metalness: 0.24, roughness: 0.37, clearcoat: 0.62 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: "#131b24", metalness: 0.12, roughness: 0.15, clearcoat: 1 });
+  const chrome = new THREE.MeshStandardMaterial({ color: "#a2aab4", metalness: 0.86, roughness: 0.26 });
+  const red = new THREE.MeshPhysicalMaterial({
+    color: "#ff2b2c", emissive: "#ed141c", emissiveIntensity: 1.15, roughness: 0.24, clearcoat: 1,
   });
+  const headlight = new THREE.MeshPhysicalMaterial({
+    color: "#eaf1ff", emissive: "#dfe6ff", emissiveIntensity: 0.80, roughness: 0.19, clearcoat: 1,
+  });
+
   const add = (name: string, geometry: THREE.BufferGeometry, material: THREE.Material,
     x: number, y: number, z: number): THREE.Mesh => {
     const mesh = new THREE.Mesh(geometry, material);
@@ -134,23 +181,49 @@ function addPlayerDetails(chassis: THREE.Group, model: THREE.Object3D): void {
     return mesh;
   };
   const trim = (name: string, material: THREE.Material, w: number, h: number, depth: number,
-    x: number, y: number, z: number, bevel: number): THREE.Mesh =>
+    x: number, y: number, z: number, bevel = 0.04): THREE.Mesh =>
     add(name, new RoundedBoxGeometry(w, h, depth, 2, bevel), material, x, y, z);
 
-  trim("painted-rear-fascia", paint, width * 0.84, 0.49, 0.34, 0, top * 0.48, rear - 0.13, 0.095);
-  trim("recessed-diffuser", carbon, width * 0.79, 0.30, 0.18, 0, top * 0.27, rear + 0.052, 0.05);
-  trim("diffuser-lip", titanium, width * 0.65, 0.036, 0.09, 0, top * 0.21, rear + 0.144, 0.015);
-  trim("rear-deck-vent", carbon, width * 0.47, 0.065, length * 0.14, 0, top * 0.78, rear - length * 0.29, 0.025);
-  trim("tinted-rear-window", glass, width * 0.41, 0.10, length * 0.16, 0, top * 0.98, rear - length * 0.55, 0.045).rotation.x = -0.14;
-  for (const side of [-1, 1]) {
-    trim("tail-lamp-housing", carbon, width * 0.29, 0.15, 0.09, side * width * 0.26, top * 0.54, rear + 0.042, 0.04);
-    trim("red-tail-lamp", lens, width * 0.25, 0.055, 0.063, side * width * 0.26, top * 0.55, rear + 0.098, 0.026).rotation.z = side * 0.08;
-    for (const offset of [-1, 1]) {
-      const x = side * width * 0.22 + offset * 0.071;
-      add("exhaust-opening", new THREE.CircleGeometry(0.051, 20), carbon, x, top * 0.28, rear + 0.149);
-      add("exhaust-rim", new THREE.TorusGeometry(0.055, 0.009, 6, 20), titanium, x, top * 0.28, rear + 0.157);
-    }
+  const skin = (name: string, material: THREE.Material, rows: readonly (readonly [number, number, number, number])[]) =>
+    add(name, sculptBody(rows.map(([z, halfWidth, bottom, top]) => ({ z: z * length, halfWidth: halfWidth * width, bottom, top }))), material, 0, 0, 0);
+
+  skin("red-hatchback-body", paint, [
+    [-0.481, .35, .52, .97], [-.432, .448, .46, 1.10], [-.25, .48, .44, 1.24],
+    [-.075, .452, .45, 1.29], [.14, .449, .46, 1.31], [.32, .468, .49, 1.34],
+    [.442, .447, .50, 1.37], [.481, .384, .58, 1.34],
+  ]);
+  skin("black-hood", carbon, [
+    [-.46, .25, .94, 1.065], [-.405, .323, 1.02, 1.145],
+    [-.27, .350, 1.13, 1.25], [-.163, .347, 1.20, 1.30],
+  ]);
+  skin("wraparound-tinted-windows", glass, [
+    [-.19, .35, 1.22, 1.34], [-.10, .344, 1.25, 1.64],
+    [-.008, .329, 1.29, 1.93], [.13, .335, 1.30, 1.97],
+    [.247, .322, 1.29, 1.90], [.353, .327, 1.29, 1.66], [.404, .341, 1.26, 1.40],
+  ]);
+  skin("red-curved-roof", paint, [
+    [-.041, .267, 1.79, 1.862], [.026, .305, 1.82, 1.999],
+    [.15, .310, 1.82, 2.035], [.248, .294, 1.76, 1.947], [.278, .268, 1.72, 1.865],
+  ]);
+
+  const rear = length * 0.48;
+  trim("rear-bumper", paint, width * .79, .27, .28, 0, .63, rear - .03, .079);
+  trim("lower-black-valance", carbon, width * .69, .16, .15, 0, .55, rear + .09, .05);
+  trim("registration-recess", carbon, width * .25, .145, .046, 0, .94, rear + .018);
+  trim("rear-wiper", carbon, width * .27, .028, .024, width * .028, 1.43, rear - length * .11).rotation.z = .10;
+  trim("subtle-black-roof-spoiler", carbon, width * .69, .073, .29, 0, 1.92, length * .265, .032);
+  for(const side of [-1, 1]) {
+    trim("rear-lamp-surround", carbon, width * .203, .31, .15, side * width * .318, 1.12, rear - .034, .06);
+    trim("rear-red-lens", red, width * .173, .21, .065, side * width * .318, 1.14, rear + .042, .03);
+    trim("rear-lens-clear-strip", headlight, width * .121, .047, .023, side * width * .318, 1.012, rear + .076, .01);
+    trim("front-headlight", headlight, width * .205, .18, .10, side * width * .303, .99, -length * .475, .045);
+    trim("side-sill", paint, .12, .13, length * .49, side * width * .448, .56, 0);
+    trim("door-handle", carbon, .046, .052, .20, side * width * .46, 1.08, length * .095, .02);
+    trim("body-colored-mirror", paint, .28, .13, .26, side * width * .413, 1.31, -length * .132, .048);
+    trim("window-pillar", paint, .047, .57, .072, side * width * .334, 1.57, length * .113, .025);
   }
+  add("exhaust-opening", new THREE.CircleGeometry(.066, 20), carbon, width * .249, .53, rear + .171);
+  add("exhaust-edge", new THREE.TorusGeometry(.071, .012, 8, 20), chrome, width * .249, .53, rear + .182);
 }
 
 function addPlayerWheelDetails(wheel: THREE.Mesh, side: number): void {
@@ -177,8 +250,20 @@ function addPlayerWheelDetails(wheel: THREE.Mesh, side: number): void {
     new THREE.Vector2(0.3, 0.09), new THREE.Vector2(0.283, 0.13),
     new THREE.Vector2(0.24, 0.15), new THREE.Vector2(0, 0.15),
   ], 32), rubber);
-  add(new THREE.CylinderGeometry(0.17, 0.17, 0.02, 28), alloy, side * 0.151);
-  add(new THREE.CylinderGeometry(0.091, 0.091, 0.024, 20), rubber, side * 0.166);
+  add(new THREE.CylinderGeometry(.175, .175, .017, 28), rubber, side * .151);
+  const ring = new THREE.TorusGeometry(.168, .017, 8, 28);
+  ring.rotateY(Math.PI / 2);
+  ring.rotateZ(-Math.PI / 2);
+  add(ring, alloy, side * .165);
+  add(new THREE.CylinderGeometry(.046, .046, .028, 20), alloy, side * .165);
+  for (let index = 0; index < 7; index++) {
+    const angle = index * Math.PI * 2 / 7;
+    const spoke = new THREE.Mesh(new RoundedBoxGeometry(.025, .029, .137, 1, .009), alloy);
+    spoke.position.set(side * .163, Math.sin(angle) * .093, Math.cos(angle) * .093);
+    spoke.rotation.x = -angle;
+    spoke.userData.rtwRuntimeGeometry = true;
+    mount.add(spoke);
+  }
 }
 
 function addRuntimeLights(chassis: THREE.Group, player: boolean): void {
