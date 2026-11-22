@@ -14,13 +14,13 @@ export async function POST(request: Request) {
   const userId = await player();
   const db = admin();
   if (!userId || !db) return json({ message: "Verification unavailable" }, 401);
-  if (!getTurnstileWidgetConfiguration("jumping_race_session_verification")) return json({ message: "Verification unavailable" }, 503);
+  if (!getTurnstileWidgetConfiguration("jumping_race_verify")) return json({ message: "Verification unavailable" }, 503);
   const { data: rows, error } = await db.rpc("jr_session_security_info", { p_session_id: record.sessionId, p_player_id: userId });
   const session = rows?.[0];
   if (error || !session || session.status !== "active" || session.verification_status !== "pending" || session.verification_nonce !== record.nonce) {
     return json({ message: "Verification unavailable" }, 409);
   }
-  const verification = await verifyTurnstileToken(record.token, "jumping_race_session_verification", { expectedCdata: record.nonce });
+  const verification = await verifyTurnstileToken(record.token, "jumping_race_verify", { expectedCdata: record.nonce });
   if (verification.status !== "verified") {
     console.warn("jumping_race_turnstile", { status: verification.status, reason: verification.reason });
     return json({ message: "Verification unavailable" }, verification.status === "unavailable" ? 503 : 403);
