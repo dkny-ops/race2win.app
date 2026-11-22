@@ -23,10 +23,11 @@ export function AdsterraSocialBar({ position = "bottom" }: { position?: "top" | 
     <section aria-label="Advertisement" style={{width:"100%",maxWidth:728,margin:"12px auto",textAlign:"center"}}>
       <iframe
         title="Social Bar advertisement"
+        scrolling="no"
         src="https://ads.racetowin.app/social-bar/"
         referrerPolicy="no-referrer"
         sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        style={{display:"block",width:"100%",height:top?100:300,border:0}}
+        style={{display:"block",width:"100%",height:top?100:300,border:0,overflow:"hidden"}}
       />
     </section>
   );
