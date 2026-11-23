@@ -441,7 +441,6 @@ export function JumpingRaceGame() {
       // The post-run challenge is intentionally outside the live Canvas loop.
       // Its fresh server nonce makes a captured START token insufficient to
       // publish a mechanically valid bot replay.
-      setOfficialNotice("Checking final human verification…");
       const challengeResponse = await fetch("/api/jumping-race/finalize-challenge", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: run.id }),
@@ -462,11 +461,14 @@ export function JumpingRaceGame() {
         body: JSON.stringify({ sessionId: run.id }),
       });
       const result = await response.json();
-      setOfficialNotice(response.ok && result.result?.result_status === "verified"
-        ? "Official score verified: " + result.result.score
-        : response.ok && result.result?.result_status === "pending_review"
-          ? "Official score pending review"
-          : "Score not verified: " + (result.message ?? "Review required"));
+      // Successful verification and review status are intentionally silent:
+      // they continue in the background without cluttering the replay screen.
+      // A real rejection remains visible after returning to READY.
+      if (response.ok && (result.result?.result_status === "verified" || result.result?.result_status === "pending_review")) {
+        setOfficialNotice("");
+      } else {
+        setOfficialNotice("Score not verified: " + (result.message ?? "Review required"));
+      }
     } catch { setOfficialNotice("Unable to finalize official run."); }
   }, [flush, verifyOfficialHuman]);
 
@@ -681,7 +683,7 @@ export function JumpingRaceGame() {
       <canvas ref={canvas} width={W} height={H} aria-label="Jumping Race: move left, right and jump" style={active ? { width: "100%", flex: "1 1 0", minHeight: 0, objectFit: "contain", display: "block" } : { width: "100%", height: "auto", display: "block", border: "2px solid #5260a8", borderRadius: 14, background: "#151943" }} />
       {countdown !== null ? <div aria-live="assertive" aria-label={`Race starts in ${countdown}`} style={{ position: "fixed", inset: 0, zIndex: 1, display: "grid", placeItems: "center", pointerEvents: "none", color: "#fff", fontSize: "clamp(7rem, 28vw, 18rem)", fontWeight: 900, fontStyle: "italic", textShadow: "0 0 18px #30dfff, 0 0 54px #5260ff" }}>{countdown}</div> : null}
       {humanCheck ? <div role="status" aria-live="polite" style={{ position: "fixed", inset: 0, zIndex: 2, display: "grid", placeItems: "center", background: "rgba(4, 7, 26, .78)", color: "white", textAlign: "center", padding: 24 }}><div><p>VERIFYING OFFICIAL SESSION…</p><div ref={humanCheckContainer} /><TurnstileScript onReady={() => setHumanCheckReady(true)} onError={() => { humanCheckResolver.current?.(false); humanCheckResolver.current = null; setHumanCheck(null); }} /></div></div> : null}
-      {status === "over" ? <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 3, background: "rgba(4,7,26,.8)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, pointerEvents: "none", color: "#fff", textAlign: "center", padding: 24 }}><strong style={{ fontSize: "clamp(2.5rem, 9vw, 5rem)" }}>GAME OVER</strong><strong style={{ fontSize: "clamp(1.5rem, 5vw, 3rem)" }}>SCORE: {score}</strong>{officialNotice ? <span style={{ maxWidth: 480 }}>{officialNotice}</span> : <span>Verifying official score…</span>}<span>Returning to start…</span></div> : null}
+      {status === "over" ? <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 3, background: "rgba(4,7,26,.8)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 16, pointerEvents: "none", color: "#fff", textAlign: "center", padding: 24 }}><strong style={{ fontSize: "clamp(2.5rem, 9vw, 5rem)" }}>GAME OVER</strong><strong style={{ fontSize: "clamp(1.5rem, 5vw, 3rem)" }}>SCORE: {score}</strong></div> : null}
       {active ? null : (
         <>
           <div style={{ margin: "1rem 0", display: "flex", justifyContent: "center", gap: ".75rem", flexWrap: "wrap" }}><button type="button" className="button button--primary" onClick={() => void start()} disabled={starting || runnerAssetState === "loading"}>{runnerAssetState === "loading" ? "LOADING RUNNER..." : starting ? "CONNECTING..." : "PLAY"}</button><Link className="button button--secondary" href="/games/jumping-race/scores#leaderboard">LEADERBOARD</Link></div>
