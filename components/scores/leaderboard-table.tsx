@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { weeklyPrizeLabelForRank } from "@/lib/competition/weekly-prizes";
 import { PendingRun } from "@/components/scores/pending-run";
 import { usePlayerLanguage } from "@/lib/i18n/use-player-language";
 
@@ -134,7 +135,7 @@ export function LeaderboardTable() {
           <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
           {previousWeek.entries.map(entry => <div className={`scores-table__row ranking-row ranking-row--${entry.rank}`} role="row" key={entry.rank}>
             <strong role="cell" className="scores-rank-position"><span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
-            <span role="cell">{entry.username}{entry.amountCents !== null ? <span style={{ marginLeft: "0.5rem", fontWeight: 700 }}>· ${(entry.amountCents / 100).toFixed(2)}</span> : <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem" }}>· PENDING</span>}</span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
+            <span role="cell">{entry.username}<span style={{ marginLeft: "0.5rem", fontWeight: 700 }}>· {weeklyPrizeLabelForRank(entry.rank)}</span></span><strong role="cell">{entry.weeklyTotal.toLocaleString()}</strong>
           </div>)}
         </div>}
     </section>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { isUuid, NO_STORE_HEADERS, readBoundedJson } from "@/lib/competition/server";
 import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
+import { weeklyPrizeCentsForRank } from "@/lib/competition/weekly-prizes";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
@@ -25,7 +26,8 @@ export async function POST(request: Request) {
     if (!award) {
       const deadline = new Date(week + "T12:00:00Z");
       deadline.setUTCDate(deadline.getUTCDate() + 8);
-      const expectedAmount = rank.rank_position === 1 ? 1500 : rank.rank_position === 2 ? 300 : 200;
+      const expectedAmount = weeklyPrizeCentsForRank(rank.rank_position);
+      if (expectedAmount === null) return NextResponse.json({message:"Prize cannot be validated"},{status:409,headers:NO_STORE_HEADERS});
       const inserted = await auth.admin.from("provisional_winners").insert({
         game_id: game.id, player_id: b.playerId, tournament_week_start: week,
         award_type: "weekly_tournament", rank_position: rank.rank_position,
@@ -40,7 +42,8 @@ export async function POST(request: Request) {
       if (found.error) throw found.error;
       award = found.data;
     }
-    const expected = rank.rank_position === 1 ? 1500 : rank.rank_position === 2 ? 300 : 200;
+    const expected = weeklyPrizeCentsForRank(rank.rank_position);
+    if (expected === null) return NextResponse.json({message:"Prize cannot be validated"},{status:409,headers:NO_STORE_HEADERS});
     if (!award || award.allocation_status !== "allocated" || award.amount_cents !== expected || ["disqualified","expired","paid"].includes(award.status)) return NextResponse.json({message:"Prize cannot be validated"},{status:409,headers:NO_STORE_HEADERS});
     const transitions: Record<string,string[]> = {
       provisional: ["under_review","verified","approved_for_payment"],

@@ -78,7 +78,9 @@ test("Flappy UI renders public rows, review ties and podium classes without samp
   let index = 0;
   const api = compile(component, name => name === "react" ? {
     useEffect() {}, useState() { return [[1, board, false][index++], () => {}]; },
-  } : name === "react/jsx-runtime" ? jsx : assert.fail(name));
+  } : name === "react/jsx-runtime" ? jsx : name.endsWith("/weekly-prizes") ? {
+    weeklyPrizeLabelForRank: rank => rank === 1 ? "$5.00" : rank === 2 ? "$3.00" : rank === 3 ? "$2.00" : "",
+  } : assert.fail(name));
   const html = renderToStaticMarkup(jsx.jsx(api.FlappyRankingTable, { language: "es" }));
   assert.match(html, /ranking-row--1/);
   assert.match(html, /&lt;Existing&gt;/);

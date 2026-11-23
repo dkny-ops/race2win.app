@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getVerifiedUserContext } from "@/lib/supabase/server";
 import { createAdminClient, isAdminConfigured } from "@/lib/supabase/admin";
+import { weeklyPrizeLabelForRank } from "@/lib/competition/weekly-prizes";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Jumping Race Weekly Leaderboard", robots: { index: false, follow: false } };
@@ -64,7 +65,7 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
           <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
           {previousRankings.map((entry) => <div className={`scores-table__row ranking-row ranking-row--${entry.rank}`} role="row" key={entry.rank}>
             <strong role="cell" className="scores-rank-position"><span className="ranking-medal" aria-hidden="true">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
-            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString("en-US")}</strong>
+            <span role="cell">{entry.username}<span style={{ marginLeft: "0.5rem", fontWeight: 700 }}>· {weeklyPrizeLabelForRank(entry.rank)}</span></span><strong role="cell">{entry.weeklyTotal.toLocaleString("en-US")}</strong>
           </div>)}
         </div>}
     </section>

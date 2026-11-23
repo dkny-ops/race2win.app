@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { FlappyRanking } from "@/lib/competition/flappy-ranking";
+import { weeklyPrizeLabelForRank } from "@/lib/competition/weekly-prizes";
 
 export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
   const [page, setPage] = useState(1);
@@ -80,7 +81,7 @@ export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
           <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
           {previous.entries.map(entry => <div className={"scores-table__row ranking-row ranking-row--" + entry.rank} role="row" key={entry.rank}>
             <strong role="cell" className="scores-rank-position"><span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
-            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString(language)}</strong>
+            <span role="cell">{entry.username}<span style={{ marginLeft: "0.5rem", fontWeight: 700 }}>· {weeklyPrizeLabelForRank(entry.rank)}</span></span><strong role="cell">{entry.weeklyTotal.toLocaleString(language)}</strong>
           </div>)}
         </div>}
     </div>
