@@ -5,6 +5,7 @@ import { isUuid } from "@/lib/competition/server";
 import { parseFlappyWeek, previousFlappyWeek } from "@/lib/game/flappy/tournament";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { BalanceHistory } from "../balance-history";
+import { OtherGameAdminLinks } from "@/components/game/other-game-admin-links";
 import { ReviewControls } from "./review-controls";
 import { JumpingPrizeControls } from "@/components/game/jumping-prize-controls";
 import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
@@ -151,6 +152,7 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
         <p>Estado del candidato: {states[candidate.state] ?? candidate.state}</p>
         <BalanceHistory playerId={candidate.player_id} />
         <CompetitionIdentityEvidence actor={auth.context.userId} player={candidate.player_id} week={week} />
+        <OtherGameAdminLinks playerId={candidate.player_id} currentGame="jumping-race" />
         <h3>VERIFICACIÓN Y PREMIOS</h3>
         <p>Estado: {states[candidate.state] ?? candidate.state}</p>
         <p>La revisión de Jumping Race utiliza decisiones auditadas. La verificación por correo y la acreditación financiera de Flappy Race no se aplican automáticamente a este juego.</p>

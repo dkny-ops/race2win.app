@@ -9,8 +9,8 @@ type Player = {
   flags: { severity: string; status: string; signal_summary: string; created_at: string }[];
 };
 const date = (v: string) => new Date(v).toLocaleString("es", { timeZone: "America/New_York" });
-export function PlayersReview({game = "all"}:{game?: "all" | "flappy-race"}) {
-  const [q,setQ] = useState("");
+export function PlayersReview({game = "all", initialQuery = ""}:{game?: "all" | "flappy-race"; initialQuery?: string}) {
+  const [q,setQ] = useState(initialQuery);
   const [players,setPlayers] = useState<Player[]>([]);
   const [loading,setLoading] = useState(false);
   const [error,setError] = useState("");
@@ -25,7 +25,7 @@ export function PlayersReview({game = "all"}:{game?: "all" | "flappy-race"}) {
     } catch(e) {setError(e instanceof Error ? e.message : "Error de consulta");setPlayers([]);}
     finally {setLoading(false);}
   }, [game]);
-  useEffect(() => { const timer = window.setTimeout(() => { void load(""); }, 0); return () => window.clearTimeout(timer); }, [load]);
+  useEffect(() => { const timer = window.setTimeout(() => { void load(initialQuery); }, 0); return () => window.clearTimeout(timer); }, [initialQuery, load]);
   return <section>
     <form onSubmit={e=>{e.preventDefault();void load(q);}} className="button-row" style={{alignItems:"center"}}>
       <input aria-label="Buscar username o ID" placeholder="Username o ID del jugador" value={q} onChange={e=>setQ(e.target.value)} maxLength={80} style={{flex:"1 1 220px",padding:".85rem",background:"#071320",color:"white",border:"1px solid #5a7184"}} />

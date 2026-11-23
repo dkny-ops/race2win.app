@@ -5,6 +5,7 @@ import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { notFound } from "next/navigation";
 import { OwnerEmailCode } from "./owner-email-code";
 import { BlockPlayerControl } from "./block-player-control";
+import { OtherGameAdminLinks } from "@/components/game/other-game-admin-links";
 import Link from "next/link";
 import { ROUTES } from "@/lib/routes";
 import { currentNewYorkTournamentWeek } from "@/lib/competition/scores";
@@ -112,6 +113,7 @@ export default async function AdminPrizeReviewPage() {
         </div>
         <BalanceHistory playerId={entry.player_id} />
         <CompetitionIdentityEvidence actor={authorization.context.userId} player={entry.player_id} week={previousWeek} />
+        <OtherGameAdminLinks playerId={entry.player_id} currentGame="race-to-win" />
         <h3 style={{ fontSize: "1rem" }}>Acciones del propietario</h3>
         <p></p>
         <OwnerEmailCode playerId={entry.player_id} winnerId={winner?.id} />

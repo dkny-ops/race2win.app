@@ -4,6 +4,7 @@ import { FlappyWeekCloseControl } from "@/components/game/flappy-admin-controls"
 import { FlappyAdminControls } from "@/components/game/flappy-admin-controls";
 import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 import { BlockPlayerControl } from "../block-player-control";
+import { OtherGameAdminLinks } from "@/components/game/other-game-admin-links";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
@@ -114,6 +115,7 @@ export default async function FlappyReviewPage() {
         <p>Estado del candidato: {t.state==="pending_review"?"Pendiente de revisión":t.state==="approved"?"Aprobado":t.state==="rejected"?"Rechazado":"Revisión adicional"}</p>
         <BalanceHistory playerId={t.playerId} />
         <CompetitionIdentityEvidence actor={auth.context.userId} player={t.playerId} week={previousWeek} />
+        <OtherGameAdminLinks playerId={t.playerId} currentGame="flappy-race" />
         <FlappyPrizeControls playerId={t.playerId} week={previousWeek} status={prizeCaseStates.get(t.playerId)??"pending_review"} balanceCents={balances.get(t.playerId)??0} prizeCents={t.effectiveRank===1?500:t.effectiveRank===2?300:200} credited={prize?.status==="approved_for_payment"} winnerId={prize?.status==="approved_for_payment"?prize.id:undefined} />
         <BlockPlayerControl playerId={t.playerId} username={name(t.playerId)} />
         <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>

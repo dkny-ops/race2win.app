@@ -25,7 +25,7 @@ function load({authorized=true,state='approved',winnerStatus=null,rpcError=false
  const imports={
   'react/jsx-runtime':require('react/jsx-runtime'),'next/link':()=>null,
   'next/navigation':{notFound:()=>{throw missing;}},
-  './prize-controls':{FlappyPrizeControls:controls},'@/components/game/flappy-admin-controls':{FlappyWeekCloseControl:()=>null},'@/components/game/competition-identity-evidence':{CompetitionIdentityEvidence:()=>null},'../balance-history':{BalanceHistory:()=>null},'../block-player-control':{BlockPlayerControl:()=>null},
+  './prize-controls':{FlappyPrizeControls:controls},'@/components/game/flappy-admin-controls':{FlappyWeekCloseControl:()=>null},'@/components/game/competition-identity-evidence':{CompetitionIdentityEvidence:()=>null},'@/components/game/other-game-admin-links':{OtherGameAdminLinks:()=>null},'../balance-history':{BalanceHistory:()=>null},'../block-player-control':{BlockPlayerControl:()=>null},
   '@/lib/security/prize-admin':{getAuthorizedPrizeAdmin:async()=>authorized?{context:{userId:actor},admin}:null},
   '@/lib/competition/scores':{currentNewYorkTournamentWeek:()=> '2026-10-26'},
  };
