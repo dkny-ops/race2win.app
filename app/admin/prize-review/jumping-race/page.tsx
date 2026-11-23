@@ -53,6 +53,14 @@ function RunEvidence({ run }: { run: Run }) {
     {run.review_reason && <p>Motivo de revisión: {run.review_reason}</p>}
     {Array.isArray(run.review_signals) && run.review_signals.length > 0 &&
       <p>Señales: {run.review_signals.join(" · ")}</p>}
+    <details style={{ marginTop: ".6rem", paddingLeft: ".25rem" }}>
+      <summary style={{ cursor: "pointer", fontWeight: 700 }}>FRAUD &amp; SECURITY · EVIDENCIA DEL SERVIDOR</summary>
+      <p>Solo lectura. El servidor conserva la verificación humana vinculada a la sesión, reproduce las acciones y decide si el resultado se publica, se retiene o se rechaza.</p>
+      <p><strong>Estado del resultado:</strong> {run.result_status ?? run.status}</p>
+      <p><strong>Verificación humana:</strong> {run.verification_status ?? "Sin datos"}</p>
+      <p><strong>Señales antifraude:</strong> {Array.isArray(run.review_signals) && run.review_signals.length > 0 ? run.review_signals.join(" · ") : "Ninguna registrada"}</p>
+      <p>La semilla, nonces, tokens y acciones crudas no se muestran en el panel.</p>
+    </details>
   </details>;
 }
 

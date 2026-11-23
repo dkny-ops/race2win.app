@@ -96,6 +96,15 @@ export default async function RunAuditPage({ params }: { params: Promise<{ runId
         </div>
       )}</dl>
     </article>)}
+    <details className="profile-card" style={{ marginTop: "1rem", padding: "1rem" }}>
+      <summary style={{ cursor: "pointer", fontWeight: 700 }}>FRAUD &amp; SECURITY · EVIDENCIA DEL SERVIDOR</summary>
+      <p>Vista de solo lectura. El replay, la decisión de elegibilidad y las alertas se determinan en el servidor; esta vista no revela la semilla ni las entradas crudas.</p>
+      <p><strong>Replay / resultado:</strong> {value(run.eligibility_status)}</p>
+      <p><strong>Estado antifraude:</strong> {value(session?.anti_fraud_status)}</p>
+      <p><strong>Entradas registradas:</strong> {value(session?.input_count)} · <strong>Digest:</strong> {value(session?.input_digest)}</p>
+      <p><strong>Sesión:</strong> {value(session?.status)}{session?.invalidation_reason ? ` · ${session.invalidation_reason}` : ""}</p>
+      <p><strong>Alertas asociadas:</strong> {flags.length}</p>
+    </details>
     <article className="profile-card" style={{ marginTop: "1rem", padding: "1rem" }}>
       <h2 style={{ fontSize: "1.2rem" }}>Alertas de fraude asociadas</h2>
       {flags.length === 0 ? <p>No hay alertas vinculadas a esta sesión.</p> : flags.map((flag) =>
