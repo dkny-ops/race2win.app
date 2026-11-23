@@ -1,6 +1,7 @@
 import { BalanceHistory } from "../balance-history";
 import { FlappyPrizeControls } from "./prize-controls";
 import { FlappyWeekCloseControl } from "@/components/game/flappy-admin-controls";
+import { FlappyAdminControls } from "@/components/game/flappy-admin-controls";
 import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 import { BlockPlayerControl } from "../block-player-control";
 import Link from "next/link";
@@ -21,14 +22,15 @@ export default async function FlappyReviewPage() {
   const monday = new Date(currentNewYorkTournamentWeek()+"T12:00:00Z");
   monday.setUTCDate(monday.getUTCDate()-7);
   const previousWeek = monday.toISOString().slice(0,10);
-  const [totals,flags,winners,daily,prizeReview] = await Promise.all([
+  const [totals,flags,winners,daily,prizeReview,pendingRuns] = await Promise.all([
     admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position,tie_break_status").eq("game_id",gameId).eq("tournament_week_start",previousWeek).gte("rank_position",1).lte("rank_position",3).order("rank_position",{ascending:true}).limit(3),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").eq("game_id",gameId).in("status",["open","under_review","confirmed"]).limit(100),
     admin.from("provisional_winners").select("id,player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).eq("tournament_week_start",previousWeek).limit(20),
     admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score,validated_run_id").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300),
     admin.rpc("flappy_admin_read_prize_cases", {p_actor:auth.context.userId,p_week:previousWeek})
+    ,admin.from("flappy_runs").select("session_id,score,verification,eligibility,completed_at,player_id").eq("tournament_week_start", previousWeek).eq("eligibility", "under_review").order("completed_at", {ascending:true}).limit(100)
   ]);
-  if ([totals,flags,winners,daily,prizeReview].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
+  if ([totals,flags,winners,daily,prizeReview,pendingRuns].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
   const prizeCaseStates = new Map<string,string>();
   const candidates: {playerId:string;username:string;weeklyTotal:number;effectiveRank:number;state:string;scores:number[];dailyTopSeven:{day:string;runs:{sessionId:string;score:number;replayVerified:boolean}[]}[]}[] = [];
   const dossier:unknown = prizeReview.data;
@@ -69,6 +71,15 @@ export default async function FlappyReviewPage() {
       <Link href="/admin/prize-review/flappy-race/players" className="button button--primary">BUSCAR JUGADOR →</Link>
     </div>
     <p>Ganadores de la semana del {previousWeek}. Solo se muestran los primeros tres puestos; premios sujetos a revisión humana.</p>
+    {(pendingRuns.data?.length ?? 0) > 0 && <section className="profile-card" style={{...card, border:"1px solid rgba(255,193,7,.55)"}}>
+      <h2>PARTIDAS RETENIDAS ANTES DEL CIERRE</h2>
+      <p>Estas {pendingRuns.data?.length} partidas no están abiertas: el servidor las retuvo para una decisión humana. Revísalas antes de cerrar la semana. Aprobar solo incluye un replay que el servidor ya confirmó; rechazar no modifica balances ni ejecuta pagos.</p>
+      {(pendingRuns.data ?? []).map(run => <details key={run.session_id} style={{margin:".75rem 0"}}>
+        <summary>{fmt(run.completed_at)} · {run.score.toLocaleString("en-US")} puntos · {run.verification === "replay_verified" ? "replay verificado" : "replay no verificable"}</summary>
+        <p>Sesión: {run.session_id.slice(0, 8)} · Estado: {run.eligibility}</p>
+        <FlappyAdminControls sessionId={run.session_id} replayMatches={run.verification === "replay_verified"} />
+      </details>)}
+    </section>}
     <FlappyWeekCloseControl week={previousWeek} />
     <p style={{ fontSize: ".9rem", opacity: .8 }}>El cierre congela únicamente la clasificación del período. No acredita balances ni ejecuta pagos; después abre los expedientes de los tres candidatos para revisión manual.</p>
     {candidates.length===0 ? <><h2>CLASIFICACIÓN PROVISIONAL DE LA SEMANA</h2><p>Estos son los tres primeros del ranking verificado. Las acciones de premio permanecen bloqueadas hasta que todos los resultados pendientes se revisen y la semana se cierre formalmente.</p>{provisional.length === 0 ? <p>No hay resultados verificables para esta semana.</p> : provisional.map(t => <article className="profile-card" key={t.username} style={{padding:"1.25rem",marginBottom:"1rem",border:"1px solid rgba(110,255,173,.3)",borderRadius:14}}>

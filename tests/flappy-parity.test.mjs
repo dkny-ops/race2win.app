@@ -53,6 +53,15 @@ test("Flappy admin review requires owner authorization and is read-only",async()
  assert.doesNotMatch(source,/admin\.rpc\("(?:flappy_admin_allocate_prize|flappy_decide_prize_candidate)"/);
  assert.doesNotMatch(source,/\.insert\(|\.update\(|\.delete\(|\.upsert\(/);
 });
+test("Flappy retained-run review and weekly closure routes delegate to the owner-gated mutation",()=>{
+ const review=readFileSync(new URL("../app/api/admin/flappy-race/review/route.ts",import.meta.url),"utf8");
+ const close=readFileSync(new URL("../app/api/admin/flappy-race/close-week/route.ts",import.meta.url),"utf8");
+ const panel=readFileSync(new URL("../app/admin/prize-review/flappy-race/page.tsx",import.meta.url),"utf8");
+ assert.match(review,/mutateFlappyAdmin\("review", request\)/);
+ assert.match(close,/mutateFlappyAdmin\("close-week", request\)/);
+ assert.match(panel,/PARTIDAS RETENIDAS ANTES DEL CIERRE/);
+ assert.match(panel,/FlappyAdminControls/);
+});
 test("official client accepts server clock scheduling and rejects a missing server clock",async()=>{
  const client=load("lib/game/flappy/official-client.ts",{"./engine":engine,"./availability":load("lib/game/flappy/availability.ts")});
  const original=globalThis.fetch;

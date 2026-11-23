@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { mutateFlappyAdmin } from "@/lib/game/flappy/admin-mutations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST() {
-  return new NextResponse(null, { status: 404, headers: { "Cache-Control": "no-store" } });
+export async function POST(request: Request) {
+  return mutateFlappyAdmin("review", request);
 }
