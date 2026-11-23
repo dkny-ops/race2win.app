@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const decisions = new Set(["approved", "rejected", "needs_additional_review"]);
+const decisionNotes: Record<string, string> = {
+  approved: "Owner approved the candidate after manual review.",
+  rejected: "Owner rejected the candidate after manual review.",
+  needs_additional_review: "Owner requested additional manual review.",
+};
 
 function response(status: number, message: string) {
   return NextResponse.json({ message }, { status, headers });
@@ -27,16 +32,15 @@ export async function POST(request: Request) {
     const input = body as Record<string, unknown>;
     const week = parseFlappyWeek(input.week);
     if (
-      Object.keys(input).length !== 4 ||
+      Object.keys(input).length !== 3 ||
       !week ||
       typeof input.playerId !== "string" || !uuid.test(input.playerId) ||
-      typeof input.action !== "string" ||
-      typeof input.note !== "string" || input.note.trim().length < 1 || input.note.length > 500
+      typeof input.action !== "string"
     ) return response(400, "Invalid request.");
 
     if (input.action === "allocate") {
       const { error } = await authorization.admin.rpc("flappy_admin_allocate_prize", {
-        p_actor: authorization.context.userId, p_week: week, p_player: input.playerId, p_note: input.note.trim(),
+        p_actor: authorization.context.userId, p_week: week, p_player: input.playerId, p_note: "Owner approved shared-balance prize credit after manual identity confirmation.",
       });
       return error
         ? response(409, "Prize allocation unavailable.")
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
     if (!decisions.has(input.action)) return response(400, "Invalid request.");
     const { error } = await authorization.admin.rpc("flappy_decide_prize_candidate", {
       p_actor: authorization.context.userId, p_week: week, p_player: input.playerId,
-      p_decision: input.action, p_note: input.note.trim(),
+      p_decision: input.action, p_note: decisionNotes[input.action],
     });
     return error
       ? response(409, "Candidate decision unavailable.")

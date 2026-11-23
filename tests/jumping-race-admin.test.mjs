@@ -7,7 +7,7 @@ import ts from "typescript";
 const require = createRequire(import.meta.url);
 const week = "2026-11-02";
 const playerId = "00000000-0000-4000-8000-000000000002";
-const decision = { week, playerId, action: "approved", note: " Reviewed evidence ", confirmed: true };
+const decision = { week, playerId, action: "approved", confirmed: true };
 const closure = { week, action: "close", confirmed: true };
 
 function compile(path, imports) {
@@ -65,7 +65,7 @@ test("Jumping Race review rejects financial actions and unconfirmed or forged in
   for (const input of [
     ...["activate", "allocate", "paid"].map(action => ({ ...decision, action })),
     { ...decision, confirmed: false }, { ...decision, actor: "forged" },
-    { ...decision, note: " " }, { ...decision, playerId: "invalid" },
+    { ...decision, note: "browser supplied reason" }, { ...decision, playerId: "invalid" },
     { ...closure, week: "2026-11-03" }, { ...closure, playerId },
   ]) assert.equal((await post(request(input))).status, 400);
   assert.deepEqual(calls, []);
@@ -80,7 +80,7 @@ test("Jumping Race review routes only confirmed decisions and closures to Jumpin
   assert.deepEqual(calls, [
     ["jr_decide_prize_candidate", {
       p_actor: "verified-owner", p_week: week, p_player: playerId,
-      p_decision: "approved", p_note: "Reviewed evidence",
+      p_decision: "approved", p_note: "Owner approved the candidate after manual review.",
     }],
     ["jr_close_prize_period", { p_actor: "verified-owner", p_week: week }],
   ]);

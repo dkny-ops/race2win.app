@@ -17,7 +17,7 @@ export async function POST(request:Request){
   if(!body||typeof body!=="object"||Array.isArray(body))return reply(400,"Solicitud inválida.");
   const b=body as Record<string,unknown>;
   const week=parseFlappyWeek(b.week);
-  if(Object.keys(b).length!==5||!week||typeof b.playerId!=="string"||!uuid.test(b.playerId)||typeof b.winnerId!=="string"||!uuid.test(b.winnerId)||b.confirmedPaidByOwner!==true||typeof b.note!=="string"||!b.note.trim()||b.note.length>500)return reply(400,"Confirmación inválida.");
+  if(Object.keys(b).length!==4||!week||typeof b.playerId!=="string"||!uuid.test(b.playerId)||typeof b.winnerId!=="string"||!uuid.test(b.winnerId)||b.confirmedPaidByOwner!==true)return reply(400,"Confirmación inválida.");
   const {data:game,error:gameError}=await auth.admin.from("games").select("id").eq("slug","flappy-race").maybeSingle();
   if(gameError||!game)return reply(503,"Juego no disponible.");
   const {data:award,error:awardError}=await auth.admin.from("provisional_winners").select("id,status,allocation_status,amount_cents").eq("id",b.winnerId).eq("player_id",b.playerId).eq("game_id",game.id).eq("tournament_week_start",week).eq("award_type","weekly_tournament").maybeSingle();

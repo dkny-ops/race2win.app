@@ -7,6 +7,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const decisions = new Set(["approved", "rejected", "needs_additional_review"]);
+const decisionNotes: Record<string, string> = {
+  approved: "Owner approved the candidate after manual review.",
+  rejected: "Owner rejected the candidate after manual review.",
+  needs_additional_review: "Owner requested additional manual review.",
+};
 
 function response(status: number, message: string) {
   return NextResponse.json({ message }, {
@@ -36,13 +41,13 @@ export async function POST(request: Request) {
       return error ? response(409, "La semana no está disponible para cierre.") : response(200, "Cierre procesado.");
     }
 
-    if (Object.keys(input).length !== 5 || typeof input.action !== "string" ||
+    if (Object.keys(input).length !== 4 || typeof input.action !== "string" ||
         !decisions.has(input.action) || !isUuid(input.playerId) ||
-        typeof input.note !== "string" || !input.note.trim() || input.note.length > 500) {
+        input.confirmed !== true) {
       return response(400, "Solicitud inválida.");
     }
     const { error } = await auth.admin.rpc("jr_decide_prize_candidate", {
-      ...args, p_player: input.playerId, p_decision: input.action, p_note: input.note.trim(),
+      ...args, p_player: input.playerId, p_decision: input.action, p_note: decisionNotes[input.action],
     });
     return error ? response(409, "El expediente no está disponible para esta decisión.") : response(200, "Decisión registrada.");
   } catch {

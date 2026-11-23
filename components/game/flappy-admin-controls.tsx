@@ -8,14 +8,13 @@ export function FlappyAdminControls({sessionId,replayMatches}:{sessionId:string;
   const form=new FormData(event.currentTarget),decision=form.get("decision");
   setBusy(true);setMessage("");
   try{
-   const response=await fetch("/api/admin/flappy-race/review",{method:"POST",credentials:"same-origin",cache:"no-store",signal:AbortSignal.timeout(15000),headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId,decision,note:form.get("note"),humanReviewed:form.get("humanReviewed")==="on"})});
+   const response=await fetch("/api/admin/flappy-race/review",{method:"POST",credentials:"same-origin",cache:"no-store",signal:AbortSignal.timeout(15000),headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId,decision,humanReviewed:form.get("humanReviewed")==="on"})});
    if(!response.ok)throw new Error();
    setMessage("Decisión registrada. Sin premios ni pagos.");router.refresh();
-  }catch{setMessage("No se pudo registrar. Revisa permisos, evidencia y estado del cierre.");}finally{setBusy(false);}
+  }catch{setMessage("No se pudo registrar. Revisa permisos y estado del cierre.");}finally{setBusy(false);}
  }
  return <form onSubmit={submit}>
   <label>Decisión <select name="decision" required defaultValue="disqualified"><option value="disqualified">Rechazar</option><option value="valid" disabled={replayMatches!==true}>Aprobar resultado para ranking</option></select></label>
-  <label style={{display:"block"}}>Motivo y evaluación de automatización<textarea name="note" required maxLength={500} rows={3} style={{display:"block",width:"100%"}} /></label>
   <label><input type="checkbox" name="humanReviewed" required /> He revisado la evidencia y el riesgo de bots. El replay no demuestra juego humano.</label>
   <button type="submit" className="button" disabled={busy}>{busy?"Guardando…":"REGISTRAR REVISIÓN"}</button>
   <p role="status">{message}</p>

@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       return error ? reply(409, "El programa no pudo activarse.") : reply(200, "Programa activado desde la semana actual. No se crearon premios ni pagos.");
     }
     const week = parseFlappyWeek(input.week);
-    if (Object.keys(input).length !== 4 || input.action !== "allocate" || !week || !isUuid(input.playerId) || typeof input.note !== "string" || input.note.trim().length < 1 || input.note.length > 500) return reply(400, "Solicitud inválida.");
-    const { error } = await auth.admin.rpc("jr_admin_allocate_prize", { p_actor: auth.context.userId, p_week: week, p_player: input.playerId, p_note: input.note.trim() });
+    if (Object.keys(input).length !== 3 || input.action !== "allocate" || !week || !isUuid(input.playerId)) return reply(400, "Solicitud inválida.");
+    const { error } = await auth.admin.rpc("jr_admin_allocate_prize", { p_actor: auth.context.userId, p_week: week, p_player: input.playerId, p_note: "Owner approved shared-balance prize credit after manual identity confirmation." });
     return error ? reply(409, "El crédito de premio no está disponible.") : reply(200, "Crédito aprobado. No se ejecutó ningún pago.");
   } catch { return reply(503, "Revisión de premios temporalmente no disponible."); }
 }

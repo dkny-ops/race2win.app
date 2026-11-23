@@ -10,7 +10,6 @@ const decisions = [
 ] as const;
 
 export function ReviewControls({ week, playerId }: { week: string; playerId?: string }) {
-  const [note, setNote] = useState("");
   const [action, setAction] = useState<string>(decisions[0][0]);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -18,7 +17,7 @@ export function ReviewControls({ week, playerId }: { week: string; playerId?: st
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy || (playerId && !note.trim())) return;
+    if (busy) return;
     const label = playerId ? decisions.find(([key]) => key === action)?.[1] : "Cerrar la semana";
     if (!window.confirm(`¿Confirmas esta acción? ${label} · ${week}`)) return;
     setBusy(true);
@@ -27,14 +26,13 @@ export function ReviewControls({ week, playerId }: { week: string; playerId?: st
       const response = await fetch("/api/admin/jumping-race/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(playerId ? { week, action, playerId, note: note.trim(), confirmed: true }
+        body: JSON.stringify(playerId ? { week, action, playerId, confirmed: true }
           : { week, action: "close", confirmed: true }),
         cache: "no-store",
       });
       const result = await response.json() as { message: string };
       setMessage(result.message);
       if (response.ok) {
-        setNote("");
         router.refresh();
       }
     } catch {
@@ -51,12 +49,8 @@ export function ReviewControls({ week, playerId }: { week: string; playerId?: st
           {decisions.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select>
       </label>
-      <label style={{ display: "block" }}>Motivo y evidencia
-        <textarea required rows={3} maxLength={500} value={note}
-          style={{ display: "block", width: "100%" }} onChange={event => setNote(event.target.value)} />
-      </label>
     </>}
-    <button className="button button--secondary" disabled={busy || Boolean(playerId && !note.trim())}>
+    <button className="button button--secondary" disabled={busy}>
       {playerId ? "REGISTRAR DECISIÓN" : "CERRAR SEMANA DE PREMIOS"}
     </button>
     {message && <p role="status">{message}</p>}

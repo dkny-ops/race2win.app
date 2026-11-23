@@ -16,7 +16,6 @@ type Props = {
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export function JumpingPrizeControls({ enabled, week, playerId, state, balanceCents = 0, winnerId, credited = false }: Props) {
-  const [note, setNote] = useState("");
   const [code, setCode] = useState("");
   const [identityChecked, setIdentityChecked] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -45,7 +44,7 @@ export function JumpingPrizeControls({ enabled, week, playerId, state, balanceCe
   }
 
   async function act(action: "approved" | "rejected" | "needs_additional_review" | "allocate" | "paid") {
-    if (busy || !playerId || !note.trim()) return;
+    if (busy || !playerId) return;
     if (action === "allocate" && (!identityChecked || state !== "approved" || credited)) return;
     if (action === "paid" && (!identityChecked || !winnerId || !credited || balanceCents < 2000)) return;
     const labels = { approved: "aprobar al candidato", rejected: "rechazar al candidato", needs_additional_review: "solicitar revisión adicional", allocate: "acreditar el premio al balance compartido", paid: "registrar un pago externo ya realizado" };
@@ -53,11 +52,11 @@ export function JumpingPrizeControls({ enabled, week, playerId, state, balanceCe
     setBusy(true); setMessage("");
     try {
       const message = action === "allocate"
-        ? await call("/api/admin/jumping-race/prizes", { week, playerId, action, note: note.trim() })
+        ? await call("/api/admin/jumping-race/prizes", { week, playerId, action })
         : action === "paid"
-          ? await call("/api/admin/jumping-race/confirm-payment", { week, playerId, winnerId, note: note.trim(), confirmedPaidByOwner: true })
-          : await call("/api/admin/jumping-race/review", { week, playerId, action, note: note.trim(), confirmed: true });
-      setMessage(message); setNote(""); router.refresh();
+          ? await call("/api/admin/jumping-race/confirm-payment", { week, playerId, winnerId, confirmedPaidByOwner: true })
+          : await call("/api/admin/jumping-race/review", { week, playerId, action, confirmed: true });
+      setMessage(message); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "No se confirmó ningún cambio."); }
     finally { setBusy(false); }
   }
@@ -75,12 +74,12 @@ export function JumpingPrizeControls({ enabled, week, playerId, state, balanceCe
     <button className="button button--secondary" type="button" onClick={generateCode}>GENERAR CÓDIGO</button>
     {code && <><strong style={{ fontSize: "1.4rem", letterSpacing: ".18em" }}>{code}</strong><button className="button button--secondary" type="button" onClick={() => void navigator.clipboard?.writeText(code)}>COPIAR CÓDIGO</button></>}
     <label><input type="checkbox" checked={identityChecked} onChange={event => setIdentityChecked(event.target.checked)} /> Confirmo que verifiqué manualmente la identidad y el código con el jugador.</label>
-    <label>Motivo y evidencia de la decisión<textarea required rows={3} maxLength={500} value={note} onChange={event => setNote(event.target.value)} style={{ display: "block", width: "100%" }} /></label>
-    <button className="button button--secondary" type="button" disabled={busy || !note.trim() || state !== "pending_review"} onClick={() => void act("approved")}>APROBAR CANDIDATO</button>
-    <button className="button button--primary" type="button" disabled={busy || !note.trim() || !identityChecked || state !== "approved" || credited} onClick={() => void act("allocate")}>{credited ? "PREMIO YA ACREDITADO" : "VALIDAR Y ACREDITAR PREMIO"}</button>
+    <p>La decisión, la cuenta administradora y la fecha se registran automáticamente en el historial de auditoría.</p>
+    <button className="button button--secondary" type="button" disabled={busy || state !== "pending_review"} onClick={() => void act("approved")}>APROBAR CANDIDATO</button>
+    <button className="button button--primary" type="button" disabled={busy || !identityChecked || state !== "approved" || credited} onClick={() => void act("allocate")}>{credited ? "PREMIO YA ACREDITADO" : "VALIDAR Y ACREDITAR PREMIO"}</button>
     <p>Balance compartido: {money(balanceCents)}. El crédito nunca realiza un pago.</p>
-    <button className="button button--primary" type="button" disabled={busy || !note.trim() || !identityChecked || !credited || !winnerId || balanceCents < 2000} onClick={() => void act("paid")}>PAGO EXTERNO EXITOSO · DEJAR BALANCE EN $0</button>
-    <details><summary>Otras decisiones</summary><button className="button button--secondary" type="button" disabled={busy || !note.trim() || credited} onClick={() => void act("needs_additional_review")}>REVISIÓN ADICIONAL</button><button className="button button--secondary" type="button" disabled={busy || !note.trim() || credited} onClick={() => void act("rejected")}>RECHAZAR CANDIDATO</button></details>
+    <button className="button button--primary" type="button" disabled={busy || !identityChecked || !credited || !winnerId || balanceCents < 2000} onClick={() => void act("paid")}>PAGO EXTERNO EXITOSO · DEJAR BALANCE EN $0</button>
+    <details><summary>Otras decisiones</summary><button className="button button--secondary" type="button" disabled={busy || credited} onClick={() => void act("needs_additional_review")}>REVISIÓN ADICIONAL</button><button className="button button--secondary" type="button" disabled={busy || credited} onClick={() => void act("rejected")}>RECHAZAR CANDIDATO</button></details>
     {message && <p role="status">{message}</p>}
   </section>;
 }

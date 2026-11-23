@@ -6,7 +6,7 @@ import ts from 'typescript';
 const require=createRequire(import.meta.url);
 const actor='11111111-1111-4111-8111-111111111111';
 const player='22222222-2222-4222-8222-222222222222';
-const body={week:'2026-10-19',playerId:player,action:'allocate',note:'Owner reviewed the frozen candidate'};
+const body={week:'2026-10-19',playerId:player,action:'allocate'};
 function load({authorized=true,rpcError=false,unavailable=false}={}){
  const calls=[],authCalls=[],compiled={exports:{}};
  const imports={
@@ -38,18 +38,18 @@ test('prize endpoint denies cross-origin and unauthenticated access before invok
 test('browser cannot supply actor, amount, rank, payment action or malformed identifiers',async()=>{
  for(const input of [{...body,actor},{...body,amountCents:999999},{...body,rankPosition:1},
   {...body,action:'paid'},{...body,playerId:'invalid'},{...body,playerId:player.slice(0,23)},{...body,week:'invalid'},
-  {...body,note:''},{...body,note:'x'.repeat(501)}]){
+  {...body,note:'browser supplied note'}]){
   const api=load();assert.equal((await api.POST(request(input))).status,400);assert.equal(api.calls.length,0);
  }
 });
 test('allocation RPC gets only validated fields and the server-authenticated actor; no payout RPC is called',async()=>{
  const api=load();const result=await api.POST(request());assert.equal(result.status,200);
- assert.deepEqual(api.calls,[{name:'flappy_admin_allocate_prize',args:{p_actor:actor,p_week:body.week,p_player:player,p_note:body.note}}]);
+ assert.deepEqual(api.calls,[{name:'flappy_admin_allocate_prize',args:{p_actor:actor,p_week:body.week,p_player:player,p_note:'Owner approved shared-balance prize credit after manual identity confirmation.'}}]);
  assert.match((await result.json()).message,/No payment was executed/);
 });
 test('human candidate decision remains separate from credit approval',async()=>{
  const api=load();const result=await api.POST(request({...body,action:'approved'}));assert.equal(result.status,200);
- assert.deepEqual(api.calls,[{name:'flappy_decide_prize_candidate',args:{p_actor:actor,p_week:body.week,p_player:player,p_decision:'approved',p_note:body.note}}]);
+ assert.deepEqual(api.calls,[{name:'flappy_decide_prize_candidate',args:{p_actor:actor,p_week:body.week,p_player:player,p_decision:'approved',p_note:'Owner approved the candidate after manual review.'}}]);
  assert.match((await result.json()).message,/No credit or payment was created/);
 });
 test('database conflicts and unavailable services fail closed without disclosing SQL details',async()=>{

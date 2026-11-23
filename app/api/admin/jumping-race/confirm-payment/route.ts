@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     const body = await readBoundedJson(request);
     if (!body || typeof body !== "object" || Array.isArray(body)) return reply(400, "Solicitud inválida.");
     const input = body as Record<string, unknown>; const week = parseFlappyWeek(input.week);
-    if (Object.keys(input).length !== 5 || !week || !isUuid(input.playerId) || !isUuid(input.winnerId) || input.confirmedPaidByOwner !== true || typeof input.note !== "string" || input.note.trim().length < 1 || input.note.length > 500) return reply(400, "Confirmación inválida.");
+    if (Object.keys(input).length !== 4 || !week || !isUuid(input.playerId) || !isUuid(input.winnerId) || input.confirmedPaidByOwner !== true) return reply(400, "Confirmación inválida.");
     const { data: game, error: gameError } = await auth.admin.from("games").select("id").eq("slug", "jumping-race").maybeSingle();
     if (gameError || !game) return reply(503, "Juego no disponible.");
     const { data: winner, error: winnerError } = await auth.admin.from("provisional_winners").select("id,status,allocation_status").eq("id", input.winnerId).eq("player_id", input.playerId).eq("game_id", game.id).eq("tournament_week_start", week).eq("award_type", "weekly_tournament").maybeSingle();

@@ -5,16 +5,10 @@ import { useState } from "react";
 type Action = "approved" | "rejected" | "needs_additional_review" | "allocate";
 
 export function FlappyPrizeCaseControls({ week, playerId, state }: { week: string; playerId: string; state: string }) {
-  const [note, setNote] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function submit(action: Action) {
-    const trimmed = note.trim();
-    if (trimmed.length < 1 || trimmed.length > 500) {
-      setStatus("Provide an audit note of 1 to 500 characters.");
-      return;
-    }
     setPending(true);
     setStatus(null);
     try {
@@ -22,13 +16,12 @@ export function FlappyPrizeCaseControls({ week, playerId, state }: { week: strin
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ week, playerId, action, note: trimmed }),
+        body: JSON.stringify({ week, playerId, action }),
       });
       const body: unknown = await response.json().catch(() => null);
       setStatus(body && typeof body === "object" && "message" in body && typeof body.message === "string"
         ? body.message
         : response.ok ? "Decision recorded." : "Decision unavailable.");
-      if (response.ok) setNote("");
     } catch {
       setStatus("Decision unavailable.");
     } finally {
@@ -38,8 +31,7 @@ export function FlappyPrizeCaseControls({ week, playerId, state }: { week: strin
 
   return <fieldset disabled={pending} style={{ border: "1px solid #475569", borderRadius: 8, padding: 12 }}>
     <legend>Prize decision ({state})</legend>
-    <label htmlFor={"flappy-prize-note-" + playerId}>Audit justification</label>
-    <textarea id={"flappy-prize-note-" + playerId} value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} rows={3} style={{ display: "block", width: "100%", marginBlock: 8 }} />
+    <p>The decision, owner account, and timestamp are recorded automatically in the audit history.</p>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
       {state === "approved"
         ? <button type="button" onClick={() => submit("allocate")}>Approve shared-balance credit</button>

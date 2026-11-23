@@ -22,15 +22,14 @@ export async function mutateFlappyAdmin(action:"review"|"close-week",request:Req
    const {error}=await authorization.admin.rpc("flappy_close_week",{p_actor:actor,p_week:week});
    return error?response(409,"Week unavailable: check pending reviews and settlement time."):response(200,"Week closed. No prizes or payments generated.");
   }
-  if(Object.keys(b).length!==4||typeof b.sessionId!=="string"||!uuid.test(b.sessionId)||
-   (b.decision!=="valid"&&b.decision!=="disqualified")||typeof b.note!=="string"||
-   !b.note.trim()||b.note.length>500||b.humanReviewed!==true)return response(400,"Invalid review request.");
+  if(Object.keys(b).length!==3||typeof b.sessionId!=="string"||!uuid.test(b.sessionId)||
+   (b.decision!=="valid"&&b.decision!=="disqualified")||b.humanReviewed!==true)return response(400,"Invalid review request.");
   const {data,error}=await authorization.admin.rpc("flappy_admin_read",{p_actor:actor,p_page:1,p_session:b.sessionId});
   if(error||!Array.isArray(data)||data.length!==1)return response(409,"Evidence unavailable.");
   const audit=summarizeFlappyAudit(data[0]);
   if(audit.status!=="finalized"||(b.decision==="valid"&&audit.replayMatches!==true))return response(409,"Replay evidence does not permit approval.");
   if(b.decision==="valid"&&await isGameAccessHeld(audit.player_id))return response(409,"Player access requires review.");
-  const reviewed=await authorization.admin.rpc("flappy_review_run",{p_actor:actor,p_session:b.sessionId,p_decision:b.decision,p_note:b.note.trim()});
+  const reviewed=await authorization.admin.rpc("flappy_review_run",{p_actor:actor,p_session:b.sessionId,p_decision:b.decision,p_note:b.decision==="valid"?"Owner approved the retained Flappy replay after manual review.":"Owner rejected the retained Flappy replay after manual review."});
   return reviewed.error?response(409,"Review conflict or week closed."):response(200,"Review recorded. No prizes or payments generated.");
  }catch{return response(503,"Review temporarily unavailable.");}
 }

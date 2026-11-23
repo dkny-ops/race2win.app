@@ -40,9 +40,9 @@ test("Jumping prize administration is same-origin, owner-derived, and never acce
   for (const invalid of [
     { action: "activate", confirmed: false },
     { action: "activate", confirmed: true, amountCents: 500 },
-    { week: "2026-11-16", playerId: player, action: "allocate", note: "" },
-    { week: "2026-11-16", playerId: player, action: "allocate", note: "Reviewed", actor },
-    { week: "2026-11-16", playerId: player, action: "paid", note: "Reviewed" },
+    { week: "2026-11-16", playerId: player, action: "allocate", note: "browser supplied reason" },
+    { week: "2026-11-16", playerId: player, action: "allocate", actor },
+    { week: "2026-11-16", playerId: player, action: "paid" },
   ]) {
     const api = load(); assert.equal((await api.POST(request(invalid))).status, 400); assert.equal(api.calls.length, 0);
   }
@@ -53,9 +53,9 @@ test("Jumping activation and allocation use only the authenticated owner and ser
   assert.equal((await activation.POST(request({ action: "activate", confirmed: true }))).status, 200);
   assert.deepEqual(activation.calls, [{ name: "jr_activate_prize_program", args: { p_actor: actor } }]);
   const allocation = load();
-  const body = { week: "2026-11-16", playerId: player, action: "allocate", note: "Owner reviewed the frozen candidate" };
+  const body = { week: "2026-11-16", playerId: player, action: "allocate" };
   assert.equal((await allocation.POST(request(body))).status, 200);
-  assert.deepEqual(allocation.calls, [{ name: "jr_admin_allocate_prize", args: { p_actor: actor, p_week: body.week, p_player: player, p_note: body.note } }]);
+  assert.deepEqual(allocation.calls, [{ name: "jr_admin_allocate_prize", args: { p_actor: actor, p_week: body.week, p_player: player, p_note: "Owner approved shared-balance prize credit after manual identity confirmation." } }]);
 });
 
 test("Jumping payment record remains owner-only, game-scoped, and manual", () => {

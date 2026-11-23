@@ -11,16 +11,16 @@ function load({authorized=true,replay=true,status="finalized",failure=false,held
  new Function("exports","module","require",ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(m.exports,m,n=>n in imports?imports[n]:assert.fail(n));
  return {api:m.exports,calls};
 }
-const body={sessionId:"11111111-1111-4111-8111-111111111111",decision:"valid",note:"Reviewed evidence and automation risk",humanReviewed:true};
+const body={sessionId:"11111111-1111-4111-8111-111111111111",decision:"valid",humanReviewed:true};
 function request(b=body,origin="https://test"){return new Request("https://test/api",{method:"POST",headers:{origin,"content-type":"application/json"},body:JSON.stringify(b)});}
 test("admin mutations reject CSRF and unauthorized callers without reading evidence",async()=>{
  const a=load();assert.equal((await a.api.mutateFlappyAdmin("review",request(body,"https://evil"))).status,403);assert.equal(a.calls.length,0);
  const b=load({authorized:false});assert.equal((await b.api.mutateFlappyAdmin("review",request())).status,404);assert.equal(b.calls.length,0);
 });
 test("approval requires replay and explicit human review; browser cannot supply actor or score",async()=>{
- for(const change of [{humanReviewed:false},{actor:"forged"},{score:999},{note:""}]){const a=load();assert.equal((await a.api.mutateFlappyAdmin("review",request({...body,...change}))).status,400);assert.equal(a.calls.length,0);}
+ for(const change of [{humanReviewed:false},{actor:"forged"},{score:999},{note:"browser supplied reason"}]){const a=load();assert.equal((await a.api.mutateFlappyAdmin("review",request({...body,...change}))).status,400);assert.equal(a.calls.length,0);}
  const bad=load({replay:false});assert.equal((await bad.api.mutateFlappyAdmin("review",request())).status,409);assert.equal(bad.calls.length,1);
- const good=load();assert.equal((await good.api.mutateFlappyAdmin("review",request())).status,200);assert.equal(good.calls[1].args.p_actor,"verified-owner");assert.equal("p_score" in good.calls[1].args,false);
+ const good=load();assert.equal((await good.api.mutateFlappyAdmin("review",request())).status,200);assert.equal(good.calls[1].args.p_actor,"verified-owner");assert.equal(good.calls[1].args.p_note,"Owner approved the retained Flappy replay after manual review.");assert.equal("p_score" in good.calls[1].args,false);
  const reject=load({replay:false});assert.equal((await reject.api.mutateFlappyAdmin("review",request({...body,decision:"disqualified"}))).status,200);
 });
 test("closed/review-conflict errors stay fail-closed and closure uses the verified actor",async()=>{

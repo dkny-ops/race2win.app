@@ -27,11 +27,10 @@ export async function POST(request: Request) {
     const input = body as Record<string, unknown>;
     const week = parseFlappyWeek(input.week);
     if (
-      Object.keys(input).length !== 4 ||
+      Object.keys(input).length !== 3 ||
       !week ||
       typeof input.playerId !== "string" || !uuid.test(input.playerId) ||
-      typeof input.decision !== "string" || !decision.has(input.decision) ||
-      typeof input.note !== "string" || input.note.trim().length < 1 || input.note.length > 500
+      typeof input.decision !== "string" || !decision.has(input.decision)
     ) return response(400, "Invalid request.");
 
     const { error } = await authorization.admin.rpc("flappy_decide_winner_candidate", {
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
       p_week: week,
       p_player: input.playerId,
       p_decision: input.decision,
-      p_note: input.note.trim(),
+      p_note: input.decision === "approved" ? "Owner approved the candidate after manual review." : input.decision === "rejected" ? "Owner rejected the candidate after manual review." : "Owner requested additional manual review.",
     });
     return error
       ? response(409, "Candidate decision unavailable.")
