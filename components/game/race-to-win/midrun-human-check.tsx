@@ -41,7 +41,7 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
  }, [sessionId, running, refresh]);
  useEffect(() => { onPauseChange(Boolean(running && sessionId && check?.due && !check.verified)); return () => onPauseChange(false); }, [running, sessionId, check?.due, check?.verified, onPauseChange]);
  useEffect(() => {
-  if (!running || !check?.due || check.verified || !check.nonce || answerRecorded) return;
+  if (!running || !check?.due || check.verified || !check.nonce) return;
   const nonce = check.nonce;
   const tick = () => {
    const due = latest.current;
@@ -52,12 +52,12 @@ export function MidrunHumanCheck({ sessionId, running, onPauseChange, onTimeout,
   const resetTimer = window.setTimeout(() => setSecondsLeft(10), 0);
   const timer = window.setInterval(tick, 100);
   const deadline = window.setTimeout(() => {
-   if (timedOutNonce.current === nonce || chosen.current !== null) return;
+   if (timedOutNonce.current === nonce) return;
    timedOutNonce.current = nonce;
    onTimeout();
   }, 10000);
   return () => { window.clearTimeout(resetTimer); window.clearInterval(timer); window.clearTimeout(deadline); };
- }, [running, check?.due, check?.verified, check?.nonce, answerRecorded, onTimeout]);
+ }, [running, check?.due, check?.verified, check?.nonce, onTimeout]);
  const onToken = useCallback(async (token: string) => {
   const active = latest.current;
   const choice = chosen.current;
