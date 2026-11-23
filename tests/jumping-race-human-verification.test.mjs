@@ -5,6 +5,7 @@ import test from "node:test";
 const migration = readFileSync(new URL("../supabase/migrations/20261119051142_harden_jumping_race_session_verification.sql", import.meta.url), "utf8");
 const finalPrepareMigration = readFileSync(new URL("../supabase/migrations/20261122232018_jumping_race_final_human_prepare.sql", import.meta.url), "utf8");
 const finalGuardMigration = readFileSync(new URL("../supabase/migrations/20261122232251_jumping_race_final_human_finalize_guard.sql", import.meta.url), "utf8");
+const seedLookupMigration = readFileSync(new URL("../supabase/migrations/20261123012204_fix_jumping_session_seed_lookup.sql", import.meta.url), "utf8");
 const startRoute = readFileSync(new URL("../app/api/jumping-race/start/route.ts", import.meta.url), "utf8");
 const checkRoute = readFileSync(new URL("../app/api/jumping-race/human-check/route.ts", import.meta.url), "utf8");
 const finalChallengeRoute = readFileSync(new URL("../app/api/jumping-race/finalize-challenge/route.ts", import.meta.url), "utf8");
@@ -60,4 +61,12 @@ test("Final verification migrations remain financial-data free and service-only"
   const sql = `${finalPrepareMigration}\n${finalGuardMigration}`;
   assert.doesNotMatch(sql, /prize_balances|prize_ledger|payouts|wallet/i);
   assert.doesNotMatch(sql, /grant execute[\s\S]*to (?:anon|authenticated)/i);
+});
+
+test("Jumping Race session seed remains cryptographically random with an empty search path", () => {
+  assert.match(seedLookupMigration, /extensions\.gen_random_bytes\(4\)/);
+  assert.match(seedLookupMigration, /security definer set search_path = ''/i);
+  assert.doesNotMatch(seedLookupMigration, /prize_balances|prize_ledger|payouts|wallet/i);
+  assert.doesNotMatch(seedLookupMigration, /grant execute[\s\S]*to (?:anon|authenticated)/i);
+  assert.match(seedLookupMigration, /grant execute on function public\.jr_start_session\(uuid,uuid\) to service_role/i);
 });
