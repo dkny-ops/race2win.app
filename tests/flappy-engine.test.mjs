@@ -70,6 +70,8 @@ test("Flappy waits for its independent final proof before completing an official
   assert.match(flappyCanvas,/setFinalProofToken\(null\); setFinalProof\(challenge\);/);
   assert.doesNotMatch(flappyCanvas,/setResult\(verified\); setFinalProofToken\(null\); setFinalProof\(challenge\);/);
   assert.match(flappyCanvas,/completeFlappyFinalProof\(official\.current\.sessionId, finalProof\.nonce, finalProofToken\)[\s\S]{0,400}setResult\(verified\)/);
+  assert.match(flappyCanvas,/A collision can race an in-flight checkpoint[\s\S]{0,600}await finalizeFlappyOfficial\(official\.current,engine\.current,inputs\.current\);[\s\S]{0,220}setFinalProof\(challenge\)/);
+  assert.doesNotMatch(flappyCanvas,/const verified=await finalizeFlappyOfficial\(official\.current,engine\.current,inputs\.current\);[\s\S]{0,160}setResult\(verified\);setStatus\("over"\)/);
 });
 test("oversize, reordered, fractional, impossible and post-collision inputs are rejected",()=>{
   for(const [inputs,tick] of [[[2,1],10],[[0,1],10],[[0,4.2],10],[[-1],10],[[10],10],[[],0],[[],36001],[Array(6001).fill(1),100]])assert.equal(e.parseFlaps(inputs,tick),null);

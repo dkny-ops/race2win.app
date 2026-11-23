@@ -453,8 +453,13 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       if (busy.current || !active || !official.current) return;
       busy.current=true; window.clearInterval(timer);
       try {
-        const verified=await finalizeFlappyOfficial(official.current,engine.current,inputs.current);
-        if(active) {setResult(verified);setStatus("over");}
+        // A collision can race an in-flight checkpoint. This recovery path
+        // must follow the identical final-proof sequence as submitFinal;
+        // otherwise the replay is stored under review but can never become a
+        // counting result.
+        await finalizeFlappyOfficial(official.current,engine.current,inputs.current);
+        const challenge=await prepareFlappyFinalProof(official.current.sessionId);
+        if(active && mounted.current) { setFinalProofToken(null); setFinalProof(challenge); }
       } catch { if(active) fail(); } finally {busy.current=false;}
     },100);
     return () => {active=false;window.clearInterval(timer);};
