@@ -22,16 +22,23 @@ export default async function FlappyReviewPage() {
   const monday = new Date(currentNewYorkTournamentWeek()+"T12:00:00Z");
   monday.setUTCDate(monday.getUTCDate()-7);
   const previousWeek = monday.toISOString().slice(0,10);
-  const [totals,flags,winners,daily,prizeReview,pendingRuns] = await Promise.all([
+  const [totals,flags,winners,daily,prizeReview,pendingRunsFirstPage,pendingRunsSecondPage] = await Promise.all([
     admin.from("weekly_tournament_totals").select("player_id,tournament_week_start,weekly_total_score,rank_position,tie_break_status").eq("game_id",gameId).eq("tournament_week_start",previousWeek).gte("rank_position",1).lte("rank_position",3).order("rank_position",{ascending:true}).limit(3),
     admin.from("fraud_flags").select("player_id,severity,status,signal_summary,created_at").eq("game_id",gameId).in("status",["open","under_review","confirmed"]).limit(100),
     admin.from("provisional_winners").select("id,player_id,tournament_week_start,amount_cents,status,award_type,rank_position,admin_note").eq("game_id",gameId).eq("tournament_week_start",previousWeek).limit(20),
     admin.from("daily_top_scores").select("player_id,tournament_day,daily_rank,score,validated_run_id").eq("game_id",gameId).eq("tournament_week_start",previousWeek).lte("daily_rank",7).order("tournament_day",{ascending:true}).limit(300),
-    admin.rpc("flappy_admin_read_prize_cases", {p_actor:auth.context.userId,p_week:previousWeek})
-    ,admin.from("flappy_runs").select("session_id,score,verification,eligibility,completed_at,player_id").eq("tournament_week_start", previousWeek).eq("eligibility", "under_review").order("completed_at", {ascending:true}).limit(100)
+    admin.rpc("flappy_admin_read_prize_cases", {p_actor:auth.context.userId,p_week:previousWeek}),
+    admin.rpc("flappy_admin_read", {p_actor:auth.context.userId,p_page:1,p_session:null}),
+    admin.rpc("flappy_admin_read", {p_actor:auth.context.userId,p_page:2,p_session:null})
   ]);
-  if ([totals,flags,winners,daily,prizeReview,pendingRuns].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
+  if ([totals,flags,winners,daily,prizeReview,pendingRunsFirstPage,pendingRunsSecondPage].some(r=>r.error)) throw new Error("Error al consultar Flappy Race");
   const prizeCaseStates = new Map<string,string>();
+  type RetainedRun = { session_id: string; score: number; verification: string; eligibility: string; completed_at: string | null; tournament_week_start: string | null };
+  const retainedRuns: RetainedRun[] = [...(Array.isArray(pendingRunsFirstPage.data) ? pendingRunsFirstPage.data : []), ...(Array.isArray(pendingRunsSecondPage.data) ? pendingRunsSecondPage.data : [])].filter((run): run is RetainedRun =>
+    !!run && typeof run === "object" && typeof run.session_id === "string" &&
+    typeof run.score === "number" && run.eligibility === "under_review" &&
+    run.tournament_week_start === previousWeek,
+  );
   const candidates: {playerId:string;username:string;weeklyTotal:number;effectiveRank:number;state:string;scores:number[];dailyTopSeven:{day:string;runs:{sessionId:string;score:number;replayVerified:boolean}[]}[]}[] = [];
   const dossier:unknown = prizeReview.data;
   if (dossier && typeof dossier==="object" && !Array.isArray(dossier) && "enabled" in dossier && dossier.enabled===true && "candidates" in dossier && Array.isArray(dossier.candidates)) {
@@ -71,10 +78,10 @@ export default async function FlappyReviewPage() {
       <Link href="/admin/prize-review/flappy-race/players" className="button button--primary">BUSCAR JUGADOR →</Link>
     </div>
     <p>Ganadores de la semana del {previousWeek}. Solo se muestran los primeros tres puestos; premios sujetos a revisión humana.</p>
-    {(pendingRuns.data?.length ?? 0) > 0 && <section className="profile-card" style={{...card, border:"1px solid rgba(255,193,7,.55)"}}>
+    {retainedRuns.length > 0 && <section className="profile-card" style={{...card, border:"1px solid rgba(255,193,7,.55)"}}>
       <h2>PARTIDAS RETENIDAS ANTES DEL CIERRE</h2>
-      <p>Estas {pendingRuns.data?.length} partidas no están abiertas: el servidor las retuvo para una decisión humana. Revísalas antes de cerrar la semana. Aprobar solo incluye un replay que el servidor ya confirmó; rechazar no modifica balances ni ejecuta pagos.</p>
-      {(pendingRuns.data ?? []).map(run => <details key={run.session_id} style={{margin:".75rem 0"}}>
+      <p>Estas {retainedRuns.length} partidas no están abiertas: el servidor las retuvo para una decisión humana. Revísalas antes de cerrar la semana. Aprobar solo incluye un replay que el servidor ya confirmó; rechazar no modifica balances ni ejecuta pagos.</p>
+      {retainedRuns.map(run => <details key={run.session_id} style={{margin:".75rem 0"}}>
         <summary>{fmt(run.completed_at)} · {run.score.toLocaleString("en-US")} puntos · {run.verification === "replay_verified" ? "replay verificado" : "replay no verificable"}</summary>
         <p>Sesión: {run.session_id.slice(0, 8)} · Estado: {run.eligibility}</p>
         <FlappyAdminControls sessionId={run.session_id} replayMatches={run.verification === "replay_verified"} />
