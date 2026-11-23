@@ -27,11 +27,22 @@ function compile(path,imports){
 }
 const engine=compile("lib/game/flappy/engine.ts",{});
 const bounded=compile("lib/competition/request-body.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"}});
-const api=compile("lib/game/flappy/server.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"},"@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},"@/lib/competition/request-body":bounded,"@/lib/supabase/admin":{createAdminClient:()=>({rpc})},"@/lib/supabase/server":{getVerifiedUserContext:async()=>null},"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":engine});
+const api=compile("lib/game/flappy/server.ts",{"server-only":{},"@/lib/security/competition-access":{recordCompetitionAccess:async()=>"allowed",competitionAccessMessage:()=>"unavailable"},"@/lib/security/auth-401-review":{isGameAccessHeld:async()=>false},"@/lib/security/turnstile":{verifyTurnstileToken:async()=>({status:"verified"}),getTurnstileWidgetConfiguration:()=>({siteKey:"test-site-key"})},"@/lib/competition/request-body":bounded,"@/lib/supabase/admin":{createAdminClient:()=>({rpc})},"@/lib/supabase/server":{getVerifiedUserContext:async()=>null},"./activation":{FLAPPY_COMPETITION_ENABLED:false},"./engine":engine});
 const A="11111111-1111-4111-8111-111111111111",B="22222222-2222-4222-8222-222222222222";
 const C="33333333-3333-4333-8333-333333333333",D="44444444-4444-4444-8444-444444444444";
-function request(body){return new Request("https://test/api",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});}
-function handle(action,body,player=A){return api.handleFlappy(action,request(body),{access:async()=>"allowed",enabled:true,user:async()=>player,admin:()=>({rpc}),now:Date.now});}
+function request(body){return new Request("https://test/api",{method:"POST",headers:{"Content-Type":"application/json",Origin:"https://test"},body:JSON.stringify(body)});}
+async function handle(action,body,player=A){
+  // Production START requires a one-time preflight nonce bound to a successful
+  // server-side Turnstile verification. The isolated test supplies the same
+  // shape through dependency injection; no production verification is bypassed.
+  let payload=body;
+  if(action==="start"&&Object.keys(body).length===0){
+    const preflight=await rpc("flappy_create_preflight",{p_player:player});
+    if(preflight.error||!preflight.data?.nonce)throw Error("test preflight unavailable");
+    payload={token:"test-turnstile-token",nonce:preflight.data.nonce};
+  }
+  return api.handleFlappy(action,request(payload),{access:async()=>"allowed",enabled:true,user:async()=>player,admin:()=>({rpc}),now:Date.now,verify:async()=>({status:"verified"}),configuration:()=>({siteKey:"test-site-key"})});
+}
 let checks=0;function pass(name){checks++;console.log("PASS "+name);}
 sql("create database "+db,"postgres");
 try{
@@ -115,6 +126,15 @@ try{
  fixture(A,1,"2026-10-20");board=(await rpc("flappy_read_ranking",{p_week:"2026-10-19",p_page:1})).data;
  assert.equal(board.entries[0].username,"Gamma"); // 36 total, best individual 36 > 8.
  assert.equal(board.entries[1].username,"Alpha");assert.equal(board.entries[1].weeklyTotal,36);
+ // Every verified result counts until seven higher-or-equal results displace it.
+ // A score of one is not a special case and must never be silently excluded.
+ for(let i=0;i<8;i++)fixture(D,1,"2026-10-21");
+ assert.equal(sql("select weekly_total from private.flappy_standings('2026-10-19') where player_id="+lit(D)),"7");
+ assert.equal(sql("select scores::text from private.flappy_standings('2026-10-19') where player_id="+lit(D)),"{1,1,1,1,1,1,1}");
+ fixture(D,2,"2026-10-21");
+ assert.equal(sql("select weekly_total from private.flappy_standings('2026-10-19') where player_id="+lit(D)),"8");
+ assert.equal(sql("select scores::text from private.flappy_standings('2026-10-19') where player_id="+lit(D)),"{2,1,1,1,1,1,1}");
+ pass("every verified score, including one, counts until the daily Top 7 displaces it");
  fixture(D,500,"2026-10-26");
  assert.ok(!(await rpc("flappy_read_ranking",{p_week:"2026-10-19",p_page:1})).data.entries.some(e=>e.username==="Delta"));
  assert.equal(sql("select (timestamptz '2026-10-19 03:59:59+00' at time zone 'America/New_York')::date"),"2026-10-18");
