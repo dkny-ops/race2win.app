@@ -2669,3 +2669,9 @@ body:has(.rtw-game-page--desert)::before {
   filter: grayscale(1) sepia(.88) saturate(2.4) hue-rotate(-13deg) brightness(1.14)
     drop-shadow(0 0 13px rgba(227, 99, 40, .30));
 }
+
+/* Keep the tournament launch notice clear of the absolutely positioned Home navigation. */
+body:has(.home-games-hero) .home-launch-notice{position:relative;z-index:1}
+@media(max-width:980px){
+ body:has(.home-games-hero) .home-launch-notice{margin-top:86px !important}
+}
