@@ -313,9 +313,13 @@ export function FlappyVerifiedCanvas({ language, authenticated, scoreControls, p
       if (busy.current || !official.current) { fail(); return; }
       busy.current = true; setStatus("validating");
       try {
-        const verified = await finalizeFlappyOfficial(official.current, engine.current, inputs.current);
+        await finalizeFlappyOfficial(official.current, engine.current, inputs.current);
         const challenge = await prepareFlappyFinalProof(official.current.sessionId);
-        if (mounted.current) { setResult(verified); setFinalProofToken(null); setFinalProof(challenge); }
+        // The replay is stored first, but it is not publishable until the
+        // independent, session-bound final human proof succeeds. Do not set
+        // `result` yet: that would make the proof effect treat the run as
+        // complete and leave every short score under review.
+        if (mounted.current) { setFinalProofToken(null); setFinalProof(challenge); }
       } catch { fail(); }
       finally { busy.current = false; }
     }
