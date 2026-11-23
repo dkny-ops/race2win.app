@@ -20,15 +20,20 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
   const offset = (day.getUTCDay() + 6) % 7;
   day.setUTCDate(day.getUTCDate() - offset);
   const week = day.toISOString().slice(0, 10);
-  const [enabledResponse, rankingResponse, weeklyResponse] = db ? await Promise.all([
+  const previousMonday = new Date(day);
+  previousMonday.setUTCDate(previousMonday.getUTCDate() - 7);
+  const previousWeek = previousMonday.toISOString().slice(0, 10);
+  const [enabledResponse, rankingResponse, weeklyResponse, previousResponse] = db ? await Promise.all([
     db.rpc("jr_competition_enabled"),
     db.rpc("jr_weekly_leaderboard", { p_week: week, p_page: page }),
     context ? db.rpc("jr_personal_weekly_score", { p_player_id: context.userId }) : Promise.resolve({ data: null, error: null }),
-  ]) : [{ data: false, error: null }, { data: null, error: true }, { data: null, error: true }];
+    db.rpc("jr_weekly_leaderboard", { p_week: previousWeek, p_page: 1 }),
+  ]) : [{ data: false, error: null }, { data: null, error: true }, { data: null, error: true }, { data: null, error: true }];
   const enabled = enabledResponse.data === true;
   const rankings = (rankingResponse.data?.entries ?? []) as Ranking[];
   const hasNextPage = rankingResponse.data?.hasNextPage === true;
   const weekly = (weeklyResponse.data ?? []) as Weekly[];
+  const previousRankings = ((previousResponse.data?.entries ?? []) as Ranking[]).filter((r) => r.rank !== null && r.rank >= 1 && r.rank <= 3 && !r.reviewRequired && Number.isSafeInteger(r.weeklyTotal) && r.weeklyTotal >= 0);
   const unavailable = Boolean(rankingResponse.error || enabledResponse.error);
   return <section className="page-section scores-page jumping-scores-page"><div className="shell">
     <Link href="/games/jumping-race" className="button button--secondary" style={{ marginBottom: "1.25rem" }}>← BACK TO JUMPING RACE</Link>
@@ -49,6 +54,19 @@ export default async function JumpingRaceScoresPage({ searchParams }: { searchPa
         <span>PAGE {page}</span>
         {hasNextPage ? <Link className="button button--secondary" href={"?page=" + (page + 1)}>NEXT</Link> : <span>NEXT</span>}
       </div>
+    </section>
+    <section id="last-week-winners" className="scores-panel scores-ranking-panel" aria-label="Last week winners" style={{ marginTop: 24 }}>
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div><p className="eyebrow">PREVIOUS WEEK · NEW YORK TIME</p><h2>LAST WEEK WINNERS</h2></div></div>
+      <p className="scores-ranking-subtitle">WEEK OF {previousWeek} · TEST RESULTS · NO PRIZES</p>
+      {previousResponse.error ? <p role="status" className="scores-message">Previous week results temporarily unavailable.</p>
+        : previousRankings.length === 0 ? <p className="scores-message">No verified scores for last week.</p>
+        : <div className="scores-table scores-ranking-table scores-table--leaderboard jumping-scores-table" role="table" aria-label="Jumping Race previous week top three">
+          <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
+          {previousRankings.map((entry) => <div className={`scores-table__row ranking-row ranking-row--${entry.rank}`} role="row" key={entry.rank}>
+            <strong role="cell" className="scores-rank-position"><span className="ranking-medal" aria-hidden="true">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
+            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString("en-US")}</strong>
+          </div>)}
+        </div>}
     </section>
     {signedIn && <section id="weekly" className="scores-panel" style={{ marginTop: 24 }}>
       <h2>PERSONAL SCORE</h2>
