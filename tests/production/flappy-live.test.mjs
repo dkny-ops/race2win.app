@@ -19,9 +19,13 @@ test("live unauthenticated START/CHECKPOINT/FINALIZE and raw score POST never wr
  for(const response of results){assert.equal(response.status,401);assert.equal((await response.json()).code,"unauthenticated");}
  assert.equal((await post("/api/flappy-race/leaderboard")).status,403);
 });
-test("retired Flappy owner review/closure routes stay unavailable for every origin",async()=>{
+test("Flappy owner review and closure routes conceal unauthenticated access and reject cross-origin requests",async()=>{
  for(const route of ["/api/admin/flappy-race/review","/api/admin/flappy-race/close-week"]){
-  assert.equal((await post(route)).status,404);assert.equal((await post(route,"https://invalid.example")).status,404);
+  assert.equal((await post(route)).status,404);
+  // During a safe rolling deployment the previous 404 and the new explicit 403
+  // are both fail-closed for a hostile origin. The deployed route must never
+  // accept a cross-origin owner mutation.
+  assert.ok([403,404].includes((await post(route,"https://invalid.example")).status));
  }
  assert.equal((await get("/admin/prize-review/flappy-race")).status,404);
 });
