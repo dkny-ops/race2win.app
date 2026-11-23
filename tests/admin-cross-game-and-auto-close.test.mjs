@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const migration = readFileSync(new URL("../supabase/migrations/20261123120000_auto_close_jumping_race_prize_period.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/migrations/20261123160257_auto_close_jumping_race_prize_period.sql", import.meta.url), "utf8");
 const links = readFileSync(new URL("../components/game/other-game-admin-links.tsx", import.meta.url), "utf8");
 
 test("Jumping automatic closure freezes only the immediately previous NY week and never enables payments", () => {
