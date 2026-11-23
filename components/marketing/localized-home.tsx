@@ -59,6 +59,10 @@ export function LocalizedHome({ username, authenticated, owner, playHref }: Prop
         </div>
         <div className="home-games-content shell">
           <div className="home-games-logo-banner"><Image src="/images/%20%20%20%20race-to-win-logo-banner.webp..PNG" alt="Race To Win" width={1536} height={512} unoptimized priority sizes="(max-width: 760px) calc(100vw - 3rem), 1120px" /></div>
+          <aside role="status" aria-label={language === "es" ? "Aviso de lanzamiento oficial" : "Official launch notice"} style={{maxWidth:"1100px",margin:"0 auto 22px",padding:"18px 22px",border:"2px solid #f3c766",borderRadius:"14px",background:"rgba(13,17,31,.94)",color:"#fff",textAlign:"center",boxShadow:"0 8px 30px rgba(0,0,0,.3)"}}>
+            <p style={{margin:"0 0 8px",fontWeight:900,fontSize:"clamp(1rem,2.7vw,1.45rem)",letterSpacing:".035em",color:"#f3c766"}}>{language === "es" ? "LANZAMIENTO OFICIAL DE TORNEOS — 30 DE NOVIEMBRE DE 2026" : "OFFICIAL TOURNAMENT LAUNCH — NOVEMBER 30, 2026"}</p>
+            <p style={{margin:0,fontSize:"clamp(.85rem,1.8vw,1rem)",lineHeight:1.5}}>{language === "es" ? "Race To Win, Flappy Race y Jumping Race están en fase de pruebas. Los torneos oficiales y las competencias con premios comienzan el 30 de noviembre. Las puntuaciones anteriores al lanzamiento no califican para premios." : "Race To Win, Flappy Race, and Jumping Race are in pre-launch testing. Official tournaments and prize competitions begin November 30. Scores earned before launch do not qualify for prizes."}</p>
+          </aside>
           {username ? <Link className="home-player-banner" href={ROUTES.profile} aria-label={`${t.profile}: ${username}`}>{username}</Link> : null}
           <div className="home-games-grid">
             <div className="home-game-entry">
