@@ -49,6 +49,17 @@ export default async function FlappyReviewPage() {
   const profiles = ids.length ? await admin.from("profiles").select("user_id,username").in("user_id",ids) : {data:[],error:null};
   const names = new Map((profiles.data??[]).map(x=>[x.user_id,x.username||x.user_id.slice(0,8)]));
   const name=(id:string)=>names.get(id)||id.slice(0,8);
+  const liveRankingResult = await admin.rpc("flappy_read_ranking", { p_week: previousWeek, p_page: 1 });
+  const liveEntries = liveRankingResult.error || !liveRankingResult.data || typeof liveRankingResult.data !== "object" || Array.isArray(liveRankingResult.data) || !Array.isArray((liveRankingResult.data as { entries?: unknown }).entries)
+    ? [] : (liveRankingResult.data as { entries: unknown[] }).entries.filter((entry): entry is { rank: number | null; username: string; weeklyTotal: number; reviewRequired: boolean } => !!entry && typeof entry === "object" && typeof (entry as { username?: unknown }).username === "string" && typeof (entry as { weeklyTotal?: unknown }).weeklyTotal === "number" && (typeof (entry as { rank?: unknown }).rank === "number" || (entry as { rank?: unknown }).rank === null));
+  const liveNames = liveEntries.filter(entry => typeof entry.rank === "number" && entry.rank >= 1 && entry.rank <= 3).map(entry => entry.username);
+  const liveProfilesResult = liveNames.length ? await admin.from("profiles").select("user_id,username").in("username", liveNames) : { data: [], error: null };
+  const liveProfiles = new Map((liveProfilesResult.data ?? []).filter(profile => profile.username).map(profile => [profile.username as string, profile.user_id]));
+  const provisional = candidates.length === 0 ? liveEntries.filter(entry => typeof entry.rank === "number" && entry.rank >= 1 && entry.rank <= 3).map(entry => ({ ...entry, playerId: liveProfiles.get(entry.username) ?? null })) : [];
+  const provisionalIds = provisional.flatMap(entry => entry.playerId ? [entry.playerId] : []);
+  const provisionalFlagsResult = provisionalIds.length ? await admin.from("fraud_flags").select("player_id").eq("game_id", gameId).in("player_id", provisionalIds).in("status", ["open", "under_review", "confirmed"]) : { data: [], error: null };
+  const provisionalFlagCounts = new Map<string, number>();
+  for (const flag of provisionalFlagsResult.data ?? []) provisionalFlagCounts.set(flag.player_id, (provisionalFlagCounts.get(flag.player_id) ?? 0) + 1);
   const card={border:"1px solid #405469",borderRadius:14,padding:"1rem",marginBottom:".75rem",overflowWrap:"anywhere" as const};
   return <main className="page-section shell narrow flappy-admin-review">
     <h1 className="flappy-admin-page-title">PANEL DE REVISIÓN SEMANAL</h1>
@@ -60,7 +71,17 @@ export default async function FlappyReviewPage() {
     <p>Ganadores de la semana del {previousWeek}. Solo se muestran los primeros tres puestos; premios sujetos a revisión humana.</p>
     <FlappyWeekCloseControl week={previousWeek} />
     <p style={{ fontSize: ".9rem", opacity: .8 }}>El cierre congela únicamente la clasificación del período. No acredita balances ni ejecuta pagos; después abre los expedientes de los tres candidatos para revisión manual.</p>
-    {candidates.length===0 ? <p>No hay candidatos clasificados para esta semana.</p> : candidates.map(t=>{
+    {candidates.length===0 ? <><h2>CLASIFICACIÓN PROVISIONAL DE LA SEMANA</h2><p>Estos son los tres primeros del ranking verificado. Las acciones de premio permanecen bloqueadas hasta que todos los resultados pendientes se revisen y la semana se cierre formalmente.</p>{provisional.length === 0 ? <p>No hay resultados verificables para esta semana.</p> : provisional.map(t => <article className="profile-card" key={t.username} style={{padding:"1.25rem",marginBottom:"1rem",border:"1px solid rgba(110,255,173,.3)",borderRadius:14}}>
+      <h2 style={{fontSize:"clamp(1.4rem,5vw,2.3rem)"}}>#{t.rank} · {t.username}</h2>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:".75rem"}}>
+        <div style={card}><small>TOTAL SEMANAL</small><h3>{t.weeklyTotal.toLocaleString("en-US")}</h3></div>
+        <div style={card}><small>PREMIO PROVISIONAL</small><h3>{t.rank===1?"$5.00":t.rank===2?"$3.00":"$2.00"}</h3></div>
+        <div style={card}><small>ALERTAS ABIERTAS</small><h3>{t.playerId ? provisionalFlagCounts.get(t.playerId) ?? 0 : "—"}</h3></div>
+        <div style={card}><small>ESTADO</small><h3>{t.reviewRequired?"EMPATE · REVISIÓN":"PENDIENTE DE CIERRE"}</h3></div>
+      </div>
+      {t.playerId ? <><BalanceHistory playerId={t.playerId} /><CompetitionIdentityEvidence actor={auth.context.userId} player={t.playerId} week={previousWeek} /></> : <p>La identidad del jugador no pudo cargarse; no se habilitan acciones administrativas.</p>}
+      <p>La evidencia detallada, código de verificación, crédito y pago se habilitarán solo después del cierre seguro del período.</p>
+    </article>)}</> : candidates.map(t=>{
       const prize=(winners.data??[]).find(x=>x.player_id===t.playerId&&x.award_type==="weekly_tournament");
       const alerts=(flags.data??[]).filter(x=>x.player_id===t.playerId);
       const top=(daily.data??[]).filter(x=>x.player_id===t.playerId);

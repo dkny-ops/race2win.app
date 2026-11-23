@@ -89,16 +89,23 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
 
   const review: Review = reviewResult.data;
   const ranking: Ranking["entries"] = rankingResult.data.entries;
-  const candidateIds = review.candidates.map(candidate => candidate.player_id);
+  const provisional = review.candidates.length === 0
+    ? ranking.filter(entry => typeof entry.rank === "number" && entry.rank >= 1 && entry.rank <= 3).map(entry => ({
+      ...entry, player: review.players.find(player => player.username === entry.username) ?? null,
+    })) : [];
+  const candidateIds = [...review.candidates.map(candidate => candidate.player_id), ...provisional.flatMap(entry => entry.player ? [entry.player.user_id] : [])];
   const gameResult = await auth.admin.from("games").select("id").eq("slug", "jumping-race").maybeSingle();
   if (gameResult.error || !gameResult.data) throw new Error("Jumping Race no está disponible.");
-  const [balancesResult, winnersResult] = candidateIds.length ? await Promise.all([
+  const [balancesResult, winnersResult, flagsResult] = candidateIds.length ? await Promise.all([
     auth.admin.from("prize_balances").select("player_id,available_cents").in("player_id", candidateIds),
     auth.admin.from("provisional_winners").select("id,player_id,status,allocation_status").eq("game_id", gameResult.data.id).eq("tournament_week_start", week).eq("award_type", "weekly_tournament"),
-  ]) : [{ data: [], error: null }, { data: [], error: null }];
-  if (balancesResult.error || winnersResult.error) throw new Error("No se pudo consultar el estado financiero.");
+    auth.admin.from("fraud_flags").select("player_id").eq("game_id", gameResult.data.id).in("player_id", candidateIds).in("status", ["open", "under_review", "confirmed"]),
+  ]) : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
+  if (balancesResult.error || winnersResult.error || flagsResult.error) throw new Error("No se pudo consultar el estado financiero.");
   const balances = new Map((balancesResult.data ?? []).map(row => [row.player_id, row.available_cents]));
   const winners = new Map(((winnersResult.data ?? []) as Winner[]).map(row => [row.player_id, row]));
+  const flagCounts = new Map<string, number>();
+  for (const flag of flagsResult.data ?? []) flagCounts.set(flag.player_id, (flagCounts.get(flag.player_id) ?? 0) + 1);
   const canClose = review.enabled && !review.frozen && review.inauguralWeek &&
     week >= review.inauguralWeek && week < currentNewYorkTournamentWeek();
   const playerLink = (id: string) => `${panel}?${new URLSearchParams({ week, q: search, player: id })}#jugador`;
@@ -122,7 +129,17 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
       {!review.enabled && <JumpingPrizeControls enabled={false} week={week} />}
       {canClose && <ReviewControls key={week} week={week} />}
       {review.ties > 0 && <p>Jugadores con empate exacto pendientes de revisión: {review.ties}.</p>}
-      {review.candidates.length === 0 && <p>No hay candidatos de premios para esta semana.</p>}
+      {review.candidates.length === 0 && <><h2>CLASIFICACIÓN PROVISIONAL DE LA SEMANA</h2><p>Estos son los tres primeros del ranking verificado. No son premios ni se pueden acreditar hasta que el programa esté activo desde el período correspondiente y la semana se cierre de forma segura.</p>
+        {provisional.length === 0 ? <p>No hay candidatos de premios para esta semana.</p> : provisional.map(entry => <article className="profile-card" key={entry.username} style={{ ...cardStyle, border: "1px solid rgba(110,255,173,.3)", borderRadius: 14 }}>
+          <h2 style={{ fontSize: "clamp(1.4rem,5vw,2.3rem)" }}>#{entry.rank} · {entry.username}</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: ".75rem" }}>
+            <div className="profile-card" style={cardStyle}><small>TOTAL SEMANAL</small><h3>{entry.weeklyTotal.toLocaleString("en-US")}</h3></div>
+            <div className="profile-card" style={cardStyle}><small>PREMIO PROVISIONAL</small><h3>{entry.rank === 1 ? "$5.00" : entry.rank === 2 ? "$3.00" : "$2.00"}</h3></div>
+            <div className="profile-card" style={cardStyle}><small>ALERTAS ABIERTAS</small><h3>{entry.player ? flagCounts.get(entry.player.user_id) ?? 0 : "—"}</h3></div>
+            <div className="profile-card" style={cardStyle}><small>ESTADO</small><h3>{entry.reviewRequired ? "EMPATE · REVISIÓN" : "PENDIENTE DE ELEGIBILIDAD"}</h3></div>
+          </div>
+          {entry.player ? <><BalanceHistory playerId={entry.player.user_id} /><CompetitionIdentityEvidence actor={auth.context.userId} player={entry.player.user_id} week={week} /><Link href={playerLink(entry.player.user_id)}>VER PARTIDAS Y EVIDENCIA →</Link></> : <p>No se habilitan acciones: no se encontró una identidad única para esta clasificación.</p>}
+        </article>)}</>}
       {review.candidates.map(candidate => <article className="profile-card" key={candidate.player_id} style={{ ...cardStyle, border: "1px solid rgba(110,255,173,.3)", borderRadius: 14 }}>
         <h2 style={{ fontSize: "clamp(1.4rem,5vw,2.3rem)" }}>#{candidate.effective_rank} · {candidate.username}</h2>
         <p>ID de jugador: {candidate.player_id.slice(0,8)}</p>
