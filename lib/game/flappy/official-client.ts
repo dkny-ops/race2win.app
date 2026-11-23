@@ -4,6 +4,7 @@ import { parseFlappyAvailability, type FlappyAvailability } from "./availability
 import type { FlappyCheckConfiguration } from "./invisible-verification";
 export type FlappySession = { sessionId: string; seed: number; version: string; startsAt: string; serverNow: string; expiresAt: string; turnstile?: FlappyCheckConfiguration };
 export type FlappyPreflight = { nonce: string; expiresAt: string; siteKey: string };
+export type FlappyFinalProof = { nonce: string; expiresAt: string; siteKey: string };
 export type FlappyResult = { score: number; collisionTick: number; eligibility: "valid" | "under_review"; verification: "replay_verified" };
 export class FlappyOfficialError extends Error {
  constructor(public code: string) { super("Official FlappyRace request unavailable."); }
@@ -17,7 +18,7 @@ async function request(url: string, body?: unknown) {
   }); } catch { throw new FlappyOfficialError("connection_error"); }
   if (!response.ok) {
     let code = "service_unavailable";
-    try { const error = await response.json(); if (["verified_email_required","identity_conflict","unauthenticated","terms_required","review_required","rate_limited","start_rejected","verification_unavailable","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED","evidence_conflict","checkpoint_conflict","replay_rejected","finalize_conflict","future_input","expired"].includes(error.code)) code = error.code; } catch {}
+    try { const error = await response.json(); if (["verified_email_required","identity_conflict","unauthenticated","terms_required","review_required","rate_limited","start_rejected","verification_unavailable","attempts_exhausted","session_active","FLAPPY_OFFICIAL_DISABLED","evidence_conflict","checkpoint_conflict","replay_rejected","finalize_conflict","future_input","expired","challenge_unavailable"].includes(error.code)) code = error.code; } catch {}
     throw new FlappyOfficialError(code);
   }
   return response.json();
@@ -46,6 +47,18 @@ export async function checkpointFlappyOfficial(session: FlappySession, state: Fl
 }
 export async function finalizeFlappyOfficial(session: FlappySession, state: FlappyState, inputs: number[]): Promise<FlappyResult> {
   const result = await post("finalize", { sessionId: session.sessionId, throughTick: state.tick, inputs }) as FlappyResult;
+  if (result.verification !== "replay_verified" || !["valid", "under_review"].includes(result.eligibility) ||
+      !Number.isSafeInteger(result.score) || result.score < 0) throw new Error("Invalid official outcome");
+  return result;
+}
+export async function prepareFlappyFinalProof(sessionId: string): Promise<FlappyFinalProof> {
+  const challenge = await post("final-proof", { sessionId }) as FlappyFinalProof;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(challenge.nonce) ||
+      typeof challenge.siteKey !== "string" || !challenge.siteKey || !Number.isFinite(Date.parse(challenge.expiresAt))) throw new Error("Invalid final verification configuration");
+  return challenge;
+}
+export async function completeFlappyFinalProof(sessionId: string, nonce: string, token: string): Promise<FlappyResult> {
+  const result = await post("final-proof", { sessionId, nonce, token }) as FlappyResult;
   if (result.verification !== "replay_verified" || !["valid", "under_review"].includes(result.eligibility) ||
       !Number.isSafeInteger(result.score) || result.score < 0) throw new Error("Invalid official outcome");
   return result;

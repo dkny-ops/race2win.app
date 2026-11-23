@@ -132,3 +132,34 @@ export async function handleFlappyPreflight(request: Request, deps: Deps = defau
     return NextResponse.json({ ...data, siteKey: configuration.siteKey }, { headers });
   } catch { return reject("start", 503, "verification_unavailable"); }
 }
+
+/** Runs after collision, never during the Canvas animation loop. */
+export async function handleFlappyFinalProof(request: Request, deps: Deps = defaults) {
+  try {
+    const origin = request.headers.get("origin");
+    if (!origin || origin !== new URL(request.url).origin || request.headers.get("sec-fetch-site") === "cross-site") return reject("finalize", 403, "origin");
+    const player = await deps.user();
+    if (!player) return reject("finalize", 401, "unauthenticated");
+    if (!deps.enabled) return reject("finalize", 403, "FLAPPY_OFFICIAL_DISABLED");
+    if (await deps.access(player) !== "allowed") return reject("finalize", 403, "review_required");
+    const configuration = deps.configuration?.("midrun_human_check");
+    if (!configuration) return reject("finalize", 503, "verification_unavailable");
+    const body = await readBoundedJson(request, 4096);
+    if (!body || typeof body !== "object" || Array.isArray(body)) return reject("finalize", 400, "invalid_body");
+    const value = body as Record<string, unknown>;
+    const submitting = Object.hasOwn(value, "token");
+    if (Object.keys(value).length !== (submitting ? 3 : 1) || typeof value.sessionId !== "string" || !UUID.test(value.sessionId) ||
+      (submitting && (typeof value.nonce !== "string" || !UUID.test(value.nonce) || typeof value.token !== "string" || value.token.length < 1 || value.token.length > 2048))) return reject("finalize", 400, "invalid_body");
+    const admin = deps.admin();
+    if (!submitting) {
+      const { data, error } = await admin.rpc("flappy_create_final_check", { p_player: player, p_session: value.sessionId });
+      if (error || !data || typeof data.nonce !== "string" || !UUID.test(data.nonce) || typeof data.expiresAt !== "string") return reject("finalize", 409, "challenge_unavailable");
+      return NextResponse.json({ ...data, siteKey: configuration.siteKey }, { headers });
+    }
+    const verified = await deps.verify?.(value.token, "midrun_human_check", { expectedCdata: value.nonce as string });
+    if (verified?.status !== "verified") return reject("finalize", verified?.status === "unavailable" ? 503 : 403, "verification_unavailable");
+    const { data, error } = await admin.rpc("flappy_verify_final_check", { p_player: player, p_session: value.sessionId, p_nonce: value.nonce });
+    if (error || !data) return reject("finalize", 409, "challenge_unavailable");
+    return NextResponse.json(data, { headers });
+  } catch { return reject("finalize", 503, "verification_unavailable"); }
+}

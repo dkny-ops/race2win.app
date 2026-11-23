@@ -14,6 +14,7 @@ function load(path, imports = {}, turnstile = null) {
 const e=load("lib/game/flappy/engine.ts");
 const diagnostics=load("lib/game/flappy/performance-diagnostics.ts");
 const legacyStartRevocation=readFileSync(new URL("../supabase/migrations/20261123014958_revoke_legacy_flappy_start.sql",import.meta.url),"utf8");
+const finalHumanProof=readFileSync(new URL("../supabase/migrations/20261123021029_flappy_final_human_proof.sql",import.meta.url),"utf8");
 export {load,e};
 test("Flappy fixed-step replay is bit-identical and collision is authoritative",()=>{
   const a=e.replayFlappy(123,[],100);
@@ -50,6 +51,13 @@ test("official Flappy sessions receive a fresh server-generated course seed",()=
 test("legacy Flappy START cannot bypass the server-bound human preflight",()=>{
   assert.match(legacyStartRevocation,/revoke all on function public\.flappy_start\(uuid,bigint,text\) from public,anon,authenticated,service_role/i);
   assert.doesNotMatch(legacyStartRevocation,/grant execute/i);
+});
+test("Flappy final human proof is session-bound and never grants browser RPC access",()=>{
+  assert.match(finalHumanProof,/create table if not exists private\.flappy_final_checks/i);
+  assert.match(finalHumanProof,/revoke all on table private\.flappy_final_checks from public, anon, authenticated, service_role/i);
+  assert.match(finalHumanProof,/revoke all on function public\.flappy_create_final_check\(uuid,uuid\) from public,\s*anon,\s*authenticated,\s*service_role/i);
+  assert.match(finalHumanProof,/grant execute on function public\.flappy_create_final_check\(uuid,uuid\),public\.flappy_verify_final_check\(uuid,uuid,uuid\) to service_role/i);
+  assert.match(finalHumanProof,/new\.eligibility:='under_review'/i);
 });
 test("oversize, reordered, fractional, impossible and post-collision inputs are rejected",()=>{
   for(const [inputs,tick] of [[[2,1],10],[[0,1],10],[[0,4.2],10],[[-1],10],[[10],10],[[],0],[[],36001],[Array(6001).fill(1),100]])assert.equal(e.parseFlaps(inputs,tick),null);
