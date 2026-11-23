@@ -6,6 +6,8 @@ import { parseFlappyWeek, previousFlappyWeek } from "@/lib/game/flappy/tournamen
 import { getAuthorizedPrizeAdmin } from "@/lib/security/prize-admin";
 import { BalanceHistory } from "../balance-history";
 import { ReviewControls } from "./review-controls";
+import { JumpingPrizeControls } from "@/components/game/jumping-prize-controls";
+import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin · Jumping Race", robots: { index: false, follow: false } };
@@ -40,6 +42,7 @@ type Review = {
 type Ranking = {
   entries: { username: string; rank: number | null; weeklyTotal: number; reviewRequired: boolean }[];
 };
+type Winner = { id: string; player_id: string; status: string; allocation_status: string };
 
 function RunEvidence({ run }: { run: Run }) {
   return <details>
@@ -86,6 +89,16 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
 
   const review: Review = reviewResult.data;
   const ranking: Ranking["entries"] = rankingResult.data.entries;
+  const candidateIds = review.candidates.map(candidate => candidate.player_id);
+  const gameResult = await auth.admin.from("games").select("id").eq("slug", "jumping-race").maybeSingle();
+  if (gameResult.error || !gameResult.data) throw new Error("Jumping Race no está disponible.");
+  const [balancesResult, winnersResult] = candidateIds.length ? await Promise.all([
+    auth.admin.from("prize_balances").select("player_id,available_cents").in("player_id", candidateIds),
+    auth.admin.from("provisional_winners").select("id,player_id,status,allocation_status").eq("game_id", gameResult.data.id).eq("tournament_week_start", week).eq("award_type", "weekly_tournament"),
+  ]) : [{ data: [], error: null }, { data: [], error: null }];
+  if (balancesResult.error || winnersResult.error) throw new Error("No se pudo consultar el estado financiero.");
+  const balances = new Map((balancesResult.data ?? []).map(row => [row.player_id, row.available_cents]));
+  const winners = new Map(((winnersResult.data ?? []) as Winner[]).map(row => [row.player_id, row]));
   const canClose = review.enabled && !review.frozen && review.inauguralWeek &&
     week >= review.inauguralWeek && week < currentNewYorkTournamentWeek();
   const playerLink = (id: string) => `${panel}?${new URLSearchParams({ week, q: search, player: id })}#jugador`;
@@ -106,6 +119,7 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
     <section>
       <h2>Expedientes de premios</h2>
       <p>{review.enabled ? (review.frozen ? "Clasificación de premios congelada." : "Semana sin clasificación de premios congelada.") : "Programa de premios desactivado."}</p>
+      {!review.enabled && <JumpingPrizeControls enabled={false} week={week} />}
       {canClose && <ReviewControls key={week} week={week} />}
       {review.ties > 0 && <p>Jugadores con empate exacto pendientes de revisión: {review.ties}.</p>}
       {review.candidates.length === 0 && <p>No hay candidatos de premios para esta semana.</p>}
@@ -119,11 +133,21 @@ export default async function JumpingRaceReviewPage({ searchParams }: {
         </div>
         <p>Estado del candidato: {states[candidate.state] ?? candidate.state}</p>
         <BalanceHistory playerId={candidate.player_id} />
+        <CompetitionIdentityEvidence actor={auth.context.userId} player={candidate.player_id} week={week} />
         <h3>VERIFICACIÓN Y PREMIOS</h3>
         <p>Estado: {states[candidate.state] ?? candidate.state}</p>
         <p>La revisión de Jumping Race utiliza decisiones auditadas. La verificación por correo y la acreditación financiera de Flappy Race no se aplican automáticamente a este juego.</p>
         {review.enabled && ["pending_review", "needs_additional_review"].includes(candidate.state) &&
           <ReviewControls key={candidate.player_id} week={week} playerId={candidate.player_id} />}
+        {review.enabled && <JumpingPrizeControls
+          enabled={true}
+          week={week}
+          playerId={candidate.player_id}
+          state={candidate.state}
+          balanceCents={balances.get(candidate.player_id) ?? 0}
+          winnerId={winners.get(candidate.player_id)?.id}
+          credited={winners.get(candidate.player_id)?.status === "approved_for_payment" && winners.get(candidate.player_id)?.allocation_status === "allocated"}
+        />}
         <details><summary>Historial de decisiones del expediente semanal</summary>
           {candidate.events.length ? candidate.events.map(event => <p key={event.id}>{date(event.created_at)} · {states[event.decision] ?? event.decision} · {event.note}</p>) : <p>Sin decisiones registradas.</p>}
         </details>

@@ -1,5 +1,7 @@
 import { BalanceHistory } from "../balance-history";
 import { FlappyPrizeControls } from "./prize-controls";
+import { FlappyWeekCloseControl } from "@/components/game/flappy-admin-controls";
+import { CompetitionIdentityEvidence } from "@/components/game/competition-identity-evidence";
 import { BlockPlayerControl } from "../block-player-control";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -56,6 +58,8 @@ export default async function FlappyReviewPage() {
       <Link href="/admin/prize-review/flappy-race/players" className="button button--primary">BUSCAR JUGADOR →</Link>
     </div>
     <p>Ganadores de la semana del {previousWeek}. Solo se muestran los primeros tres puestos; premios sujetos a revisión humana.</p>
+    <FlappyWeekCloseControl week={previousWeek} />
+    <p style={{ fontSize: ".9rem", opacity: .8 }}>El cierre congela únicamente la clasificación del período. No acredita balances ni ejecuta pagos; después abre los expedientes de los tres candidatos para revisión manual.</p>
     {candidates.length===0 ? <p>No hay candidatos clasificados para esta semana.</p> : candidates.map(t=>{
       const prize=(winners.data??[]).find(x=>x.player_id===t.playerId&&x.award_type==="weekly_tournament");
       const alerts=(flags.data??[]).filter(x=>x.player_id===t.playerId);
@@ -70,6 +74,7 @@ export default async function FlappyReviewPage() {
         </div>
         <p>Estado del candidato: {t.state==="pending_review"?"Pendiente de revisión":t.state==="approved"?"Aprobado":t.state==="rejected"?"Rechazado":"Revisión adicional"}</p>
         <BalanceHistory playerId={t.playerId} />
+        <CompetitionIdentityEvidence actor={auth.context.userId} player={t.playerId} week={previousWeek} />
         <FlappyPrizeControls playerId={t.playerId} week={previousWeek} status={prizeCaseStates.get(t.playerId)??"pending_review"} balanceCents={balances.get(t.playerId)??0} prizeCents={t.effectiveRank===1?500:t.effectiveRank===2?300:200} credited={prize?.status==="approved_for_payment"} winnerId={prize?.status==="approved_for_payment"?prize.id:undefined} />
         <BlockPlayerControl playerId={t.playerId} username={name(t.playerId)} />
         <details><summary>Historial de decisiones del expediente semanal</summary><p>Estado: {prize?.status??"Pendiente"}</p><p>Nota: {prize?.admin_note??"Sin observaciones"}</p></details>
