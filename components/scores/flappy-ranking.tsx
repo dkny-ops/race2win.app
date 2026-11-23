@@ -6,6 +6,8 @@ export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
   const [page, setPage] = useState(1);
   const [board, setBoard] = useState<FlappyRanking | null>(null);
   const [error, setError] = useState(false);
+  const [previous, setPrevious] = useState<{ tournamentWeek: string; entries: { rank: number; username: string; weeklyTotal: number }[] } | null>(null);
+  const [previousError, setPreviousError] = useState(false);
   const es = language === "es";
   useEffect(() => {
     let active = true, inFlight = false;
@@ -28,6 +30,21 @@ export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
     window.addEventListener("focus", focus);
     return () => { active = false; controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", focus); };
   }, [page]);
+  useEffect(() => {
+    let active = true;
+    async function loadPrevious() {
+      try {
+        const response = await fetch("/api/flappy-race/leaderboard/last-week", { cache: "no-store" });
+        if (!response.ok) throw new Error("Unavailable");
+        const result = await response.json();
+        if (!Array.isArray(result.entries) || typeof result.tournamentWeek !== "string") throw new Error("Invalid results");
+        if (active) { setPrevious(result); setPreviousError(false); }
+      } catch { if (active) setPreviousError(true); }
+    }
+    void loadPrevious();
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void loadPrevious(); }, 60_000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
   function changePage(next: number) { setBoard(null); setError(false); setPage(next); }
   return <section className="scores-page flappy-ranking" aria-labelledby="flappy-ranking-title">
     <div className="scores-panel scores-ranking-panel">
@@ -49,6 +66,23 @@ export function FlappyRankingTable({ language }: { language: "en" | "es" }) {
         <span aria-live="polite">{es ? "PÁGINA" : "PAGE"} {page}</span>
         <button className="button button--secondary" type="button" disabled={!board?.hasNextPage || page >= 100} onClick={() => changePage(page + 1)}>{es ? "SIGUIENTE" : "NEXT"}</button>
       </div>
+    </div>
+    <div className="scores-panel scores-ranking-panel" aria-label="Last week winners" style={{ marginTop: 24 }}>
+      <div className="scores-ranking-title"><span className="scores-ranking-symbol" aria-hidden="true">🏆</span><div>
+        <p className="eyebrow">{es ? "SEMANA ANTERIOR · HORA DE NUEVA YORK" : "PREVIOUS WEEK · NEW YORK TIME"}</p>
+        <h2>{es ? "GANADORES DE LA SEMANA PASADA" : "LAST WEEK WINNERS"}</h2>
+      </div></div>
+      <p className="scores-ranking-subtitle">{"WEEK OF " + (previous?.tournamentWeek ?? "LAST COMPLETED WEEK")} · {es ? "RESULTADOS DE PRUEBA · SIN PREMIOS" : "TEST RESULTS · NO PRIZES"}</p>
+      {previousError ? <p role="status" className="scores-message">{es ? "Resultados temporalmente no disponibles." : "Previous week results temporarily unavailable."}</p>
+        : !previous ? <p role="status" className="scores-message">{es ? "Cargando semana anterior…" : "Loading last week…"}</p>
+        : previous.entries.length === 0 ? <p className="scores-message">{es ? "No hay puntuaciones verificadas de la semana anterior." : "No verified scores for last week."}</p>
+        : <div className="scores-table scores-ranking-table scores-table--leaderboard" role="table" aria-label="Flappy Race previous week top three">
+          <div className="scores-table__header" role="row"><span role="columnheader">RANK</span><span role="columnheader">RACER</span><span role="columnheader">SCORE</span></div>
+          {previous.entries.map(entry => <div className={"scores-table__row ranking-row ranking-row--" + entry.rank} role="row" key={entry.rank}>
+            <strong role="cell" className="scores-rank-position"><span aria-hidden="true" className="ranking-medal">{entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}</span><span>#{entry.rank}</span></strong>
+            <span role="cell">{entry.username}</span><strong role="cell">{entry.weeklyTotal.toLocaleString(language)}</strong>
+          </div>)}
+        </div>}
     </div>
   </section>;
 }
