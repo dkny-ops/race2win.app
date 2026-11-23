@@ -15,6 +15,7 @@ const e=load("lib/game/flappy/engine.ts");
 const diagnostics=load("lib/game/flappy/performance-diagnostics.ts");
 const legacyStartRevocation=readFileSync(new URL("../supabase/migrations/20261123014958_revoke_legacy_flappy_start.sql",import.meta.url),"utf8");
 const finalHumanProof=readFileSync(new URL("../supabase/migrations/20261123021029_flappy_final_human_proof.sql",import.meta.url),"utf8");
+const finalProofMetadataFix=readFileSync(new URL("../supabase/migrations/20261123022124_fix_flappy_final_proof_review_metadata.sql",import.meta.url),"utf8");
 export {load,e};
 test("Flappy fixed-step replay is bit-identical and collision is authoritative",()=>{
   const a=e.replayFlappy(123,[],100);
@@ -58,6 +59,10 @@ test("Flappy final human proof is session-bound and never grants browser RPC acc
   assert.match(finalHumanProof,/revoke all on function public\.flappy_create_final_check\(uuid,uuid\) from public,\s*anon,\s*authenticated,\s*service_role/i);
   assert.match(finalHumanProof,/grant execute on function public\.flappy_create_final_check\(uuid,uuid\),public\.flappy_verify_final_check\(uuid,uuid,uuid\) to service_role/i);
   assert.match(finalHumanProof,/new\.eligibility:='under_review'/i);
+});
+test("held Flappy runs preserve the database review-metadata invariant",()=>{
+  assert.match(finalProofMetadataFix,/new\.eligibility:='under_review';\s*new\.review_note:=null/i);
+  assert.match(finalProofMetadataFix,/eligibility=case when v_perfect then 'under_review' else 'valid' end, verification='replay_verified', review_note=null/i);
 });
 test("oversize, reordered, fractional, impossible and post-collision inputs are rejected",()=>{
   for(const [inputs,tick] of [[[2,1],10],[[0,1],10],[[0,4.2],10],[[-1],10],[[10],10],[[],0],[[],36001],[Array(6001).fill(1),100]])assert.equal(e.parseFlaps(inputs,tick),null);
