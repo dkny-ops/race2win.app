@@ -54,6 +54,7 @@ test("Jumping Race requires an independent final human proof before an official 
   assert.match(game, /"\/api\/jumping-race\/finalize-challenge"/);
   assert.match(game, /"jumping_race_finalize"/);
   assert.doesNotMatch(game, /Checking final human verification/);
+  assert.doesNotMatch(game, /VERIFYING OFFICIAL SESSION/);
   assert.match(game, /Successful verification and review status are intentionally silent/);
   assert.match(game, /finishOfficial\(run\)\.finally\(returnToStart\)/);
 });
